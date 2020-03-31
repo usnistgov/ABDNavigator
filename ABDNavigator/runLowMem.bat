@@ -1,0 +1,1 @@
+java -Xmx1000m -cp bin;lib/* main.SampleNavigator

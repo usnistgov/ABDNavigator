@@ -1,0 +1,147 @@
+.root
+{
+	
+}
+
+
+#title
+{
+	-fx-text-fill: white;
+	-fx-font-size: 20px;
+	-fx-font-weight: bold;
+	-fx-effect: dropshadow( gaussian, rgba(55,55,55,0.75), 10,.7,0,0 ); 
+}
+
+.label
+{
+	-fx-background-color: transparent;
+    -fx-text-fill: black;
+	-fx-font-size: 14px;
+	-fx-effect: dropshadow( gaussian, rgba(255,255,255,0.75), 6,.7,0,0 ); 
+}
+
+.text-field {
+    -fx-background-color: rgba(1,1,1,0.0);
+    -fx-text-fill: white;
+    -fx-highlight-fill: white;
+    -fx-highlight-text-fill: gray;
+	-fx-font-size: 14px;
+	-fx-effect: dropshadow( gaussian, rgba(55,55,55,0.75), 6,.7,0,0 ); 
+}
+
+#editingTextField
+{
+    -fx-background-color: rgba(1,1,1,0.0);
+    -fx-text-fill: white;
+    -fx-highlight-fill: white;
+    -fx-highlight-text-fill: gray;
+	-fx-font-size: 14px;
+	-fx-effect: dropshadow( gaussian, rgba(120,90,20,0.75), 6,.7,0,0 ); 
+}
+
+
+.text-area {
+    -fx-background-color: transparent;
+    -fx-text-fill: black;
+	-fx-font-size: 14px;
+	-fx-highlight-fill: white;
+    -fx-highlight-text-fill: gray;
+	-fx-effect: dropshadow( gaussian, rgba(255,255,255,0.75), 6,.7,0,0 ); 
+}
+
+
+
+#editor
+{
+	-fx-background-color: transparent;
+	-fx-font-size: 18px;
+}
+
+
+.text-area .scroll-pane {
+    -fx-background-color: transparent;
+}
+
+.text-area .scroll-pane .viewport{
+    -fx-background-color: transparent;
+}
+
+
+.text-area .scroll-pane .content{
+    -fx-background-color: transparent;
+}
+
+.tree-view
+{
+	-fx-background-color: transparent;
+	
+}
+
+.tree-cell
+{
+	-fx-background-color: transparent;
+	-fx-alignment: baseline-left;
+	-fx-graphic-text-gap: 8;
+    -fx-text-fill: black;
+	-fx-font-size: 14px;
+	-fx-effect: dropshadow( gaussian, rgba(255,255,255,0.75), 6,.7,0,0 ); 
+}
+
+.tree-cell:selected
+{
+	-fx-background-color: transparent;
+	
+    -fx-text-fill: white;
+    
+	-fx-font-size: 14px;
+	-fx-effect: dropshadow( gaussian, rgba(55,55,55,0.75), 6,.7,0,0 ); 
+}
+
+.tree-cell:invisible
+{
+	-fx-background-color: transparent;
+	
+    -fx-text-fill: gray;
+	-fx-font-size: 14px;
+	-fx-effect: dropshadow( gaussian, rgba(55,55,55,0.75), 6,.7,0,0 ); 
+}
+
+#commentText
+{
+	-fx-font-size: 24px;
+	/*-fx-font-weight: bold;*/
+	
+	-fx-effect: dropshadow( gaussian, rgba(0,100,255,0.75), 6,.7,0,0 ); 
+	/*-fx-effect: innershadow( gaussian, rgba(0,255,255,0.75), 3,0,0,0);*/
+}
+
+#lineText
+{
+	-fx-font-size: 24px;
+	/*-fx-font-weight: bold;*/
+	
+	-fx-effect: dropshadow( gaussian, rgba(70,200,255,0.75), 6,.7,0,0 ); 
+	/*-fx-effect: innershadow( gaussian, rgba(0,255,255,0.75), 3,0,0,0);*/
+}
+
+
+
+.button 
+{
+    -fx-text-fill: rgb(255,255,255);
+    /* -fx-font-family: "Arial Narrow"; */
+    -fx-font-weight: bold;
+    -fx-background-color: transparent;
+    -fx-effect: dropshadow( gaussian, rgba(0,155,255,0.75), 10,.7,0,0 ); 
+}
+
+.button:hover 
+{
+    -fx-text-fill: gray;
+}
+
+.button:pressed
+{
+    -fx-text-fill: white;
+    -fx-effect: dropshadow( gaussian, rgba(255,0,0,0.75), 20,.7,0,0 ); 
+}

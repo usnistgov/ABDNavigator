@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<NavigationLayer ID="1" angle="0" scaleX="4" scaleY="4" transparency="0.0" visible="true" x="0" y="0">
+    <GDSLayer angle="0.0" img="ChipLayout_NOV_2018.merged.crosses.gds" scaleX="1.0" scaleY="-1.0" transparency="0.18666666666666665" visible="true" x="0.0" y="0.0"/>
+</NavigationLayer>
