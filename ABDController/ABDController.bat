@@ -1,0 +1,1 @@
+java -Xmx500m -cp bin;lib/* main.ABDController

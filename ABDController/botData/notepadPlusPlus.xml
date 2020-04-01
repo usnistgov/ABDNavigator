@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<ScreenListener originFile="botData/notepadPlusPlusOrigin.png">
+    <ControlBox height="9" isOriginBox="true" width="11" x="83" y="303"/>
+    <ControlBox height="13" name="newFile" width="9" x="87" y="345"/>
+    <ControlBox height="13" name="text" width="58" x="136" y="400"/>
+</ScreenListener>

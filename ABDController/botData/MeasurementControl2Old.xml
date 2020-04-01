@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<ScreenListener originFile="botData/MeasurementControlOrigin.png">
+    <ControlBox height="6" isOriginBox="true" name="" width="32" x="910" y="24"/>
+    <ControlBox height="6" name="Dual" width="6" x="953" y="63"/>
+    <ControlBox height="18" name="ForwardBackward" width="65" x="1022" y="59"/>
+    <ControlBox height="20" name="CopyTo" width="57" x="1100" y="56"/>
+    <ControlBox height="18" name="ExtraSettings" width="69" x="1176" y="58"/>
+    <ControlBox height="18" name="Polarity" width="23" x="1053" y="94"/>
+    <ControlBox height="19" name="GapVoltage" width="36" x="1097" y="95"/>
+    <ControlBox height="14" name="GapVoltageRange" width="34" x="1189" y="96"/>
+    <ControlBox height="11" name="GapVoltageEqual" width="8" x="1241" y="95"/>
+    <ControlBox height="13" name="FeedbackSet" width="36" x="1049" y="152"/>
+    <ControlBox height="15" name="FeedbackSetRange" width="28" x="1188" y="150"/>
+    <ControlBox height="9" name="FeedbackEqual" width="6" x="1241" y="153"/>
+    <ControlBox height="16" name="LoopGain" width="33" x="1048" y="207"/>
+    <ControlBox height="11" name="ScanSpeed" width="44" x="1047" y="270"/>
+    <ControlBox height="13" name="ScanSpeedRange" width="61" x="1180" y="271"/>
+    <ControlBox height="305" name="zMeter" width="1" x="918" y="48"/>
+    <ControlBox height="19" name="FrameAngle" width="46" x="1169" y="390"/>
+    <ControlBox height="11" name="XPosition" width="45" x="1171" y="445"/>
+    <ControlBox height="13" name="YPosition" width="46" x="1171" y="479"/>
+    <ControlBox height="15" name="Width" width="44" x="1172" y="532"/>
+    <ControlBox height="13" name="Height" width="46" x="1171" y="565"/>
+    <ControlBox height="17" name="ConstSpeed" width="84" x="930" y="737"/>
+    <ControlBox height="8" name="MouseControl" width="5" x="1049" y="743"/>
+    <ControlBox height="20" name="Start" width="72" x="928" y="775"/>
+    <ControlBox height="19" name="StoreAll" width="73" x="1047" y="775"/>
+    <ControlBox height="22" name="Abort" width="67" x="1164" y="773"/>
+    <ControlBox height="18" name="Pause" width="61" x="932" y="806"/>
+    <ControlBox height="21" name="StoreFrame" width="80" x="1044" y="805"/>
+    <ControlBox height="20" name="Help" width="84" x="1157" y="804"/>
+    <ControlBox height="19" name="FrameMode" width="65" x="934" y="838"/>
+    <ControlBox height="19" name="ResetVSG" width="74" x="1048" y="839"/>
+    <ControlBox height="19" name="Close" width="70" x="1167" y="839"/>
+</ScreenListener>

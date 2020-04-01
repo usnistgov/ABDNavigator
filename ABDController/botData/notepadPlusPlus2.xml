@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<ScreenListener originFile="botData/npp.png">
+    <ControlBox height="7" isOriginBox="true" width="12" x="71" y="364"/>
+    <ControlBox height="12" name="new" width="11" x="73" y="402"/>
+    <ControlBox height="36" name="text" width="76" x="155" y="455"/>
+</ScreenListener>
