@@ -24,7 +24,7 @@ Scanning probe control and sample navigation for atom-based devices.
 ## 4. Contributing:
 
 ## 5. License:
-See LICENSE.md
+See [LICENSE.md](https://github.com/usnistgov/ABDNavigator/blob/master/LICENSE.md).
 
 ## 6. How to cite:
 DOI comming soon.
