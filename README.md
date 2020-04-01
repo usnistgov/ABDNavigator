@@ -1,17 +1,18 @@
-# **Project Name:** ABDNavigator
+# Project Name: ABDNavigator
 
-## **Project Description:**
+## Project Description:
+Scanning probe control and sample navigation for atom-based devices.
 
-## **Contents:**
+## Contents:
 1. Installation
 1. Udate (how to run ABDNavigator)
 1. Contributing
 1. License
 
-## **1. Installation:**
+## 1. Installation:
 
-## **2. Usage (how to run ABDNavigator):**
+## 2. Usage (how to run ABDNavigator):
 
-## **3. Contributing:**
+## 3. Contributing:
 
-## **4. License:**
+## 4. License:
