@@ -14,7 +14,7 @@ Scanning probe control and sample navigation for atom-based devices.
 1. How to cite
 
 ## 1. Installation:
-The two project components, ABDNavigator and ABDController, are provided as source and can be installed by compiling following the instructions in ABDNavigator/INSTALL.md and [ABDController/INSTALL.md](https://github.com/usnistgov/ABDNavigator/blob/master/ABDController/INSTALL.md), respectively.
+The two project components, ABDNavigator and ABDController, are provided as source and can be installed by compiling following the instructions in [ABDNavigator/INSTALL.md](https://github.com/usnistgov/ABDNavigator/blob/master/ABDNavigator/INSTALL.md) and [ABDController/INSTALL.md](https://github.com/usnistgov/ABDNavigator/blob/master/ABDController/INSTALL.md), respectively.
 
 ## 2. Usage (how to run ABDNavigator):
 
