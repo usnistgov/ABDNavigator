@@ -1,33 +1,26 @@
-# Project Name: ABDNavigator
-
-## Project Description:
+# ABDNavigator (Atom-Based Device Navigator)
 Scanning probe control and sample navigation for atom-based devices.
 
 ## Project Components:
-**ABDNavigator** is the navigation interface and is the primary interface seen by the end-user.  It is meant to be user friendly with a google-maps-like interface in which elements of the "map" such as images and labels are editable.
+**ABDNavigator** is the primary interface seen by the end-user.  It is meant to be user friendly with a google-maps-like interface in which elements of the "map" such as scanning probe images, optical images, lithographic designs, and labels are editable and can be overlayed and aligned with one another.
 
-**ABDController** is designed to communicate with a scanned probe controller, providing a means for the ABDNavigator to communicate with a scanning probe.  Currently an interface to the ScientaOmicron Matrix controller is implemented, though by design ABDController can be extended in a modular fashion to implement communication with other scanning probe controllers that provide sufficient APIs.  
+**ABDController** is designed to interface with a scanned probe controller, providing a means for the ABDNavigator to communicate with and control a scanning probe.  Currently an interface to the ScientaOmicron Matrix controller is implemented, though by design ABDController can be extended in a modular fashion to implement communication with other scanning probe controllers that provide sufficient APIs.  
 
 ## Contents:
-1. Installation (ABDNavigator)
-1. Installation (ABDController)
+1. Installation
 1. Usage (how to run ABDNavigator)
 1. Contributing
 1. License
 1. How to cite
 
-## 1. Installation (ABDNavigator):
-**ABDNavigator Dependencies:** 
+## 1. Installation:
 
-## 2. Installation (ABDController):
-**ABDController Dependencies:**
+## 2. Usage (how to run ABDNavigator):
 
-## 3. Usage (how to run ABDNavigator):
+## 3. Contributing:
 
-## 4. Contributing:
-
-## 5. License:
+## 4. License:
 See [LICENSE.md](https://github.com/usnistgov/ABDNavigator/blob/master/LICENSE.md).
 
-## 6. How to cite:
+## 5. How to cite:
 DOI comming soon.
