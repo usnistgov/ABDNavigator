@@ -18,6 +18,8 @@ The two project components, ABDNavigator and ABDController, are provided as sour
 
 ## 2. Usage (how to run ABDNavigator):
 ### To run ABDNavigator on Windows10
+*If ABDNavigator will be used to control a scanning probe, then ABDController should be running first (see instructions on this below).*
+
 Navigate to the ABDNavigator subfolder and execute: [run.bat](https://github.com/usnistgov/ABDNavigator/blob/master/ABDNavigator/run.bat).  It is best to do this from the command line as all error output is directed to standard out.  For example:
 
 ```cmd
