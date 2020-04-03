@@ -23,8 +23,8 @@ The two project components, ABDNavigator and ABDController, are provided as sour
 Navigate to the ABDNavigator subfolder and execute: [run.bat](https://github.com/usnistgov/ABDNavigator/blob/master/ABDNavigator/run.bat).  It is best to do this from the command line as all error output is directed to standard out.  For example:
 
 ```cmd
-C:\Users\me\git\ABDNavigator>cd ABDNavigator
-C:\Users\me\git\ABDNavigator\ABDNavigator>run.bat
+C:\Users\foo\git\ABDNavigator-master>cd ABDNavigator
+C:\Users\foo\git\ABDNavigator-master\ABDNavigator>run.bat
 ```
 
 The contents of [run.bat](https://github.com/usnistgov/ABDNavigator/blob/master/ABDNavigator/run.bat) are as follows: `java -Xmx3000m -cp bin;lib/* main.SampleNavigator`, which allocates 3 GB of memory (the option `-Xmx3000m`).  This quantity can be adjusted by editing the .bat file as needed.
@@ -35,8 +35,8 @@ Before starting ABDContoller, the scanning probe controller software provided by
 Navigate to the ABDController subfolder and execute: [ABDController.bat](https://github.com/usnistgov/ABDNavigator/blob/master/ABDController/ABDController.bat).  As with ABDNavigator, it is best to do this from the command line:
 
 ```cmd
-C:\Users\me\git\ABDNavigator>cd ABDController
-C:\Users\me\git\ABDNavigator\ABDController>ABDController.bat
+C:\Users\foo\git\ABDNavigator-master>cd ABDController
+C:\Users\foo\git\ABDNavigator-master\ABDController>ABDController.bat
 ```
 
 ## 3. Contributing:
