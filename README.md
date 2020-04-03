@@ -40,6 +40,9 @@ C:\Users\me\git\ABDNavigator\ABDController>ABDController.bat
 ```
 
 ## 3. Contributing:
+ABDNavigator is in a constant state of early development and is highly optimized for the work done in the Atom-Based Devices lab at NIST.  This code has been open-sourced to github with two purposes in mind: 1) as version control for development in our lab, and 2) as a means to share the ideas that have gone into this code to the wider scanning probe community.
+
+As such, ...
 
 ## 4. License:
 See [LICENSE.md](https://github.com/usnistgov/ABDNavigator/blob/master/LICENSE.md).
