@@ -17,8 +17,9 @@ Scanning probe control and sample navigation for atom-based devices.
 The two project components, ABDNavigator and ABDController, are provided as source and can be installed by compiling following the instructions in [ABDNavigator/INSTALL.md](https://github.com/usnistgov/ABDNavigator/blob/master/ABDNavigator/INSTALL.md) and [ABDController/INSTALL.md](https://github.com/usnistgov/ABDNavigator/blob/master/ABDController/INSTALL.md), respectively.
 
 ## 2. Usage (how to run ABDNavigator):
-[ABDNavigator/run.bat](https://github.com/usnistgov/ABDNavigator/blob/master/ABDNavigator/run.bat)
-`java -Xmx3000m -cp bin;lib/* main.SampleNavigator`
+To run ABDNavigator on Windows10, navigate to the ABDNavigator subfolder and execute: [run.bat](https://github.com/usnistgov/ABDNavigator/blob/master/ABDNavigator/run.bat).  It is best to do this from the command line as all error output is directed to standard out.  
+
+The contents of [run.bat](https://github.com/usnistgov/ABDNavigator/blob/master/ABDNavigator/run.bat) are as follows: `java -Xmx3000m -cp bin;lib/* main.SampleNavigator`, which allocates 3 GB of memory (the option `-Xmx3000m`).  This quantity can be adjusted by editing the .bat file as needed.
 
 [ABDController/ABDController.bat](https://github.com/usnistgov/ABDNavigator/blob/master/ABDController/ABDController.bat)
 
