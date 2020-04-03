@@ -18,6 +18,7 @@ The two project components, ABDNavigator and ABDController, are provided as sour
 
 ## 2. Usage (how to run ABDNavigator):
 [ABDNavigator/run.bat](https://github.com/usnistgov/ABDNavigator/blob/master/ABDNavigator/run.bat)
+`java -Xmx3000m -cp bin;lib/* main.SampleNavigator`
 
 [ABDController/ABDController.bat](https://github.com/usnistgov/ABDNavigator/blob/master/ABDController/ABDController.bat)
 
