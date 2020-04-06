@@ -47,7 +47,7 @@ As such, ...
 ## 4. License:
 **ABDNavigator** and **ABDController** are covered by the NIST license: [LICENSE.md](https://github.com/usnistgov/ABDNavigator/blob/master/LICENSE.md).
 
-### The following libraries are packaged with this code and are covered under open source licenses as described below:
+### The following libraries are packaged with this code and are distributed under open source licenses as described below:
 [JAMA, Jama-1.0.3.jar,](https://math.nist.gov/javanumerics/jama/) is covered by the NIST license.
 
 **XMLUtils.jar** is currently used by ABDController but will be phased out, and is also covered by the NIST license.
