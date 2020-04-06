@@ -49,9 +49,11 @@ ABDNavigator and ABDController are covered by the NIST license: [LICENSE.md](htt
 
 ### The following libraries are packaged with this code and are covered under open source licenses as described below:
 [JAMA, Jama-1.0.3.jar,](https://math.nist.gov/javanumerics/jama/) is covered by the NIST license.
+
 XMLUtils.jar is currently used by ABDController but will be phased out, and is also covered by NIST license.
 
 [The Java GDSII API, JGDS.jar,](http://jgds.sourceforge.net/) is covered by the [gnu general public license](https://www.gnu.org/licenses/gpl-3.0.en.html).
+
 [The Java Backus-Naur Test API, JBNT.jar,](http://jbnt.sourceforge.net/) is also covered by the [gnu general public license](https://www.gnu.org/licenses/gpl-3.0.en.html).
 
 ## 5. How to cite:
