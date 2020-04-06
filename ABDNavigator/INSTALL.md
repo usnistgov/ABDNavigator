@@ -1,4 +1,4 @@
-#Installation of ABDNavigator
+# Installation of ABDNavigator
 
 Installation of ABDNavigator consists of compiling the source files into .class files, and copying one .css file into the appropriate location.  This is done most straightforwardly from the command line (cmd).
 
