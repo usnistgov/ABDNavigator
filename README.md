@@ -34,6 +34,8 @@ C:\Users\foo\git\ABDNavigator-master\ABDNavigator>run.bat
 
 The contents of [run.bat](https://github.com/usnistgov/ABDNavigator/blob/master/ABDNavigator/run.bat) are as follows: `java -Xmx3000m -cp bin;lib/* main.SampleNavigator`, which allocates 3 GB of memory (the option `-Xmx3000m`).  This quantity can be adjusted by editing the .bat file as needed.
 
+Once ABDNavigator is running, refer to the [ABDNavigator/HELP.md](ABDNavigator/HELP.md) file for tips and hot-keys needed to make use of this software.
+
 ### To run ABDController on Windows10
 Before starting ABDContoller, the scanning probe controller software provided by the manufacturer should already be running as the ABDController will immediately try to open up communication with it.
 
