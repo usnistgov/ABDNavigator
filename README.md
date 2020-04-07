@@ -4,7 +4,7 @@ Scanning probe control and sample navigation for atom-based devices.
 ## Project Components:
 **ABDNavigator** is the primary interface seen by the end-user.  It is meant to be user friendly with a google-maps-like interface in which elements of the "map" such as scanning probe images, optical images, lithographic designs, and labels are editable and can be overlayed and aligned with one another.
 
-**ABDController** is designed to interface with a scanned probe controller, providing a means for the ABDNavigator to communicate with and control a scanning probe.  Currently an interface to the ScientaOmicron Matrix controller is implemented, though by design ABDController can be extended in a modular fashion to implement communication with other scanning probe controllers that provide sufficient APIs.  
+**ABDController** is designed to interface with a scanned probe controller, providing a means for the ABDNavigator to communicate with and control a scanning probe.  Currently an interface to the ScientaOmicron[¹] Matrix controller is implemented, though by design ABDController can be extended in a modular fashion to implement communication with other scanning probe controllers that provide sufficient APIs.  
 
 ## Contents:
 1. Installation
@@ -58,3 +58,6 @@ As such, interested parties are welcome to clone and fork this project to develo
 
 ## 5. How to cite:
 DOI comming soon.
+
+#### ¹ Disclaimer
+[¹]:#-note-one
