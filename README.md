@@ -1,10 +1,7 @@
 # ABDNavigator (Atom-Based Device Navigator)
-### Scanning probe control and sample navigation for atom-based devices.
+## Scanning probe control and sample navigation for atom-based devices.
 
-
-
-
-![ABDNavigator Overview](images/overview4.png)
+## ![ABDNavigator Overview](images/overview4.png)
 
 
 
