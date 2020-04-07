@@ -23,5 +23,9 @@ If the path to JDK 8 doesn't exist already, create a new entry pointing to the *
 
 
 ## 3. Compile the source code into .class files.
+Open the windows command line:
+
+![cmd](../images/cmd.PNG)
+
 install.bat
 
