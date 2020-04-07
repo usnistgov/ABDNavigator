@@ -27,5 +27,12 @@ Open the windows command line:
 
 ![cmd](../images/cmd.PNG)
 
-install.bat
+Navigate to the folder in which your ABDNavigator clone is stored, and execute install.bat:
+```cmd
+C:\Users\foo\git\ABDNavigator-master>cd ABDNavigator
+C:\Users\foo\git\ABDNavigator-master\ABDNavigator>install.bat
+```
+
+This will compile all the ABDNavigator source code and copy a needed file, *SampleNavigator.css*, to the *bin* folder.  This can be verified by opening [install.bat](./install.bat) in a text editor.
+
 
