@@ -2,7 +2,11 @@
 ### Scanning probe control and sample navigation for atom-based devices.
 
 
+
+
 ![ABDNavigator Overview](images/overview4.png)
+
+
 
 
 ## Project Components:
