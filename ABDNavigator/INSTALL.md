@@ -10,6 +10,8 @@ Next, ensure that the windows environment "path" variable is set appropriately (
 Environment Variables ->
 set "path" environment variable to include the location of the "bin" directory for the JDK you installed - as an example:
 C:\Program Files\Java\jdk1.8.0_241\bin
+![Env](../images/env1.PNG)
+
 
 ## 3. Compile the source code into .class files.
 install.bat
