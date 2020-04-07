@@ -1,7 +1,9 @@
 # ABDNavigator (Atom-Based Device Navigator)
-Scanning probe control and sample navigation for atom-based devices.
+### Scanning probe control and sample navigation for atom-based devices.
+
 
 ![ABDNavigator Overview](images/overview4.png)
+
 
 ## Project Components:
 **ABDNavigator** is the primary interface seen by the end-user.  It is meant to be user friendly with a google-maps-like interface in which elements of the "map" such as scanning probe images, optical images, lithographic designs, and labels are editable and can be overlayed and aligned with one another.
