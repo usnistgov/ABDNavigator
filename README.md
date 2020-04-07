@@ -59,5 +59,5 @@ As such, interested parties are welcome to clone and fork this project to develo
 ## 5. How to cite:
 DOI comming soon.
 
-#### ¹ Disclaimer
-[¹]:#-disclaimer
+#### ¹ Certain commercial equipment, instruments, or materials are identified in this paper to foster understanding. Such identification does not imply recommendation or endorsement by the national institute of standards and technology, nor does it imply that the materials or equipment identified are necessarily the best available for the purpose.
+[¹]:#-Certain-commercial
