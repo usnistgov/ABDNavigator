@@ -5,9 +5,7 @@ Installation of ABDController consists of compiling the source files into .class
 JDK 8 Should already have been installed during the installation of ABDNavigator.  If not, go back and do that first: [ABDNavigator/INSTALL.md](../ABDNavigator/INSTALL.md).
 
 ## 1. Compile the source code into .class files.
-Open the windows command line:
-
-![cmd](../images/cmd.PNG)
+Open the windows command line (as illustrated in the ABDNavigator installation instructions.
 
 Navigate to the folder in which your ABDController clone is stored, and execute install.bat:
 ```cmd
