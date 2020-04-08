@@ -22,6 +22,6 @@ This will compile all the ABDController source code and copy a needed file, *com
 C:\Program Files\Scienta Omicron\MATRIX\V4.3.0\SDK\RemoteAccess\
 ```
 
-Copy *RemoteAccess_API.dll* from its default location into the *ABDController* folder, e.g.: ```C:\Users\foo\git\ABDNavigator-master\ABDController```
+Copy *RemoteAccess_API.dll* from its default location into the *ABDController* folder, e.g.: ```C:\Users\foo\git\ABDNavigator-master\ABDController\```
 
 
