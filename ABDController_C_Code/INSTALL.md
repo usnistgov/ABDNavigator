@@ -7,6 +7,10 @@ This document details:
 1. The use of jni to generate *com_MatrixInterface.h* (the C header file that defines communication between Java and C).
 
 ## 1. Set up the IDE
+First, install Visual Studio Community (free IDE that enables generation of a Windows10 compliant dll), which can be found at: 
+https://visualstudio.microsoft.com/vs/community/
+
+When choosing what components to install, make sure enable "Desktop development with C++" - this should provide everything necessary to work with the "solution" file:
 
 
 
