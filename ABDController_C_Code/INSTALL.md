@@ -36,7 +36,7 @@ Next open [ABDController_C_Code/vc/com_MatrixInterface/com_MatrixInterface.sln](
 This can be verified by "building" the solution:
 ![build](../images/vs7.PNG)
 
-This should generate the dll file at: 
+This should generate the dll file: **ABDController_C_Code\vc\com_MatrixInterface\x64\Release\com_MatrixInterface.dll**
 
 
 #### ¹ Disclaimer
