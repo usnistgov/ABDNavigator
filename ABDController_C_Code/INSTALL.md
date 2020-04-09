@@ -17,6 +17,12 @@ Next open [ABDController_C_Code/vc/com_MatrixInterface/com_MatrixInterface.sln](
 ### 1a. Ensure that the Solution configuration is "Release" and the Solution platform is "x64":
 ![64 bit Release](../images/vs1.PNG)
 
+### 1b. Open the project properties window:
+![Project Properties](../images/vs2.PNG)
+
+### 1c. Under configuration properties > General, ensure that the Configuration Type is "dll" and that the Windows SDK Version is "10.0 (latest installed version)":
+![Project Properties](../images/vs3.PNG)
+
 
 #### ¹ Disclaimer
 [¹]:#-disclaimer
