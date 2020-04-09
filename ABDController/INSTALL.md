@@ -24,6 +24,7 @@ C:\Program Files\Scienta Omicron\MATRIX\V4.3.0\SDK\RemoteAccess\
 
 Copy *RemoteAccess_API.dll* from its default location into the *ABDController* folder, e.g.: ```C:\Users\foo\git\ABDNavigator-master\ABDController\```
 
+## 3. For developers (optional):
 **This concludes the standard installation for the ABDController.** For those who wish to do low-level development of the ABDController to Matrix interface, see the instructions in [ABDController_C_Code/INSTALL.md](../ABDController_C_Code/INSTALL.md).
 
 
