@@ -14,6 +14,7 @@ When choosing what components to install, make sure to enable "Desktop developme
 
 Next open [ABDController_C_Code/vc/com_MatrixInterface/com_MatrixInterface.sln](vc/com_MatrixInterface/com_MatrixInterface.sln) in the Visual Studio IDE.
 
+### 1a. Ensure that the Solution configuration is "Release" and the Solution platform is "x64":
 ![64 bit Release](../images/vs1.PNG)
 
 
