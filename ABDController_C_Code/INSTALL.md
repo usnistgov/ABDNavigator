@@ -20,8 +20,23 @@ Next open [ABDController_C_Code/vc/com_MatrixInterface/com_MatrixInterface.sln](
 ### 1b. Open the project properties window:
 ![Project Properties](../images/vs2.PNG)
 
-### 1c. Under configuration properties > General, ensure that the Configuration Type is "dll" and that the Windows SDK Version is "10.0 (latest installed version)":
-![Project Properties](../images/vs3.PNG)
+### 1c. Under Configuration Properties > General, ensure that the Configuration Type is "dll" and that the Windows SDK Version is "10.0 (latest installed version)":
+![dll and SDK](../images/vs3.PNG)
+
+### 1d. Under C/C++ > General, ensure that "Additional Include Directories" is pointing to the include and include\win32 folders of your installed JDK 8, and to the RemoteAccess directory of the Matrix SDK:
+![include](../images/vs4.PNG)
+
+### 1e. Under Linker > General, ensure that "Additional Library Directories" is pointing to the  RemoteAccess directory of the Matrix SDK:
+![linker](../images/vs5.PNG)
+
+### 1f. Under Linker > Input, ensure that "Additional Dependencies" is pointing to the  RemoteAccess library file: *RemoteAccess_lib*:
+![lib](../images/vs6.PNG)
+
+### 1g. The IDE should now be properly setup at this point.
+This can be verified by "building" the solution:
+![build](../images/vs7.PNG)
+
+This should generate the dll file at: 
 
 
 #### ¹ Disclaimer
