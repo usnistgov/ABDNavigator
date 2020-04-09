@@ -32,11 +32,11 @@ Next open [ABDController_C_Code/vc/com_MatrixInterface/com_MatrixInterface.sln](
 ### 1f. Under Linker > Input, ensure that "Additional Dependencies" is pointing to the  RemoteAccess library file: *RemoteAccess_lib*:
 ![lib](../images/vs6.PNG)
 
-### 1g. The IDE should now be properly setup at this point.
+### 1g. The IDE should now be properly setup.
 This can be verified by "building" the solution:
 ![build](../images/vs7.PNG)
 
-This should generate the dll file: **ABDController_C_Code\vc\com_MatrixInterface\x64\Release\com_MatrixInterface.dll**
+This should generate the dll file: **ABDController_C_Code\vc\com_MatrixInterface\x64\Release\com_MatrixInterface.dll** which can then be copied into the [ABDController](../ABDController) folder.
 
 
 #### ¹ Disclaimer
