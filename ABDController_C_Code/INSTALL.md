@@ -10,7 +10,7 @@ This document details:
 First, install Visual Studio Community (free IDE that enables generation of a Windows10 compliant dll), which can be found at: 
 https://visualstudio.microsoft.com/vs/community/
 
-When choosing what components to install, make sure enable "Desktop development with C++" - this should provide everything necessary to work with the "solution" file:
+When choosing what components to install, make sure enable "Desktop development with C++" - this should provide everything necessary to work with the "solution" file: [ABDController_C_Code/vc/com_MatrixInterface/com_MatrixInterface.sln](vc/com_MatrixInterface/com_MatrixInterface.sln)
 
 
 
