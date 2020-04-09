@@ -38,6 +38,16 @@ This can be verified by "building" the solution:
 
 This should generate the dll file: **ABDController_C_Code\vc\com_MatrixInterface\x64\Release\com_MatrixInterface.dll** which can then be copied into the [ABDController](../ABDController) folder.
 
+## 2. Re-generate com_MatrixInterface.h:
+If changes have been made to the java code for ABDController/com/MatrixInterface.java, then com_MatrixInterface.h needs to be regenerated and placed in appropriate folders.  This can be done by re-running the install.bat file:
+
+Using the windows command line (cmd), navigate to the [ABDController](../ABDController) folder, and execute [install.bat](install.bat):
+
+```cmd
+C:\Users\foo\git\ABDNavigator-master>cd ABDController
+C:\Users\foo\git\ABDNavigator-master\ABDController>install.bat
+```
+
 
 #### ¹ Disclaimer
 [¹]:#-disclaimer
