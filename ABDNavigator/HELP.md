@@ -25,7 +25,7 @@ Press: **Ctrl** + **A**
 ### 3. Create a **PathLayer**
 Select *NavigationLayer* in the **Tree View**.  Then Press: **Ctrl** + **=**
 
-![PathLayer](../images/sn45.PNG)
+![PathLayer](../images/sn5.PNG)
 
 ### 4. Create a course step
 Select the *PathLayer* or one of the existing coars steps within it.  Then press: **=**
