@@ -46,7 +46,7 @@ Then choose the desired image file.  This will add an image as a "child" of the 
 ![Image](../images/sn8.PNG)
 
 ### 6. Zoom in and out, and move the map
-Use the middle mouse-wheel to zoom in and out.  **Left-click** and **drag** to move around on the **map**.  Click on map objects to select them (or alternatively click on them in the **Tree View**).
+Use the **middle mouse-wheel** to zoom in and out.  **Left-click** and **drag** to move around on the **map**.  Click on map objects to select them (or alternatively click on them in the **Tree View**).
 
 ![zoom](../images/sn9.PNG)
 
