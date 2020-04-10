@@ -103,3 +103,7 @@ Press: **Ctrl** + **s**
 
 
 ## Hot-key Reference
+
+Key Combination | Effect
+---|---
+**F11** | Toggle 
