@@ -114,7 +114,7 @@ Key Combination | Effect
 **Ctrl** + **o** | Open file and add it to the map
 **Ctrl** + **f** | Bring selected object layer forward
 **Ctrl** + **b** | Move selected object layer backward
-**Ctrl** + **e** | Open xml editor for selected object (**Ctrl* + **e** closes editor and keeps changes, **Esc** closes the editor and loses changes)
+**Ctrl** + **e** | Open xml editor for selected object (**Ctrl** + **e** closes editor and keeps changes, **Esc** closes the editor and loses changes)
 **F1** | Toggle help window
 **Ctrl** + **a** | Toggle Attribute Editor
 **Ctrl** + **t** | Toggle Tree View
