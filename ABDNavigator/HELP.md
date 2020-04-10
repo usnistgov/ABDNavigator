@@ -10,7 +10,7 @@ There is currently no menu system implemented, so all functionality is achieved 
 Key Combination | Effect
 ---|---
 **F11** | Toggle full screen
-**F1** | Toggle help window
+**F1** | Toggle help window (not yet implemented)
 **Left-click** | Select object
 **Left-click** + **drag** | Move map
 **Right-click** + **drag** | Rotate map
