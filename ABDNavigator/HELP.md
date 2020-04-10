@@ -17,4 +17,26 @@ Press: **Ctrl** + **A**
 ### 3. Create a **PathLayer**
 Select *NavigationLayer* in the **Tree View**.  Then Press: **Ctrl** + **=**
 
+### 4. Create a course step
+Select the *PathLayer* or one of the existing coars steps within it.  Then press: **=**
+
+Now move the mouse to the new location to be coarse walked to, and click.
+
+### 5. Add an image to the *NavigationLAyer*
+Select *NavigationLayer* in the **Tree View**.  Then press: **Ctrl** + **o**
+
+In the **File Open** dialog, ensure that "Image File" is selected in the file type dropdown.
+
+Then choose the desired image file.  This will add an image as a "child" of the *Navigation Layer*.
+
+### 6. Zoom in and out, and move the map
+Use the middle mouse-wheel to zoom in and out.  **Left-click** and **drag** to move around on the **map**.  Click on map objects to select them (or alternatively click on them in the **Tree View**).
+
+### 7. Move the selected object
+Select the image that was added in step 5.  While holding down **Alt**, **left-click** and **drag**.  
+
+### 8. Hide selected objects
+Select an object on the map or in the **Tree View**.  Press: **Space**.  The selected object will be hidden, and its listing in the **Tree View** will be grayed out.
+
+
 ## Hot-key Reference
