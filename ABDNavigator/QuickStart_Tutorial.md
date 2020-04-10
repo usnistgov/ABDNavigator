@@ -10,7 +10,7 @@ When you first start ABDNavigator (using [run.bat](run.bat)) from the command li
 ![open nav file](../images/sn2.PNG)
 
 ## Some First Steps
-There is currently no menu system implemented, so all functionality is achieved through **hot-keys** (detailed in the next section) and operations exposed by the **Attribute Editor**.  As an introduction, here are some first steps to try:
+There is currently no menu system implemented, so all functionality is achieved through **hot-keys** (detailed in [HELP.md](HELP.md)) and operations exposed by the **Attribute Editor**.  As an introduction, here are some first steps to try:
 
 ## 1. Toggle the **Tree View** 
 Press: **Ctrl** + **T**
