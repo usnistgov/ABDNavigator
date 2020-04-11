@@ -1,11 +1,11 @@
 # Quick Start Tutorial
 
 ## Startup
-Before starting, ensure that a directory has been setup where the data will be stored which contains a navigation file.  A default navigation file can be copied from the ABDNavigator folder: [default_deviceNavigation.xml](default_deviceNavigation.xml).
+Before starting, ensure that a directory has been set up where the data will be stored which contains a navigation file.  A default navigation file can be copied from the ABDNavigator folder: [default_deviceNavigation.xml](default_deviceNavigation.xml).
 
 ![copy](../images/sn1.PNG)
 
-When you first start ABDNavigator (using [run.bat](run.bat)) from the command line, a "file open" dialog is displayed. Find the data directory you setup and choose the navigation xml (e.g. *default_deviceNavigation.xml*) file. 
+When you first start ABDNavigator (using [run.bat](run.bat)) from the command line, a "file open" dialog is displayed. Find the data directory you set up and choose the navigation xml (e.g. *default_deviceNavigation.xml*) file. 
 
 ![open nav file](../images/sn2.PNG)
 
@@ -28,7 +28,7 @@ Select *NavigationLayer* in the **Tree View**.  Then Press: **Ctrl** + **=**
 ![PathLayer](../images/sn5.PNG)
 
 ## 4. Create a course step
-Select the *PathLayer* or one of the existing coars steps within it.  Then press: **=**
+Select the *PathLayer* or one of the existing coarse steps within it.  Then press: **=**
 
 Now move the mouse to the new location to be coarse walked to, and click.
 
