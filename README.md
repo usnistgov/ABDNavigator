@@ -64,7 +64,7 @@ As such, interested parties are welcome to clone and fork this project to develo
 [The Java Backus-Naur Test API, JBNT.jar,](http://jbnt.sourceforge.net/) is also covered by the [gnu general public license](https://www.gnu.org/licenses/gpl-3.0.en.html).
 
 ## 5. How to cite:
-DOI comming soon.
+The DOI for this project can be cited as [https://doi.org/10.18434/M32223](https://doi.org/10.18434/M32223)
 
 ## Footnotes
 
