@@ -15,7 +15,7 @@ public class ScanSettingsLayer extends ScanRegionLayer
 	public ScanSettingsLayer()
 	{
 		super();
-		actions = new String[]{"apply"};
+		actions = new String[]{"apply","fclCondition"};
 		
 		generatesChildren();
 		
@@ -107,6 +107,114 @@ public class ScanSettingsLayer extends ScanRegionLayer
 				}
 			};
 			t.start();
+		}
+		catch (Exception ex)
+		{
+			ex.printStackTrace();
+		}
+	}
+	
+	public void fclCondition()
+	{
+		try
+		{
+			Thread t = new Thread()
+			{
+				public void run()
+				{
+					fclConditionNoThread();
+				}
+			};
+			t.start();
+		}
+		catch (Exception ex)
+		{
+			ex.printStackTrace();
+		}
+	}
+	
+	public void fclConditionNoThread()
+	{
+		if (SampleNavigator.scanner.scan == null)
+			return;
+		
+		Node n = getParent();
+		if (!(n instanceof ControlGroupLayer))
+			return;
+		
+		ControlGroupLayer cg = (ControlGroupLayer)n;
+		
+		ScanSettingsLayer rememberSettings = SampleNavigator.scanner.scan.currentSettings;
+		if (rememberSettings == null)
+			return;
+		
+		try
+		{
+			//first withdraw tip
+			ABDClient.command("withdraw");
+			
+			//wait 1s to allow for tip withdraw
+			Thread.sleep(1000);
+			
+			//then switch to the current scan settings
+			applyNoThread();
+			
+			//move tip to bottom
+			ABDClient.command("moveTo 0,-1");
+			ABDClient.waitForTip();
+			
+			//approach
+			ABDClient.command("autoApproach");
+			
+			//wait 1s
+			Thread.sleep(1000);
+			
+			//perform conditioning
+			ABDClient.command("fcl");
+			
+			//wait 5s
+			Thread.sleep(5000);
+			
+			//withdraw tip again
+			ABDClient.command("withdraw");
+			
+			//wait 1s to allow for tip withdraw
+			Thread.sleep(1000);
+			
+			//move tip to top
+			ABDClient.command("moveTo 0,1");
+			ABDClient.waitForTip();
+			
+			//approach
+			ABDClient.command("autoApproach");
+			
+			//wait 5s
+			Thread.sleep(1000);
+			
+			//perform conditioning
+			ABDClient.command("fcl");
+			
+			//wait 5s
+			Thread.sleep(5000);
+			
+			//withdraw tip again
+			ABDClient.command("withdraw");
+			
+			//wait 1s to allow for tip withdraw
+			Thread.sleep(1000);
+			
+			//move tip to bottom
+			//ABDClient.command("moveTo 0,0");
+			//ABDClient.waitForTip();
+			
+			//when done, we need to return to the original scan region
+			rememberSettings.applyNoThread();
+			
+			
+			
+			
+			//approach
+			ABDClient.command("autoApproach");
 		}
 		catch (Exception ex)
 		{
