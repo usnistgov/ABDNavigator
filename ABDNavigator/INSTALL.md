@@ -19,6 +19,7 @@ Select *Path* and click the *Edit...* button:
 ![Path](../images/env3.PNG)
 
 If the path to JDK 8 doesn't exist already, create a new entry pointing to the **bin** folder of JDK 8, which should look something like what follows (you can verify the proper location by navigating to it in windows explorer):
+
 ![Edit Path](../images/env4.PNG)
 
 
