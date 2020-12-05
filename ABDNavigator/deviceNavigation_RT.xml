@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<NavigationLayer ID="1" angle="1438.960115800515" scaleX="0.057284586168502" scaleY="0.057284586168502" transparency="0.0" visible="true" x="5389.029134127039" y="1635.0679621410973">
+    <GDSLayer angle="0.0" img="ChipLayout_NOV_2018.merged.crosses.gds" scaleX="1.0" scaleY="-1.0" transparency="0.18666666666666665" visible="true" x="0.0" y="0.0">
+    </GDSLayer>
+    <PathLayer angle="278.3254929319794" scaleX="1.0" scaleY="1.0" transparency="0.0" visible="true" x="-53818.87154735236" y="-34868.38876939317">
+        <CalibrationGroupLayer transparency="0.0" visible="true">
+            <CalibrationLayer amplitude="50" direction="x+" frequency="1000" transparency="0.0" visible="true">
+                <CalibrationStep dx="289.0" dy="-24.0" dz="0.0" stepNumber="0" transparency="0.0" visible="true"/>
+            </CalibrationLayer>
+            <CalibrationLayer amplitude="50" direction="x-" frequency="1000" transparency="0.0" visible="true">
+                <CalibrationStep dx="-255.0" dy="33.0" dz="0.0" stepNumber="0" transparency="0.0" visible="true"/>
+            </CalibrationLayer>
+            <CalibrationLayer amplitude="50" direction="y+" frequency="1000" transparency="0.0" visible="true">
+                <CalibrationStep dx="-14.0" dy="-215.0" dz="0.0" stepNumber="0" transparency="0.0" visible="true"/>
+            </CalibrationLayer>
+            <CalibrationLayer amplitude="50" direction="y-" frequency="1000" transparency="0.0" visible="true">
+                <CalibrationStep dx="19.0" dy="267.0" dz="0.0" stepNumber="0" transparency="0.0" visible="true"/>
+            </CalibrationLayer>
+            <CalibrationLayer amplitude="10" direction="z+" frequency="1000" transparency="0.0" visible="true">
+                <CalibrationStep dx="0.0" dy="0.0" dz="50.0" stepNumber="0" transparency="0.0" visible="true"/>
+            </CalibrationLayer>
+            <CalibrationLayer amplitude="10" direction="z-" frequency="1000" transparency="0.0" visible="true">
+                <CalibrationStep dx="0.0" dy="0.0" dz="-50.0" stepNumber="0" transparency="0.0" visible="true"/>
+            </CalibrationLayer>
+        </CalibrationGroupLayer>
+        <PathDisplayNode amplitude="250" direction="x-" frequency="1000" steps="0" transparency="0.0" visible="true" x="0.0" y="0.0">
+            <GroupLayer angle="0.0" name="measure" scaleX="1.0" scaleY="1.0" transparency="0.0" visible="true" x="0.0" y="0.0"/>
+            <GroupLayer angle="0.0" name="notes" scaleX="1.0" scaleY="1.0" transparency="0.0" visible="true" x="0.0" y="0.0"/>
+            <ControlGroupLayer angle="0.0" name="ControlGroup" transparency="0.0" visible="true" x="0.0" y="0.0"/>
+            <GroupLayer angle="0.0" name="images" scaleX="1.0" scaleY="1.0" transparency="0.0" visible="false" x="0.0" y="0.0">
+            </GroupLayer>
+        </PathDisplayNode>
+    </PathLayer>
+    
+</NavigationLayer>

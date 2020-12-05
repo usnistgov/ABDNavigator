@@ -1,0 +1,1 @@
+java -Dprism.order=sw -Xmx3000m -cp bin;lib/* main.SampleNavigator
