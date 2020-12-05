@@ -4,14 +4,14 @@ import java.util.Vector;
 
 import org.w3c.dom.Element;
 
-import javafx.application.Platform;
+//import javafx.application.Platform;
 //import GDSLayer.SegmentPartition;
 import javafx.geometry.Point2D;
-import javafx.scene.Group;
+//import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
-import javafx.scene.shape.Polyline;
+//import javafx.scene.shape.Polyline;
 import javafx.scene.transform.Transform;
 import main.ABDClient;
 import main.SampleNavigator;
@@ -34,7 +34,9 @@ public class LithoRasterLayer extends NavigationLayer
 	
 	public ScanSettingsLayer scanSettings = null;
 	
-	public LithoRaster rast = new RectRaster();
+	public LithoRaster[] rasterTypes = new LithoRaster[] {new RectRaster(),new SpiralRaster()};
+	public LithoRaster rast = null;//rasterTypes[0];
+	public int rasterType = 0;
 	
 	public static LithoRasterLayer instance = null;
 	
@@ -47,13 +49,24 @@ public class LithoRasterLayer extends NavigationLayer
 		supressBaseAttributes = true;
 		isImobile = true;
 		
-		actions = new String[]{"litho"};//,"update"};
+		actions = new String[]{"litho","nextRasterType"};//,"update"};
 		
 		//there should be only 1 lithoRaster object in a ScanSettingsLayer, so whatever is found in the xml during copySupressedChildren
 		//is the match to this unique LithoRaster object
 		matchAttributes = new String[]{};//"pitch","speed","current","bias"};
 		
 		
+	}
+	
+	public void nextRasterType()
+	{
+		rasterType ++;
+		if (rasterType > 1)
+			rasterType = 0;
+		
+		
+		
+		update();
 	}
 	
 	public void init()
@@ -148,12 +161,12 @@ public class LithoRasterLayer extends NavigationLayer
 					/*
 					 * 
 					 * Platform.runLater( new Runnable()
-		{
-			public void run()
-			{
-				SampleNavigator.scanner.scan.refreshScanRegion();
-			}
-		} );
+					{
+						public void run()
+						{
+							SampleNavigator.scanner.scan.refreshScanRegion();
+						}
+					} );
 		
 					 */
 					
@@ -192,6 +205,7 @@ public class LithoRasterLayer extends NavigationLayer
 		double height = scanSettings.scale.getMyy();
 		//System.out.println("width: " + width);
 		//System.out.println("height: " + height);
+		rast = rasterTypes[rasterType];
 		segments = rast.getSegments(width, height, pitch, yOffset);
 		
 		//segments need to be transformed to local coordinate system of the scanSettings object
@@ -406,6 +420,10 @@ public class LithoRasterLayer extends NavigationLayer
 		if (s.length() > 0)
 			tolerance = Double.parseDouble(s);
 		
+		s = xml.getAttribute("rasterType");
+		if (s.length() > 0)
+			rasterType = Integer.parseInt(s);
+		
 		//if (deep)
 		//	main.getChildren().add(textDisp);
 	}
@@ -420,6 +438,7 @@ public class LithoRasterLayer extends NavigationLayer
 		e.setAttribute("bias", Double.toString(bias));
 		e.setAttribute("yOffset", Double.toString(yOffset));
 		e.setAttribute("tolerance", Double.toString(tolerance));
+		e.setAttribute("rasterType", Integer.toString(rasterType));
 				
 		return e;
 	}
