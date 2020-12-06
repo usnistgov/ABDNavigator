@@ -1523,4 +1523,9 @@ public class NavigationLayer extends Group
 		
 		return false;
 	}
+	
+	public void fireTransforming()
+	{
+		
+	}
 }

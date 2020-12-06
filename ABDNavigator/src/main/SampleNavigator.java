@@ -1041,6 +1041,8 @@ public class SampleNavigator extends Application
 				{
 					
 				}
+				
+				editingLayer.fireTransforming();
 			}
 
     	} );
