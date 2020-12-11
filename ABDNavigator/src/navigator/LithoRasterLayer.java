@@ -181,9 +181,22 @@ public class LithoRasterLayer extends NavigationLayer
 				ControlGroupLayer cg = (ControlGroupLayer)n;
 				cg.moveToFront();
 				
-				Point2D p = new Point2D( scanSettings.getTranslateX(), scanSettings.getTranslateY() );
+				//n = cg.getParent();
+				
+				//transform the scanSettings coordinate to the coordinate system of the scanner:
+				Point2D p = cg.localToParent(scanSettings.getTranslateX(), scanSettings.getTranslateY());//
+				//p = n.localToParent(p);
+				//Point2D p = new Point2D( scanSettings.getTranslateX(), scanSettings.getTranslateY() );
+				
+				//coordinates of the scanner:
 				Point2D p2 = new Point2D( SampleNavigator.scanner.scan.getTranslateX(), SampleNavigator.scanner.scan.getTranslateY() );
+				//Point2D p2 = n.parentToLocal( SampleNavigator.scanner.scan.getTranslateX(), SampleNavigator.scanner.scan.getTranslateY() );
+				
+				//translation to get the 
 				p2 = p2.subtract(p);
+				p2 = p2.add(cg.getTranslateX(), cg.getTranslateY());//
+				
+				
 				cg.setTranslateX( p2.getX() );
 				cg.setTranslateY( p2.getY() );
 			}
