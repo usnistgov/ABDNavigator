@@ -27,6 +27,7 @@ public class LithoRasterLayer extends NavigationLayer
 	public double yOffset = 0;
 	
 	public double tolerance = 1.2;
+	public double buffer = 0;
 	
 	public Color inColor = Color.BLUE;
 	public Color outColor = Color.ORANGE;
@@ -263,12 +264,45 @@ public class LithoRasterLayer extends NavigationLayer
 			
 			Vector<GDSLayer.SegmentPartition> partitions = l.partitionSegment(p0.getX(),p0.getY(),p1.getX(),p1.getY());
 			
+			//for segments that are inside, shorten them on both ends by the distance "buffer"
+			/*
+			for (int j = 0; j < partitions.size(); j++)
+			{
+				GDSLayer.SegmentPartition part = partitions.get(j);
+				if (part.inside())
+				{
+					
+				}
+			}*/
+			
 			for (int j = 0; j < partitions.size(); j ++)
 			{
 				GDSLayer.SegmentPartition part = partitions.get(j);
 				//only keep segments that are "inside", and generate new segments connecting those that are not contiguous
 				if (part.inside())
 				{
+					//for segments that are inside, shorten them on both ends by the distance "buffer"
+					Point2D segP0 = new Point2D(part.n0.getX(), part.n0.getY());
+					Point2D segP1 = new Point2D(part.n1.getX(), part.n1.getY());
+					Point2D vec = segP1.subtract(segP0);
+					vec = vec.normalize();
+					vec = vec.multiply(buffer);
+					
+					segP0 = segP0.add(vec);
+					segP1 = segP1.subtract(vec);
+					
+					part.n0.v0x = segP0.getX();
+					part.n0.v0y = segP0.getY();
+					part.n0.v1x = segP1.getX();
+					part.n0.v1y = segP1.getY();
+					part.n0.s = 0;
+					
+					part.n1.v0x = segP0.getX();
+					part.n1.v0y = segP0.getY();
+					part.n1.v1x = segP1.getX();
+					part.n1.v1y = segP1.getY();
+					part.n1.s = 1;
+					
 					GDSLayer.SegmentPartition prevPart = null;
 					if (raster.size() > 0)
 						prevPart = raster.get(raster.size()-1);
@@ -437,6 +471,10 @@ public class LithoRasterLayer extends NavigationLayer
 		if (s.length() > 0)
 			rasterType = Integer.parseInt(s);
 		
+		s = xml.getAttribute("buffer");
+		if (s.length() > 0)
+			buffer = Double.parseDouble(s);
+		
 		//if (deep)
 		//	main.getChildren().add(textDisp);
 	}
@@ -452,6 +490,7 @@ public class LithoRasterLayer extends NavigationLayer
 		e.setAttribute("yOffset", Double.toString(yOffset));
 		e.setAttribute("tolerance", Double.toString(tolerance));
 		e.setAttribute("rasterType", Integer.toString(rasterType));
+		e.setAttribute("buffer", Double.toString(buffer));
 				
 		return e;
 	}
