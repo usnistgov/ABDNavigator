@@ -34,10 +34,10 @@ public class MatrixController implements ABDControllerInterface
 		if (currentInstallDir == null)
 		{
 			JFileChooser f = new JFileChooser();
-	        f.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY); 
-	        f.setDialogTitle("Select matrix folder, e.g. C:\\Program Files\\Scienta Omicron\\MATRIX\\V4.3.X");
-	        f.showOpenDialog(null);
-	        currentInstallDir = f.getSelectedFile();
+			f.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY); 
+			f.setDialogTitle("Select matrix folder, e.g. C:\\Program Files\\Scienta Omicron\\MATRIX\\V4.3.X");
+			f.showOpenDialog(null);
+			currentInstallDir = f.getSelectedFile();
 		}
 		
 		if (currentInstallDir == null)
@@ -97,26 +97,26 @@ public class MatrixController implements ABDControllerInterface
 	
 	public static File getMostRecentDir(String dir)
 	{
-	    File directory = new File(dir);
-	    if (!directory.isDirectory())
-	    	return null;
+		File directory = new File(dir);
+		if (!directory.isDirectory())
+			return null;
 	    
-	    File[] files = directory.listFiles();
-	    long lastModifiedTime = Long.MIN_VALUE;
-	    File dirOut = null;
+		File[] files = directory.listFiles();
+		long lastModifiedTime = Long.MIN_VALUE;
+		File dirOut = null;
 
-	    if (files != null)
-	    {
-	        for (int i = 0; i < files.length; i ++)
-	        {
-	        	File f = files[i];
+		if (files != null)
+		{
+			for (int i = 0; i < files.length; i ++)
+	    	{
+	    		File f = files[i];
 	        	
-	            if ((f.lastModified() > lastModifiedTime) && (f.isDirectory()))
-	            {
-	                dirOut = f;
-	                lastModifiedTime = f.lastModified();
-	            }
-	        }
+	    		if ((f.lastModified() > lastModifiedTime) && (f.isDirectory()))
+	    		{
+	    			dirOut = f;
+	    			lastModifiedTime = f.lastModified();
+	    		}
+	    	}
 	    }
 
 	    return dirOut;
