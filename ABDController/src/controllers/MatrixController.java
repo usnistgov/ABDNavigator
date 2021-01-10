@@ -2,7 +2,10 @@ package controllers;
 
 import main.*;
 
+import java.io.*;
 import java.util.Vector;
+
+import javax.swing.*;
 
 import com.*;
 
@@ -22,9 +25,38 @@ public class MatrixController implements ABDControllerInterface
 	public MatrixController()
 	{
 		
+		
+			
+		//try to find where the matrix installation is located
+		File currentInstallDir = MatrixController.getMostRecentDir("C:\\Program Files\\Scienta Omicron\\MATRIX");
+		
+		//if we can't find it, have the user locate it manually
+		if (currentInstallDir == null)
+		{
+			JFileChooser f = new JFileChooser();
+	        f.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY); 
+	        f.setDialogTitle("Select matrix folder, e.g. C:\\Program Files\\Scienta Omicron\\MATRIX\\V4.3.X");
+	        f.showOpenDialog(null);
+	        currentInstallDir = f.getSelectedFile();
+		}
+		
+		if (currentInstallDir == null)
+		{
+			System.out.println("Failed to find matrix installation.");
+			System.exit(0);
+		}
+		
+		//format matrix location string to have \\ instead of /
+		String matrixLocation = currentInstallDir.getAbsolutePath();
+		matrixLocation = matrixLocation.replace("/", "\\");
+		System.out.println(matrixLocation);
+		
+		//System.exit(0);
+		
 		matrix = new MatrixInterface();
 		matrix.controller = this;
-		rc = matrix.init("C:\\Program Files\\Scienta Omicron\\MATRIX\\V4.3.0");
+		
+		rc = matrix.init(matrixLocation);//"C:\\Program Files\\Scienta Omicron\\MATRIX\\V4.3.0");
 		
 		biasSignal = new BiasSignal(this);
 		biasSignal.units = "V";
@@ -61,6 +93,33 @@ public class MatrixController implements ABDControllerInterface
 		matrix.setBooleanProperty("STM_AtomManipulation::Sampler_I.Enable", -1, true);
 		matrix.setDoubleProperty("STM_AtomManipulation::Sampler_I.Sample_Period", -1, .01);
 		///
+	}
+	
+	public static File getMostRecentDir(String dir)
+	{
+	    File directory = new File(dir);
+	    if (!directory.isDirectory())
+	    	return null;
+	    
+	    File[] files = directory.listFiles();
+	    long lastModifiedTime = Long.MIN_VALUE;
+	    File dirOut = null;
+
+	    if (files != null)
+	    {
+	        for (int i = 0; i < files.length; i ++)
+	        {
+	        	File f = files[i];
+	        	
+	            if ((f.lastModified() > lastModifiedTime) && (f.isDirectory()))
+	            {
+	                dirOut = f;
+	                lastModifiedTime = f.lastModified();
+	            }
+	        }
+	    }
+
+	    return dirOut;
 	}
 
 	synchronized public void exit()
