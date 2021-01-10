@@ -100,7 +100,7 @@ public class MatrixController implements ABDControllerInterface
 		File directory = new File(dir);
 		if (!directory.isDirectory())
 			return null;
-	    
+
 		File[] files = directory.listFiles();
 		long lastModifiedTime = Long.MIN_VALUE;
 		File dirOut = null;
@@ -110,7 +110,7 @@ public class MatrixController implements ABDControllerInterface
 			for (int i = 0; i < files.length; i ++)
 			{
 				File f = files[i];
-	        	
+
 				if ((f.lastModified() > lastModifiedTime) && (f.isDirectory()))
 				{
 					dirOut = f;
@@ -119,7 +119,7 @@ public class MatrixController implements ABDControllerInterface
 			}
 		}
 
-	    return dirOut;
+		return dirOut;
 	}
 
 	synchronized public void exit()
