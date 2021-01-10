@@ -108,16 +108,16 @@ public class MatrixController implements ABDControllerInterface
 		if (files != null)
 		{
 			for (int i = 0; i < files.length; i ++)
-	    	{
-	    		File f = files[i];
+			{
+				File f = files[i];
 	        	
-	    		if ((f.lastModified() > lastModifiedTime) && (f.isDirectory()))
-	    		{
-	    			dirOut = f;
-	    			lastModifiedTime = f.lastModified();
-	    		}
-	    	}
-	    }
+				if ((f.lastModified() > lastModifiedTime) && (f.isDirectory()))
+				{
+					dirOut = f;
+					lastModifiedTime = f.lastModified();
+				}
+			}
+		}
 
 	    return dirOut;
 	}
