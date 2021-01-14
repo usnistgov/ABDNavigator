@@ -332,7 +332,7 @@ public class ABDController
 		} );
 		p.add(rampCurrent);
 		
-		p.add( new JLabel("Current Ramp Step (V): "));
+		p.add( new JLabel("Current Ramp Step (A): "));
 		final JTextField currentRampField = new JTextField(numForm.format( currentSignal.stepSize ));
 		currentRampField.addActionListener( new ActionListener()
 		{
@@ -349,6 +349,16 @@ public class ABDController
 			}
 		} );
 		p.add(currentRampField);
+		
+		final JCheckBox preampRangeChangeBox = new JCheckBox("Auto Preamp Range Switching");
+		preampRangeChangeBox.addActionListener( new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				controller.setAllowPreampRangeChange( preampRangeChangeBox.isSelected() );
+			}
+		} );
+		p.add(preampRangeChangeBox);
 		
 		pB.add(p);
 		

@@ -29,6 +29,8 @@ public interface ABDControllerInterface
 	public void setCurrent(double I);
 	public CurrentSignal getCurrentSignal();
 	public void setFeedback(boolean fb);
+	public void setAllowPreampRangeChange(boolean b);
+	public boolean getAllowPreampRangeChange();
 	
 	//scan settings
 	public double getScanWidth();

@@ -330,5 +330,17 @@ public class DummyController implements ABDControllerInterface
 		// TODO Auto-generated method stub
 		return 0;
 	}
+
+	@Override
+	public void setAllowPreampRangeChange(boolean b) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public boolean getAllowPreampRangeChange() {
+		// TODO Auto-generated method stub
+		return false;
+	}
 	
 }

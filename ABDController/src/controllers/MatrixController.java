@@ -804,4 +804,16 @@ public class MatrixController implements ABDControllerInterface
 		matrix.callVoidFunction("STM_AtomManipulation::XYScanner.execute");
 		//matrix.setStringProperty("STM_AtomManipulation::XYScanner.Execute_Port_Colour", -1, "");
 	}
+
+	
+	public void setAllowPreampRangeChange(boolean b) 
+	{
+		allowPreampRangeChange = b;
+	}
+
+	
+	public boolean getAllowPreampRangeChange()
+	{
+		return allowPreampRangeChange;
+	}
 }
