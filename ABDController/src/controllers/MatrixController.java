@@ -27,8 +27,13 @@ public class MatrixController implements ABDControllerInterface
 		
 		
 			
-		//try to find where the matrix installation is located
-		File currentInstallDir = MatrixController.getMostRecentDir("C:\\Program Files\\Scienta Omicron\\MATRIX");
+		//try to find where the matrix installation is located (first check config file, then check likely location)
+		String matrixLocation = ABDController.settings.getProperty("matrixDir");
+		File currentInstallDir = null;
+		if (matrixLocation != null)
+			currentInstallDir = new File(matrixLocation);
+		if ((currentInstallDir == null) || (!currentInstallDir.isDirectory()))
+			currentInstallDir = MatrixController.getMostRecentDir("C:\\Program Files\\Scienta Omicron\\MATRIX");
 		
 		//if we can't find it, have the user locate it manually
 		if (currentInstallDir == null)
@@ -47,11 +52,13 @@ public class MatrixController implements ABDControllerInterface
 		}
 		
 		//format matrix location string to have \\ instead of /
-		String matrixLocation = currentInstallDir.getAbsolutePath();
+		if (matrixLocation == null)
+			matrixLocation = currentInstallDir.getAbsolutePath();
 		matrixLocation = matrixLocation.replace("/", "\\");
 		System.out.println(matrixLocation);
 		
 		//System.exit(0);
+		ABDController.settings.setProperty("matrixDir", matrixLocation);
 		
 		matrix = new MatrixInterface();
 		matrix.controller = this;

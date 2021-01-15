@@ -3,7 +3,7 @@ package main;
 
 import controllers.*;
 import gui.*;
-
+import javafx.scene.input.KeyCode;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -13,11 +13,9 @@ import com.ABDServer;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.AffineTransform;
-import java.io.File;
-import java.io.PrintWriter;
+import java.io.*;
 import java.text.DecimalFormat;
-import java.util.Date;
-import java.util.Vector;
+import java.util.*;
 
 import gds.GDSLayer.SegmentPartition;
 
@@ -67,10 +65,39 @@ public class ABDController
 	private static JTextField deltaZNegField = new JTextField(numForm.format( fclNegZTrigger ));
 	private static JTextField fclCurrentField = new JTextField(Float.toString( fclCurrent ));
 	
+	private static float multiScanSetBias = -2f; //V
+	private static float multiScanSetCurrent = .03f; //nA
+	private static float multiScanMinBias = -2f; //V
+	private static float multiScanMaxBias = 2f; //V
+	private static float multiScanBiasStep = 0.05f; //V
+	private static boolean multiScanAbort = false;
+	private static JTextField multiScanSetBiasField = new JTextField(Float.toString(multiScanSetBias));
+	private static JTextField multiScanSetCurrentField = new JTextField(Float.toString(multiScanSetCurrent));
+	private static JTextField multiScanMinBiasField = new JTextField(Float.toString(multiScanMinBias));
+	private static JTextField multiScanMaxBiasField = new JTextField(Float.toString(multiScanMaxBias));
+	private static JTextField multiScanBiasStepField = new JTextField(Float.toString(multiScanBiasStep));
+	
+	
+	public static Properties settings = new Properties();
+	
 	
 	public static void main(String[] args)
 	{
-		
+		try
+		{
+			File f = new File("config.xml");
+			if (f.exists())
+			{
+				FileInputStream in = new FileInputStream(f);
+				//settings = new Properties();
+				settings.loadFromXML(in);
+				in.close();
+			}
+		}
+		catch (Exception ex)
+		{
+			ex.printStackTrace();
+		}
 		
 		if (args.length > 0)
 		{
@@ -131,8 +158,11 @@ public class ABDController
 		JPanel p = new JPanel();
 		p.setLayout( new FlowLayout() );
 		
+			
 		p.add(new JLabel("Sleep time: "));
 		final JTextField sleepField = new JTextField(Integer.toString(sleepTime));
+		setTextFieldProperty("sleepTime", sleepField);
+		
 		sleepField.addActionListener( new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -151,6 +181,8 @@ public class ABDController
 		
 		p.add( new JLabel("   Data length: ") );
 		final JTextField dataLengthField = new JTextField(Integer.toString(dataLength));
+		setTextFieldProperty("dataLength", dataLengthField);
+		dataLength = Integer.parseInt(dataLengthField.getText());
 		dataLengthField.addActionListener( new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -169,6 +201,8 @@ public class ABDController
 		
 		p.add( new JLabel("   Averaging: ") );
 		final JTextField averagingField = new JTextField(Integer.toString(averages));
+		setTextFieldProperty("averages", averagingField);
+		averages = Integer.parseInt(averagingField.getText());
 		averagingField.addActionListener( new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -185,7 +219,7 @@ public class ABDController
 		} );
 		p.add(averagingField);
 		
-		final JButton saveButton = new JButton("Save");
+		final JButton saveButton = new JButton("Save Data");
 		saveButton.addActionListener( new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -245,7 +279,7 @@ public class ABDController
 		f.add(p, BorderLayout.NORTH);
 		
 		JPanel pB = new JPanel();
-		pB.setLayout( new GridLayout(5,1) );
+		pB.setLayout( new GridLayout(6,1) );
 		
 		p = new JPanel();
 		p.setLayout( new FlowLayout() );
@@ -281,6 +315,8 @@ public class ABDController
 		
 		p.add( new JLabel("Bias Ramp Step (V): "));
 		final JTextField biasRampField = new JTextField(numForm.format( biasSignal.stepSize ));
+		setTextFieldProperty("biasStepSize", biasRampField);
+		biasSignal.stepSize = Double.parseDouble(biasRampField.getText());
 		biasRampField.addActionListener( new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -334,6 +370,8 @@ public class ABDController
 		
 		p.add( new JLabel("Current Ramp Step (A): "));
 		final JTextField currentRampField = new JTextField(numForm.format( currentSignal.stepSize ));
+		setTextFieldProperty("currentStepSize", currentRampField);
+		currentSignal.stepSize = Double.parseDouble(currentRampField.getText());
 		currentRampField.addActionListener( new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -350,7 +388,11 @@ public class ABDController
 		} );
 		p.add(currentRampField);
 		
-		final JCheckBox preampRangeChangeBox = new JCheckBox("Auto Preamp Range Switching");
+		final JCheckBox preampRangeChangeBox = new JCheckBox("Auto Preamp Range Switching",true);
+		String s = settings.getProperty("autoPreamp");
+		if (s != null)
+			preampRangeChangeBox.setSelected( Boolean.parseBoolean(s) );
+				
 		preampRangeChangeBox.addActionListener( new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -486,6 +528,50 @@ public class ABDController
 		
 		pB.add(p);
 		
+		p = new JPanel();
+		p.setLayout( new FlowLayout());
+		final JButton saveConfigButton = new JButton("Save Configuration");
+		saveConfigButton.addActionListener( new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				settings.setProperty( "autoPreamp", Boolean.toString(preampRangeChangeBox.isSelected()) );
+				settings.setProperty( "sleepTime", Integer.toString(sleepTime) );
+				settings.setProperty( "dataLength", Integer.toString(dataLength) );
+				settings.setProperty( "averages", Integer.toString(averages) );
+				settings.setProperty( "biasStepSize", numForm.format(biasSignal.stepSize) );
+				settings.setProperty( "currentStepSize", numForm.format(currentSignal.stepSize) );
+				
+				settings.setProperty( "multiScanSetBias",  multiScanSetBiasField.getText() );
+				settings.setProperty( "multiScanSetCurrent", multiScanSetCurrentField.getText() );
+				settings.setProperty( "multiScanMinBias", multiScanMinBiasField.getText() );
+				settings.setProperty( "multiScanMaxBias", multiScanMaxBiasField.getText() );
+				settings.setProperty( "multiScanBiasStep", multiScanBiasStepField.getText() );
+								
+				settings.setProperty( "fclMinBias",  fclMinBiasField.getText() );
+				settings.setProperty( "fclMaxBias", fclMaxBiasField.getText() );
+				settings.setProperty( "fclBiasStep", fclBiasStepField.getText() );
+				settings.setProperty( "fclMeasureTime", fclMeasureTimeField.getText() );
+				settings.setProperty( "fclZTrigger", deltaZField.getText() );
+				settings.setProperty( "fclNegZTrigger", deltaZNegField.getText() );
+				settings.setProperty( "fclCurrent", fclCurrentField.getText() );
+				
+				try 
+				{
+					FileOutputStream out = new FileOutputStream("config.xml");
+					settings.storeToXML(out, "ABDController Settings"); 
+				    out.close();
+				} 
+				catch (Exception ex)
+				{
+					ex.printStackTrace();
+				}
+			}
+		} );
+		p.add(saveConfigButton);
+		
+		pB.add(p);
+		
 		
 		f.add(pB, BorderLayout.SOUTH);
 		
@@ -509,11 +595,13 @@ public class ABDController
 		fMultiScan.add(multiScanP);
 		
 		multiScanP.add( new JLabel("Setpoint Bias (V): ") );
-		final JTextField multiScanSetBiasField = new JTextField(Float.toString(multiScanSetBias));
+		//final JTextField multiScanSetBiasField = new JTextField(Float.toString(multiScanSetBias));
+		setTextFieldProperty("multiScanBias", multiScanSetBiasField);
 		multiScanP.add(multiScanSetBiasField);
 		
 		multiScanP.add( new JLabel("Setpoint Current (nA): ") );
-		final JTextField multiScanSetCurrentField = new JTextField(Float.toString(multiScanSetCurrent));
+		//final JTextField multiScanSetCurrentField = new JTextField(Float.toString(multiScanSetCurrent));
+		setTextFieldProperty("multiScanSetCurrent", multiScanSetCurrentField);
 		multiScanP.add(multiScanSetCurrentField);
 		
 		multiScanP = new JPanel();
@@ -521,15 +609,18 @@ public class ABDController
 		fMultiScan.add(multiScanP);
 		
 		multiScanP.add( new JLabel("Min Bias (V): ") );
-		final JTextField multiScanMinBiasField = new JTextField(Float.toString(multiScanMinBias));
+		//final JTextField multiScanMinBiasField = new JTextField(Float.toString(multiScanMinBias));
+		setTextFieldProperty("multiScanMinBias", multiScanMinBiasField);
 		multiScanP.add(multiScanMinBiasField);
 		
 		multiScanP.add( new JLabel("Max Bias (V): ") );
-		final JTextField multiScanMaxBiasField = new JTextField(Float.toString(multiScanMaxBias));
+		//final JTextField multiScanMaxBiasField = new JTextField(Float.toString(multiScanMaxBias));
+		setTextFieldProperty("multiScanMaxBias", multiScanMaxBiasField);
 		multiScanP.add(multiScanMaxBiasField);
 		
 		multiScanP.add( new JLabel("Bias Step (V): ") );
-		final JTextField multiScanBiasStepField = new JTextField(Float.toString(multiScanBiasStep));
+		//final JTextField multiScanBiasStepField = new JTextField(Float.toString(multiScanBiasStep));
+		setTextFieldProperty("multiScanBiasStep", multiScanBiasStepField);
 		multiScanP.add(multiScanBiasStepField);
 		
 		
@@ -549,6 +640,13 @@ public class ABDController
 				multiScanMaxBias = Float.parseFloat( multiScanMaxBiasField.getText() );
 				multiScanBiasStep = Float.parseFloat( multiScanBiasStepField.getText() );
 				multiScanAbort = false;
+				
+				multiScanSetBiasField.setForeground(Color.black);
+				multiScanSetCurrentField.setForeground(Color.black);
+				multiScanMinBiasField.setForeground(Color.black);
+				multiScanMaxBiasField.setForeground(Color.black);
+				multiScanBiasStepField.setForeground(Color.black);
+				
 				doMultiScan();
 			}
 		} );
@@ -576,14 +674,17 @@ public class ABDController
 		
 		fclP.add( new JLabel("   Start Bias (V): ") );
 		//final JTextField fclMinBiasField = new JTextField(Float.toString( fclMinBias ));
+		setTextFieldProperty("fclMinBias", fclMinBiasField);
 		fclP.add(fclMinBiasField);
 		
 		fclP.add( new JLabel("   Max Bias (V): ") );
 		//final JTextField fclMaxBiasField = new JTextField(Float.toString( fclMaxBias ));
+		setTextFieldProperty("fclMaxBias", fclMaxBiasField);
 		fclP.add(fclMaxBiasField);
 		
 		fclP.add( new JLabel("   Bias Step (V): ") );
 		//final JTextField fclBiasStepField = new JTextField(Float.toString( fclBiasStep ));
+		setTextFieldProperty("fclBiasStep", fclBiasStepField);
 		fclP.add(fclBiasStepField);
 		
 		
@@ -594,6 +695,7 @@ public class ABDController
 		
 		fclP.add( new JLabel("   Measure Time (ms): ") );
 		//final JTextField fclMeasureTimeField = new JTextField(Long.toString( fclMeasureTime ));
+		setTextFieldProperty("fclMeasureTime", fclMeasureTimeField);
 		fclP.add(fclMeasureTimeField);
 		
 		
@@ -603,10 +705,12 @@ public class ABDController
 		
 		fclP.add( new JLabel("   Trigger +deltaZ (nm): ") );
 		//final JTextField deltaZField = new JTextField(numForm.format( fclZTrigger ));
+		setTextFieldProperty("fclZTrigger", deltaZField);
 		fclP.add(deltaZField);
 		
 		fclP.add( new JLabel("   Trigger -deltaZ (nm): ") );
 		//final JTextField deltaZNegField = new JTextField(numForm.format( fclNegZTrigger ));
+		setTextFieldProperty("fclNegZTrigger", deltaZNegField);
 		fclP.add(deltaZNegField);
 		
 		
@@ -616,6 +720,7 @@ public class ABDController
 		
 		fclP.add( new JLabel("   FCL Current (nA): ") );
 		//final JTextField fclCurrentField = new JTextField(Float.toString( fclCurrent ));
+		setTextFieldProperty("fclCurrent", fclCurrentField);
 		fclP.add(fclCurrentField);
 		
 		final JButton doFCL = new JButton("FCL");
@@ -799,6 +904,14 @@ public class ABDController
 		fclZTrigger = Double.parseDouble(deltaZField.getText());
 		fclNegZTrigger = Double.parseDouble(deltaZNegField.getText());
 		fclCurrent = Float.parseFloat(fclCurrentField.getText());
+		
+		fclMinBiasField.setForeground(Color.black);
+		fclMaxBiasField.setForeground(Color.black);
+		fclBiasStepField.setForeground(Color.black);
+		fclMeasureTimeField.setForeground(Color.black);
+		deltaZField.setForeground(Color.black);
+		deltaZNegField.setForeground(Color.black);
+		fclCurrentField.setForeground(Color.black);
 	}
 	
 	public static double[] calcdz(double[] data)
@@ -860,12 +973,7 @@ public class ABDController
 		final JTextField multiScanBiasStepField = new JTextField(Float.toString(multiScanBiasStep));
 		multiScanP.add(multiScanBiasSTepField);
 	 */
-	private static float multiScanSetBias = -2f; //V
-	private static float multiScanSetCurrent = .03f; //nA
-	private static float multiScanMinBias = -2f; //V
-	private static float multiScanMaxBias = 2f; //V
-	private static float multiScanBiasStep = 0.05f; //V
-	private static boolean multiScanAbort = false;
+	
 	private static void doMultiScan()
 	{
 		Thread multiScanThread = new Thread()
@@ -1268,5 +1376,38 @@ public class ABDController
 	{
 		controller.setCoarseSteps(1);
 		controller.engage();
+	}
+	
+	
+	private static void setTextFieldProperty(String propName, JTextField field)
+	{
+		String s = settings.getProperty(propName);
+		if (s != null)
+			field.setText(s);
+		
+		field.addActionListener( new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				field.setForeground(Color.black);
+			}
+		} );
+		field.addKeyListener( new KeyListener()
+		{
+			public void keyPressed(KeyEvent arg0) 
+			{
+			}
+
+			public void keyReleased(KeyEvent evt) 
+			{
+				if (evt.getKeyCode() != KeyEvent.VK_ENTER)
+					field.setForeground(Color.red);
+			}
+
+			public void keyTyped(KeyEvent arg0) 
+			{
+			}
+			
+		} );
 	}
 }

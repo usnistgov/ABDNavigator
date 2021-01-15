@@ -90,11 +90,16 @@ public class GDSLayer implements DrawingComponent
 		{
 			File in = new File(gdsName);
 			
+			
 			//list of records from the GDS file that will get written to the fixed GDS file
 			records = new Vector<GDSRecord>();
 			
 			//read in GDS file as a stream of records
 			record = null;
+			
+			if (!in.exists())
+				return;
+			
 			gdsin = new GDSInputStream(in);
 			parseRecords();	
 			gdsin.close();
