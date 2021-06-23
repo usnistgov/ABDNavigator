@@ -536,7 +536,7 @@ public class MatrixController implements ABDControllerInterface
 		matrix.setPairProperty("STM_AtomManipulation::XYScanner.Offset", -1, x*1E-9, y*1E-9); //convert from nm to m
 	}
 
-	public void setFeedback(boolean fb)
+	synchronized public void setFeedback(boolean fb)
 	{
 		//test
 		//if (true)

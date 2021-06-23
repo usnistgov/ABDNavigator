@@ -987,8 +987,9 @@ public class ABDController
 					System.out.println(multiScanMaxBias);
 					for (float nextV = multiScanMinBias; nextV <= multiScanMaxBias; nextV += multiScanBiasStep)
 					{
+						Thread.sleep(1000);
 						controller.setFeedback(false);
-						Thread.sleep(600);
+						Thread.sleep(1000);
 						
 						biasSignal.ramp(nextV);
 						while (biasSignal.ramping) {Thread.sleep(600);}
