@@ -18,8 +18,8 @@ Key Combination | Effect
 **Alt** + **left-click** + **drag** | Move selected object
 **Alt** + **right-click** + **drag** | Rotate selected object
 **Alt** + **middle mouse wheel** | Uniformly rescale object
-**x** + **click** + **drag** | Rescale object width
-**y** + **click** + **drag** | Rescale object height
+**x** + **middle mouse wheel** | Rescale object width
+**y** + **middle mouse wheel** | Rescale object height
 **Double-click** | Enter text (**single-click** elsewhere to finish entering text, **Esc** to cancel)
 **Ctrl** + **s** | Save
 **Ctrl** + **p** | Select parent of the currently selected object

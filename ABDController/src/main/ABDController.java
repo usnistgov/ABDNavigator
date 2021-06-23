@@ -596,7 +596,7 @@ public class ABDController
 		
 		multiScanP.add( new JLabel("Setpoint Bias (V): ") );
 		//final JTextField multiScanSetBiasField = new JTextField(Float.toString(multiScanSetBias));
-		setTextFieldProperty("multiScanBias", multiScanSetBiasField);
+		setTextFieldProperty("multiScanSetBias", multiScanSetBiasField);
 		multiScanP.add(multiScanSetBiasField);
 		
 		multiScanP.add( new JLabel("Setpoint Current (nA): ") );
