@@ -70,14 +70,14 @@ public class PathLayer extends GenericPathLayer
 		GroupLayer g = new GroupLayer();
 		g.name = "images";
 		dNode.getChildren().add(g);
+
+		GroupLayer g2 = new GroupLayer();
+		g2.name = "measure";
+		g.getChildren().add(g2);
 		
-		g = new GroupLayer();
-		g.name = "measure";
-		dNode.getChildren().add(g);
-		
-		g = new GroupLayer();
-		g.name = "notes";
-		dNode.getChildren().add(g);
+		g2 = new GroupLayer();
+		g2.name = "notes";
+		g.getChildren().add(g2);
 		
 		ControlGroupLayer cg = new ControlGroupLayer();
 		dNode.getChildren().add(cg);
