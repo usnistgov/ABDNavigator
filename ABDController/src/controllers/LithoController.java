@@ -583,6 +583,7 @@ public class LithoController implements DrawingComponent
 				{
 					if (instance.abortLitho)
 					{
+						instance.abortLitho=false;
 						break;
 					}
 					
@@ -661,7 +662,10 @@ public class LithoController implements DrawingComponent
 				{
 					Thread.sleep(10);System.out.print("-");
 					if(instance.abortLitho) 
+					{
+						instance.abortLitho=false;
 						setTipSettings(false);
+					}
 				}
 				currentX = x1;
 				currentY = y1;
