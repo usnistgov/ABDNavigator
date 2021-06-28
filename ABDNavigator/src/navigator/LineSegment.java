@@ -120,6 +120,11 @@ public class LineSegment extends GenericPathLayer
 		ABDClient.command("litho " + "true," + x0 + "," + y0 + "," + x1 + "," + y1);
 	}
 	
+	public void abort()
+	{
+		ABDClient.command("abortLitho");
+	}
+	
 	public void init()
 	{
 		super.init();
@@ -145,7 +150,7 @@ public class LineSegment extends GenericPathLayer
 		System.out.println( "line parent: " + node.getClass() );
 		if ((node instanceof ScanRegionLayer) && (selectable))
 		{
-			actions = new String[]{"litho"};
+			actions = new String[]{"litho","abort"};
 			
 			
 			GenericPathDisplayNode n1 = getPathDisplayNodes().get(1);

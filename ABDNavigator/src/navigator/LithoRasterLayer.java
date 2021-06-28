@@ -50,7 +50,7 @@ public class LithoRasterLayer extends NavigationLayer
 		supressBaseAttributes = true;
 		isImobile = true;
 		
-		actions = new String[]{"litho","nextRasterType"};//,"update"};
+		actions = new String[]{"litho","abort","nextRasterType"};//,"update"};
 		
 		//there should be only 1 lithoRaster object in a ScanSettingsLayer, so whatever is found in the xml during copySupressedChildren
 		//is the match to this unique LithoRaster object
@@ -206,6 +206,11 @@ public class LithoRasterLayer extends NavigationLayer
 		{
 			ex.printStackTrace();
 		}
+	}
+	
+	public void abort()
+	{
+		ABDClient.command("abortLitho");
 	}
 	
 	double[][] segments = null;

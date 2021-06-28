@@ -17,6 +17,7 @@ public class Positioner extends NavigationLayer
 	
 	PathNode node;
 	boolean outsideRange = false;
+	boolean fclRunning = false;
 	
 	public Positioner()
 	{
@@ -141,6 +142,11 @@ public class Positioner extends NavigationLayer
 		}
 	}
 	
+	public void abort()
+	{
+		fcl();
+	}
+	
 	public void fcl()
 	{
 		try
@@ -159,6 +165,8 @@ public class Positioner extends NavigationLayer
 					//ABDClient.setLock(this, false);
 					if (outsideRange)
 						returnToOriginalScanRegion();
+
+					fclRunning^=true;
 				}
 			};
 			t.start();
@@ -259,6 +267,7 @@ public class Positioner extends NavigationLayer
 	
 	public void postSetFromXML()
 	{
+		System.out.println(".");
 		node.init();
 				
 		main.getChildren().add(node);
@@ -273,7 +282,7 @@ public class Positioner extends NavigationLayer
 		System.out.println( "positioner parent: " + n.getClass() );
 		if ((n instanceof ScanRegionLayer) && (selectable))
 		{
-			actions = new String[]{"moveTip","fcl","zRamp","vPulse"};
+			actions = new String[]{"moveTip","fcl","abort","zRamp","vPulse"};
 			scannerChild = true;
 		}
 	}
@@ -311,8 +320,6 @@ public class Positioner extends NavigationLayer
 			e.setAttribute("numPulses", Integer.toString(numPulses) );
 			
 		}
-		
-				
 		return e;
 	}
 	

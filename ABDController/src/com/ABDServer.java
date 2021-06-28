@@ -12,6 +12,7 @@ public class ABDServer
 {
 	public static int port = 6889;//was 6789
 	public static boolean serverRunning = false;
+	public static boolean fclRunning = false;
 	
 	public static ServerSocket server;
 	public static Thread serverThread;
@@ -264,7 +265,11 @@ public class ABDServer
 		}
 		else if (in.equals("fcl"))
 		{
-			doFCL();
+			System.out.println("Signal reached ABDServer");
+			if (fclRunning)
+				doAbort();
+			else
+				doFCL();
 		}
 		else if (in.equals("zRamp"))
 		{
@@ -294,6 +299,10 @@ public class ABDServer
 		{
 			String s = getValueFrom(in);
 			LithoController.speed = Double.parseDouble(s);
+		}
+		else if (in.equals("abortLitho"))
+		{
+			LithoController.instance.abortLitho = true;
 		}
 		
 		return new String(out + '\n');
@@ -424,8 +433,6 @@ public class ABDServer
 		boolean scanning = ABDController.controller.isScanning();
 		if (scanning)
 			ABDController.controller.stopScan();
-		
-		System.out.println("fcl");
 		try
 		{
 			while (ABDController.controller.tipIsMoving()) {Thread.sleep(10);System.out.print(".");};
@@ -441,6 +448,13 @@ public class ABDServer
 		
 		//if (scanning)
 		//	ABDController.controller.startUpScan();
+		fclRunning=true;
+	}
+	
+	public static void doAbort()
+	{
+		ABDController.fclTriggered=true;
+		fclRunning=false;
 	}
 	
 	public static void doZRamp()
