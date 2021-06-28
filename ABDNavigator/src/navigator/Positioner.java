@@ -144,7 +144,7 @@ public class Positioner extends NavigationLayer
 	
 	public void abort()
 	{
-		fcl();
+		ABDClient.command("abort");
 	}
 	
 	public void fcl()
