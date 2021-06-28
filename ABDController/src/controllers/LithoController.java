@@ -424,7 +424,7 @@ public class LithoController implements DrawingComponent
 		
 	}
 	
-	private boolean abortLitho = false;
+	public boolean abortLitho = false;
 	public boolean continueLitho = false;
 	public void performLithography()
 	{
