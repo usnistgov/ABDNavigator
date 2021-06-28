@@ -265,11 +265,11 @@ public class ABDServer
 		}
 		else if (in.equals("fcl"))
 		{
-			System.out.println("Signal reached ABDServer");
-			if (fclRunning)
-				doAbort();
-			else
-				doFCL();
+			doFCL();
+		}
+		else if (in.equals("abort"))
+		{
+			doAbort();
 		}
 		else if (in.equals("zRamp"))
 		{
