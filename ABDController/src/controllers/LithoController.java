@@ -657,7 +657,12 @@ public class LithoController implements DrawingComponent
 				setTipSettings(in);
 				
 				controller.moveTipTo(x1, y1);
-				while (controller.tipIsMoving()) {Thread.sleep(10);System.out.print("-");};
+				while (controller.tipIsMoving()) 
+				{
+					Thread.sleep(10);System.out.print("-");
+					if(instance.abortLitho) 
+						setTipSettings(false);
+				}
 				currentX = x1;
 				currentY = y1;
 			}
