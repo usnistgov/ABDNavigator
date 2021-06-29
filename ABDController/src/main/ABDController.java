@@ -1054,6 +1054,7 @@ public class ABDController
 	
 	public static void doFCL()
 	{
+		fclRunning = true;
 		Thread fclThread = new Thread()
 		{
 			public void run()
@@ -1073,7 +1074,6 @@ public class ABDController
 					while (currentSignal.ramping) {Thread.sleep(600);}
 					
 					fclTriggered = false;
-					fclRunning = true;
 					
 				
 					//ramp bias, then monitor, then ramp some more
