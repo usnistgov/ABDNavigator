@@ -569,6 +569,8 @@ public class LithoController implements DrawingComponent
 		
 		steps = stepsP;
 		
+		lithoRunning=true;
+		
 		lithoThread = new Thread()
 		{
 			public void run()
@@ -580,8 +582,6 @@ public class LithoController implements DrawingComponent
 				
 				int idx = 0;
 				int stepIdx = 0;
-				
-				lithoRunning=true;
 				
 				while (idx < steps.length)
 				{
