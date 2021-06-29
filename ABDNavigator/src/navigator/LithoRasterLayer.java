@@ -4,6 +4,7 @@ import java.util.Vector;
 
 import org.w3c.dom.Element;
 
+import javafx.application.Platform;
 //import javafx.application.Platform;
 //import GDSLayer.SegmentPartition;
 import javafx.geometry.Point2D;
@@ -50,7 +51,7 @@ public class LithoRasterLayer extends NavigationLayer
 		supressBaseAttributes = true;
 		isImobile = true;
 		
-		actions = new String[]{"litho","abort","nextRasterType"};//,"update"};
+		actions = new String[]{"litho","nextRasterType"};//,"update"};
 		
 		//there should be only 1 lithoRaster object in a ScanSettingsLayer, so whatever is found in the xml during copySupressedChildren
 		//is the match to this unique LithoRaster object
@@ -206,11 +207,55 @@ public class LithoRasterLayer extends NavigationLayer
 		{
 			ex.printStackTrace();
 		}
+		isLithoOn();
 	}
 	
 	public void abort()
 	{
 		ABDClient.command("abortLitho");
+	}
+	
+	public void isLithoOn()
+	{
+		try
+		{
+			updateLithoButton(true);
+			Thread t = new Thread(new Runnable()
+			{
+				public void run()
+				{
+					try 
+					{
+						while (Boolean.parseBoolean(ABDClient.command("isLithoOn"))) {Thread.sleep(10);System.out.print(".");};
+					}
+					catch(Exception ex)
+					{
+						ex.printStackTrace();
+						//ABDClient.setLock(this, false);
+					}
+					Platform.runLater(new Runnable() {
+						public void run() {
+							updateLithoButton(false);
+						}
+					});
+				}
+			});
+			t.start();
+		}
+		catch (Exception ex)
+		{
+			ex.printStackTrace();
+			//ABDClient.setLock(this, false);
+		}
+	}
+	
+	public void updateLithoButton(Boolean lithoOn)
+	{
+		if (lithoOn)
+			actions = new String[]{"abort","nextRasterType"};
+		else
+			actions = new String[]{"litho","nextRasterType"};
+		SampleNavigator.attributeEditor.init(this);
 	}
 	
 	double[][] segments = null;
