@@ -587,7 +587,6 @@ public class LithoController implements DrawingComponent
 				{
 					if (instance.abortLitho)
 					{
-						instance.abortLitho=false;
 						break;
 					}
 					
@@ -616,6 +615,7 @@ public class LithoController implements DrawingComponent
 					controller.startUpScan();
 					
 				lithoRunning=false;
+				instance.abortLitho=false;
 			}
 		};
 		
@@ -669,7 +669,6 @@ public class LithoController implements DrawingComponent
 					Thread.sleep(10);System.out.print("-");
 					if(instance.abortLitho) 
 					{
-						instance.abortLitho=false;
 						setTipSettings(false);
 					}
 				}
