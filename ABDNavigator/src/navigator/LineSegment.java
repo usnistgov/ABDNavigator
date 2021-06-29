@@ -2,6 +2,7 @@ package navigator;
 
 import org.w3c.dom.Element;
 
+import javafx.application.Platform;
 import javafx.geometry.Point2D;
 import javafx.scene.Group;
 import javafx.scene.Node;
@@ -118,11 +119,56 @@ public class LineSegment extends GenericPathLayer
 		ABDClient.command("travelSpeed " + Double.toString(scanSettings.tipSpeed));
 				
 		ABDClient.command("litho " + "true," + x0 + "," + y0 + "," + x1 + "," + y1);
+		
+		isLithoOn();
 	}
 	
 	public void abort()
 	{
 		ABDClient.command("abortLitho");
+	}
+	
+	public void isLithoOn()
+	{
+		try
+		{
+			updateLithoButton(true);
+			Thread t = new Thread(new Runnable()
+			{
+				public void run()
+				{
+					try 
+					{
+						while (Boolean.parseBoolean(ABDClient.command("isLithoOn"))) {Thread.sleep(10);System.out.print(".");};
+					}
+					catch(Exception ex)
+					{
+						ex.printStackTrace();
+						//ABDClient.setLock(this, false);
+					}
+					Platform.runLater(new Runnable() {
+						public void run() {
+							updateLithoButton(false);
+						}
+					});
+				}
+			});
+			t.start();
+		}
+		catch (Exception ex)
+		{
+			ex.printStackTrace();
+			//ABDClient.setLock(this, false);
+		}
+	}
+	
+	public void updateLithoButton(Boolean lithoOn)
+	{
+		if (lithoOn)
+			actions = new String[]{"abort"};
+		else
+			actions = new String[]{"litho"};
+		SampleNavigator.attributeEditor.init(this);
 	}
 	
 	public void init()
@@ -150,7 +196,7 @@ public class LineSegment extends GenericPathLayer
 		System.out.println( "line parent: " + node.getClass() );
 		if ((node instanceof ScanRegionLayer) && (selectable))
 		{
-			actions = new String[]{"litho","abort"};
+			actions = new String[]{"litho"};
 			
 			
 			GenericPathDisplayNode n1 = getPathDisplayNodes().get(1);

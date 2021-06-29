@@ -87,6 +87,7 @@ public class LithoController implements DrawingComponent
 	public int lithoIdx = 0;
 	
 	public static boolean fastWriting = false;
+	public static boolean lithoRunning = false;
 	
 	public AffineTransform getTransform()
 	{
@@ -579,6 +580,9 @@ public class LithoController implements DrawingComponent
 				
 				int idx = 0;
 				int stepIdx = 0;
+				
+				lithoRunning=true;
+				
 				while (idx < steps.length)
 				{
 					if (instance.abortLitho)
@@ -610,6 +614,8 @@ public class LithoController implements DrawingComponent
 				
 				if (scanning)
 					controller.startUpScan();
+					
+				lithoRunning=false;
 			}
 		};
 		

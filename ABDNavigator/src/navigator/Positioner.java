@@ -4,12 +4,14 @@ import java.util.Vector;
 
 import org.w3c.dom.Element;
 
+import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.geometry.Point2D;
 import javafx.scene.Node;
 import javafx.scene.paint.Color;
 import main.ABDClient;
+import main.SampleNavigator;
 
 
 public class Positioner extends NavigationLayer
@@ -17,7 +19,6 @@ public class Positioner extends NavigationLayer
 	
 	PathNode node;
 	boolean outsideRange = false;
-	boolean fclRunning = false;
 	
 	public Positioner()
 	{
@@ -165,8 +166,6 @@ public class Positioner extends NavigationLayer
 					//ABDClient.setLock(this, false);
 					if (outsideRange)
 						returnToOriginalScanRegion();
-
-					fclRunning^=true;
 				}
 			};
 			t.start();
@@ -176,6 +175,51 @@ public class Positioner extends NavigationLayer
 			ex.printStackTrace();
 			//ABDClient.setLock(this, false);
 		}
+		isFclOn();
+	}
+	
+	public void isFclOn()
+	{
+		try
+		{
+			updateFclButton(true);
+			Thread t = new Thread(new Runnable()
+			{
+				public void run()
+				{
+					try 
+					{
+						while (Boolean.parseBoolean(ABDClient.command("isFclOn"))) {Thread.sleep(10);System.out.print(".");};
+					}
+					catch(Exception ex)
+					{
+						ex.printStackTrace();
+						//ABDClient.setLock(this, false);
+					}
+					Platform.runLater(new Runnable() {
+						public void run() {
+							updateFclButton(false);
+						}
+					});
+				}
+			});
+			t.start();
+		}
+		catch (Exception ex)
+		{
+			ex.printStackTrace();
+			//ABDClient.setLock(this, false);
+		}
+	}
+	
+	public void updateFclButton(Boolean fclOn)
+	{
+		System.out.println("Layout Update");
+		if (fclOn)
+			actions = new String[]{"moveTip","abort","zRamp","vPulse"};
+		else
+			actions = new String[]{"moveTip","fcl","zRamp","vPulse"};
+		SampleNavigator.attributeEditor.init(this);
 	}
 	
 	public void zRamp()
@@ -282,7 +326,7 @@ public class Positioner extends NavigationLayer
 		System.out.println( "positioner parent: " + n.getClass() );
 		if ((n instanceof ScanRegionLayer) && (selectable))
 		{
-			actions = new String[]{"moveTip","fcl","abort","zRamp","vPulse"};
+			actions = new String[]{"moveTip","fcl","zRamp","vPulse"};
 			scannerChild = true;
 		}
 	}
