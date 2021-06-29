@@ -148,6 +148,14 @@ public class ABDServer
 		{
 			out = Boolean.toString( ABDController.controller.tipIsMoving() );
 		}
+		else if (in.equals("isFclOn"))
+		{
+			out = Boolean.toString(ABDController.fclRunning);
+		}
+		else if (in.equals("isLithoOn"))
+		{
+			out = Boolean.toString(LithoController.lithoRunning);
+		}
 		else if (in.equals("getTipScanPosition"))
 		{
 			double[] pos = ABDController.controller.getTipScanPosition();
