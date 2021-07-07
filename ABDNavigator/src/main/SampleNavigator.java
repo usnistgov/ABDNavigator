@@ -1239,6 +1239,19 @@ public class SampleNavigator extends Application
 		refreshTreeEditor();
 	}
 	
+	public static void addPositioner(double x, double y)
+	{
+		Positioner l = new Positioner();
+		//l.init();
+		selectedLayer.getChildren().add(l);
+		
+		l.setTranslateX(x);
+		l.setTranslateY(y);
+		
+		l.postSetFromXML();
+		refreshTreeEditor();
+	}
+	
 	public static void openCommentEditor(String text)
 	{
 		commentEditor.toFront();
