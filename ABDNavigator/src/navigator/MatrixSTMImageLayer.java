@@ -3,6 +3,7 @@ package navigator;
 //import BufferedSTMImage;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.io.File;
 import java.io.FileInputStream;
 import java.nio.ByteBuffer;
@@ -11,7 +12,9 @@ import java.nio.CharBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
@@ -20,6 +23,7 @@ import javax.swing.JPanel;
 
 import org.w3c.dom.Element;
 
+import javafx.application.Platform;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.image.Image;
 import main.SampleNavigator;
@@ -48,10 +52,14 @@ public class MatrixSTMImageLayer extends ImageLayer
 	
 	private int colorSchemeIdx = 0;
 	
+	public int maximaThreshold = 500;
+	public int maximaPrecision = 1;
+	public double maximaExpectedDiameter = 1;
+	
 	public MatrixSTMImageLayer()
 	{
 		super();
-		appendActions( new String[]{"imageLeftRight","imageUpDown","togglePlaneSubtract","toggleLineByLineFlatten","nextColorScheme"} );
+		appendActions( new String[]{"imageLeftRight","imageUpDown","togglePlaneSubtract","toggleLineByLineFlatten","nextColorScheme","locateMaxima"} );
 		
 	}
 	
@@ -589,6 +597,18 @@ public class MatrixSTMImageLayer extends ImageLayer
 		s = xml.getAttribute("colorSchemeIndex");
 		if (s.length() > 0)
 			colorSchemeIdx = Integer.parseInt(s);
+			
+		s = xml.getAttribute("maximaThreshold");
+		if (s.length() > 0)
+			maximaThreshold = Integer.parseInt(s);
+		
+		s = xml.getAttribute("maximaPrecision");
+		if (s.length() > 0)
+			maximaPrecision = Integer.parseInt(s);
+		
+		s = xml.getAttribute("maximaExpectedDiameter");
+		if (s.length() > 0)
+			maximaExpectedDiameter = Double.parseDouble(s);
 		
 		if (img == null)
 			return;
@@ -610,6 +630,9 @@ public class MatrixSTMImageLayer extends ImageLayer
 		e.setAttribute("lineByLineFlatten", Boolean.toString(lineByLineFlatten));
 		e.setAttribute("imageDirection", imageDirection);
 		e.setAttribute("colorSchemeIndex", Integer.toString(colorSchemeIdx));
+		e.setAttribute("maximaThreshold", Integer.toString(maximaThreshold));
+		e.setAttribute("maximaPrecision", Integer.toString(maximaPrecision));
+		e.setAttribute("maximaExpectedDiameter", Double.toString(maximaExpectedDiameter));
 		return e;
 	}
 	
@@ -638,5 +661,87 @@ public class MatrixSTMImageLayer extends ImageLayer
 			colorSchemeIdx = 0;
 		
 		setImageTo(currentImageData);
+	}
+	public void locateMaxima()
+	{
+		NavigationLayer maximaLayer = new NavigationLayer();
+		SampleNavigator.selectedLayer.getChildren().add(maximaLayer);
+		SampleNavigator.selectedLayer = maximaLayer;
+		SampleNavigator.refreshAttributeEditor();
+		try
+		{
+			Thread t = new Thread(new Runnable()
+			{
+				public void run()
+				{
+					List<Double[]> maximaList = new ArrayList<Double[]>();
+					for (int y = 0; y < bImg.getHeight(); y+=maximaPrecision)
+				    	{
+						for (int x = 0; x < bImg.getWidth(); x+=maximaPrecision)
+						{
+							int pixel = bImg.getRGB(x, y);
+				  		  	Color c = new Color(pixel);
+				  		  	if (c.getRed()+c.getGreen()+c.getBlue()>maximaThreshold)
+				  		  	{
+		  					  	Double[] tempList = {(double) x, (double) y};
+		  					  	maximaList.add(tempList);
+				  		  	}
+			    	  		}	
+				    	}
+					List<Double[]> skipList = new ArrayList<Double[]>();
+					List<Double[]> addList = new ArrayList<Double[]>();
+					for (Double[] thisPoint : maximaList)
+					{
+						if (!skipList.contains(thisPoint))
+						{
+							List<Double[]> closeList = new ArrayList<Double[]>();
+							closeList.add(thisPoint);
+							for (Double[] thatPoint: maximaList)
+							{
+								if (Math.sqrt(Math.pow(thisPoint[0]-thatPoint[0],2)+Math.pow(thisPoint[1]-thatPoint[1],2))<maximaExpectedDiameter)
+								{
+									closeList.add(thatPoint);
+								}
+							}
+							double xSum = 0;
+							double ySum = 0;
+							for (Double[] closePoint : closeList)
+							{
+								skipList.add(closePoint);
+								xSum+=closePoint[0];
+								ySum+=closePoint[1];
+							}
+							Double[] averagePoint = {xSum/closeList.size(),ySum/closeList.size()};
+							addList.add(averagePoint);
+						}
+					}
+					for (Double[] removePoint : skipList)
+					{
+						maximaList.remove(removePoint);
+					}
+					for (Double[] addPoint : addList)
+					{
+						maximaList.add(addPoint);
+					}
+					for (Double[] addPositioner : maximaList)
+					{
+						final double xn = (((double)addPositioner[0])-(((double) bImg.getWidth())/2))/bImg.getWidth();
+			  			final double yn = (((double)addPositioner[1])-(((double) bImg.getHeight())/2))/bImg.getHeight();
+						Platform.runLater(new Runnable() {
+			  				  public void run() 
+			  				  {
+			  					  SampleNavigator.addPositioner(xn, yn);
+			  				  }
+						});
+					}
+				}
+			});
+			t.start();
+		}
+		catch (Exception ex)
+		{
+			ex.printStackTrace();
+		}
+		
 	}
 }
