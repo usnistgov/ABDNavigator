@@ -62,12 +62,16 @@ public class AttributeEditor extends GridPane
 		
 		layer = layer0;
 		xml = layer.getAsXML();
-		
-		Group p = (Group)getParent();
-		if (!p.getChildren().contains(closeButton))
-			p.getChildren().add(closeButton);
-		//getChildren().add(closeButton);
-		closeButton.toFront();
+		try {
+			Group p = (Group)getParent();
+			if (!p.getChildren().contains(closeButton))
+				p.getChildren().add(closeButton);
+			//getChildren().add(closeButton);
+			closeButton.toFront();
+		}
+		catch(java.lang.ClassCastException e) {
+			//System.out.println(e);
+		}
 		
 		
 		//System.out.println(layer);
