@@ -10,11 +10,13 @@ import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.event.*;
+import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.Point2D;
 import javafx.scene.*;
 import javafx.scene.Node;
 import javafx.scene.control.*;
+import javafx.scene.control.ScrollPane.ScrollBarPolicy;
 import javafx.scene.text.*;
 import javafx.scene.text.Text;
 import javafx.scene.transform.Affine;
@@ -38,6 +40,8 @@ import javafx.util.Duration;
 import org.w3c.dom.*;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXParseException;
+
+import com.sun.javafx.scene.control.skin.ScrollPaneSkin;
 
 import javax.imageio.ImageIO;
 import javax.xml.parsers.*;
@@ -68,6 +72,8 @@ public class SampleNavigator extends Application
 	public static HelpWindow helpWindow = null;
 	public static Group attributeEditorGroup = null;
 	public static AttributeEditor attributeEditor = null;
+	public static ScrollPane scrollPane = null;
+	public static boolean refreshScroll = true;
 	public static Group treeEditorGroup = null;
 	public static TreeView<String> treeEditor = null;
 	
@@ -652,7 +658,7 @@ public class SampleNavigator extends Application
     					else
     					{
     						openAttributeEditor();
-    						
+    						refreshScrollBar();
     					}
     				}
     			}
@@ -873,6 +879,7 @@ public class SampleNavigator extends Application
 				rotateLine.setVisible(false);
 				
 				SampleNavigator.refreshAttributeEditor();
+				SampleNavigator.refreshScrollBar();
 				
 				//System.out.println(editingLayer.getClass().getName());
 				if (editingLayer instanceof GenericPathDisplayNode)
@@ -897,6 +904,20 @@ public class SampleNavigator extends Application
 				
 			}
     	});
+	
+	scene.widthProperty().addListener(new ChangeListener<Number>() {
+    	    public void changed(ObservableValue<? extends Number> observableValue, Number oldSceneWidth, Number newSceneWidth) 
+    	    {
+    	        SampleNavigator.refreshScrollBar();
+    	    }
+    	});
+	
+    	scene.heightProperty().addListener(new ChangeListener<Number>() {
+    	    public void changed(ObservableValue<? extends Number> observableValue, Number oldSceneHeight, Number newSceneHeight) 
+    	    {
+    	    	SampleNavigator.refreshScrollBar();
+    	    }
+    	});
     	
     	scene.setOnScroll( new EventHandler<ScrollEvent>()
     	{
@@ -905,6 +926,7 @@ public class SampleNavigator extends Application
     			double deltaY = e.getDeltaY();
     			
     			scrollZoom(deltaY, e.isAltDown(), e.getSceneX(), e.getSceneY());
+			refreshScroll=false;
     			SampleNavigator.refreshAttributeEditor();
     		}
     	} );
@@ -1495,13 +1517,33 @@ public class SampleNavigator extends Application
 	}
 	
 	public static void openAttributeEditor()
-	{
-		
+	{	
 		attributeEditorGroup.toFront();
 		attributeEditorGroup.setVisible(true);
 		
 		attributeEditor.init( selectedLayer.editTarget );
 		//attributeEditor.updatePosition();
+		
+		if (refreshScroll)
+			refreshScrollBar();
+		else
+			refreshScroll=true;
+	}
+	
+	public static void refreshScrollBar()
+	{
+		scrollPane = new ScrollPane(attributeEditor);
+		scrollPane.setHbarPolicy(ScrollBarPolicy.AS_NEEDED);
+		scrollPane.setVbarPolicy(ScrollBarPolicy.AS_NEEDED);
+		if (attributeEditor.getHeight()<scene.getHeight())
+			scrollPane.setVbarPolicy(ScrollBarPolicy.NEVER);
+		if (attributeEditor.getWidth()<scene.getWidth())
+			scrollPane.setHbarPolicy(ScrollBarPolicy.NEVER);
+		scrollPane.setMaxHeight(scene.getHeight());
+		scrollPane.setMaxWidth(scene.getWidth());
+		attributeEditorGroup.getChildren().clear();
+		attributeEditorGroup.getChildren().addAll(attributeEditor, scrollPane);
+		scrollPane.setSkin(new ScrollPaneSkin(scrollPane) {public void onTraverse(Node n, Bounds b) {}});
 	}
 	
 	public static void refreshAttributeEditor()
