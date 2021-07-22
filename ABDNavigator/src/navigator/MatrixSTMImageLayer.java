@@ -4,6 +4,7 @@ package navigator;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileInputStream;
 import java.nio.ByteBuffer;
@@ -21,10 +22,15 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
+import org.apache.commons.math3.complex.Complex;
+import org.apache.commons.math3.transform.DftNormalization;
+import org.apache.commons.math3.transform.FastFourierTransformer;
+import org.apache.commons.math3.transform.TransformType;
 import org.w3c.dom.Element;
 
 import javafx.application.Platform;
 import javafx.embed.swing.SwingFXUtils;
+import javafx.scene.Node;
 import javafx.scene.image.Image;
 import main.SampleNavigator;
 
@@ -56,10 +62,15 @@ public class MatrixSTMImageLayer extends ImageLayer
 	public int maximaPrecision = 1;
 	public double maximaExpectedDiameter = 1;
 	
+	public double expectedLatticeSpacing = 0.385;
+	public double spacingUncertainty = 0.13;
+	public double latticeStartingX = 0;
+	public double latticeStartingY = 0;
+	
 	public MatrixSTMImageLayer()
 	{
 		super();
-		appendActions( new String[]{"imageLeftRight","imageUpDown","togglePlaneSubtract","toggleLineByLineFlatten","nextColorScheme","locateMaxima"} );
+		appendActions( new String[]{"imageLeftRight","imageUpDown","togglePlaneSubtract","toggleLineByLineFlatten","nextColorScheme","locateMaxima","locateLattice","loadStartingPoint"} );
 		
 	}
 	
@@ -610,6 +621,22 @@ public class MatrixSTMImageLayer extends ImageLayer
 		if (s.length() > 0)
 			maximaExpectedDiameter = Double.parseDouble(s);
 		
+		s = xml.getAttribute("latticeExpectedSpacingNM");
+		if (s.length() > 0)
+			expectedLatticeSpacing = Double.parseDouble(s);
+
+		s = xml.getAttribute("latticeSpacingUncertaintyNM");
+		if (s.length() > 0)
+			spacingUncertainty = Double.parseDouble(s);
+		
+		s = xml.getAttribute("latticeStartingX");
+		if (s.length() > 0)
+			latticeStartingX = Double.parseDouble(s);
+		
+		s = xml.getAttribute("latticeStartingY");
+		if (s.length() > 0)
+			latticeStartingY = Double.parseDouble(s);
+		
 		if (img == null)
 			return;
 		
@@ -633,6 +660,10 @@ public class MatrixSTMImageLayer extends ImageLayer
 		e.setAttribute("maximaThreshold", Integer.toString(maximaThreshold));
 		e.setAttribute("maximaPrecision", Integer.toString(maximaPrecision));
 		e.setAttribute("maximaExpectedDiameter", Double.toString(maximaExpectedDiameter));
+		e.setAttribute("latticeExpectedSpacingNM", Double.toString(expectedLatticeSpacing));
+		e.setAttribute("latticeSpacingUncertaintyNM", Double.toString(spacingUncertainty));
+		e.setAttribute("latticeStartingX", Double.toString(latticeStartingX));
+		e.setAttribute("latticeStartingY", Double.toString(latticeStartingY));
 		return e;
 	}
 	
@@ -743,5 +774,283 @@ public class MatrixSTMImageLayer extends ImageLayer
 			ex.printStackTrace();
 		}
 		
+	}
+	public void locateLattice() 
+	{
+		try
+		{
+			Thread t = new Thread(new Runnable()
+			{
+				@SuppressWarnings("deprecation")
+				public void run()
+				{
+					int width = bImg.getWidth();
+			        int height = bImg.getHeight();
+			        double heightWidthNM = scale.getMxx();
+			        if (width != height || scale.getMxx() != scale.getMyy())
+			        {
+			        	System.out.println("Failed: image not square");
+			        	return;
+			        }
+			        
+			        //Pads image to a height and width that is a power of 2
+			        int n = (int) Math.pow(2, ((int) (Math.log(width)/Math.log(2))+1));
+			        BufferedImage transformedImage = new BufferedImage(n,n,2);
+			        Complex[][] pixel = new Complex[n][n];
+			        for (int i = 0; i < n; i++) 
+			        {
+			            for (int j = 0; j < n; j++)
+			            {
+			            	try 
+			            	{
+			            		pixel[i][j] = new Complex(bImg.getRGB(i,j)<<24>>24&0xff,0);
+			            	}
+			            	catch (Exception e) 
+			            	{
+			            		pixel[i][j] = new Complex(0,0);
+			            	}
+			            }
+			        }
+			        
+			        //Performs transform
+			        Complex[][] answers = new Complex[n][n];
+					FastFourierTransformer f = new FastFourierTransformer(DftNormalization.STANDARD);
+			        answers = (Complex[][]) f.mdfft(pixel, TransformType.FORWARD);
+			        
+			        //Converts array to image
+			        for (int i = 0; i < n; i++)
+			        {
+		                for (int j = 0; j < n; j++)
+		                {
+		                	double brightness = Math.sqrt(Math.pow(answers[i][j].getReal(),2) + Math.pow(answers[i][j].getImaginary(),2));
+		                	brightness = Math.pow(Math.log(1+brightness),2.3);
+		                	if (brightness > 255)
+		                	{
+		                		brightness = 255;
+		                    }
+		                    if (brightness < 0)
+		                    {
+		                    	brightness = 0;
+		                    }
+		                	int brightnessInt = (int) brightness;
+		                    transformedImage.setRGB((i+n/2)%n,(j+n/2)%n,255<<24|brightnessInt<<16|brightnessInt<<8|brightnessInt);
+		                }
+		            }
+			        
+			        ArrayList<Double[]> peaks = new ArrayList<Double[]>();
+			        double lowerNM = expectedLatticeSpacing + spacingUncertainty;
+			        double upperNM = expectedLatticeSpacing - spacingUncertainty;
+			        double expectedRadius = (n/2)/(expectedLatticeSpacing*(n/(2*heightWidthNM)));
+			        double lowerRadius = (n/2)/(lowerNM*(n/(2*heightWidthNM)));
+			        double upperRadius = (n/2)/(upperNM*(n/(2*heightWidthNM)));
+			        System.out.println(lowerRadius + " " + upperRadius);
+			        
+			        for (double radius = lowerRadius; radius < upperRadius; radius++)
+			        {
+			        	for (double theta = 0; theta < Math.PI*2; theta += (1/expectedRadius))
+			        	{
+			        		int x = (int) ((n/2) + (radius*Math.cos(theta)));
+			        		int y = (int) ((n/2) + (radius*Math.sin(theta)));
+			        		int thisPixel = 0;
+			        		try
+			        		{
+			        			thisPixel = transformedImage.getRGB(x,y);
+			        		}
+			        		catch (Exception ex) 
+			        		{
+			        			System.out.println("Radius out of bounds (adjust expected spacing or spacing uncertainty)");
+			        			return;
+			        		}
+			    			Color c = new Color(thisPixel);
+			        		if (c.getRed()+c.getBlue()+c.getGreen() > 450)
+							{
+								Double[] toAdd = {(double)x,(double)y};
+								if (!peaks.contains(toAdd))
+								{
+									peaks.add(toAdd);
+								}
+							}
+			        	}
+			        }
+			        
+			        peaks = removeDark(peaks, transformedImage, 10);
+			        
+			    	ArrayList<Double[]> angledPeaks = new ArrayList<Double[]>();
+			    	ArrayList<Double[]> nonAngledPeaks = new ArrayList<Double[]>();
+			    	for (Double[] item : peaks) 
+			    	{
+			    		if (Math.abs(item[0]-(n/2)) > 2 && Math.abs(item[1]-(n/2)) > 2)
+			    		{
+			    			angledPeaks.add(item);
+			    		}
+			    		else
+			    		{
+			    			nonAngledPeaks.add(item);
+			    		}
+			    	}
+			    	
+			    	double angle = 0;
+			    	double sumDist = 0;
+			    	double interval = 0;
+			    	int halfWidth = n/2;
+
+			    	if (angledPeaks.size()==4)
+			    	{
+			    		System.out.println("Angled");
+			    		for (Double[] item : angledPeaks) 
+			    		{
+			    			if (item[0] >= halfWidth-1 && item[1] <= halfWidth+1) 
+			    			{
+			    				angle = Math.atan((halfWidth-item[1])/(item[0]-halfWidth));
+			    			}
+			    			sumDist += Math.sqrt(Math.pow(item[0]-halfWidth, 2) + Math.pow(item[1]-halfWidth, 2));
+			    		}
+			    		sumDist /= 4;
+			    		System.out.println(sumDist);
+			    		interval = (1/((2*sumDist/n)*(n/(2*heightWidthNM))))/heightWidthNM;
+			    	}
+			    	else 
+			    	{
+			    		System.out.println("Not Angled");
+			    		if (nonAngledPeaks.size() > 4) 
+			    		{
+			    			ArrayList<Double[]> type1 = new ArrayList<Double[]>();
+				    		ArrayList<Double[]> type2 = new ArrayList<Double[]>();
+				    		ArrayList<Double[]> type3 = new ArrayList<Double[]>();
+				    		ArrayList<Double[]> type4 = new ArrayList<Double[]>();
+				    		for (Double[] item : nonAngledPeaks)
+				    		{
+				    			if (item[0]-(halfWidth)<-2)
+				    			{
+				    				type1.add(item);
+				    			}
+				    			else if (item[0]-(halfWidth)>2)
+				    			{
+				    				type2.add(item);
+				    			}
+				    			else if (item[1]-(halfWidth)<-2)
+				    			{
+				    				type3.add(item);
+				    			}
+				    			else if (item[1]-(halfWidth)>2)
+				    			{
+				    				type4.add(item);
+				    			}
+				    		}
+				    		type1 = removeDark(type1, transformedImage, n);
+				    		type2 = removeDark(type2, transformedImage, n);
+				    		type3 = removeDark(type3, transformedImage, n);
+				    		type4 = removeDark(type4, transformedImage, n);
+				    		nonAngledPeaks.clear();
+				    		for (Double[] item : type1)
+				    		{
+				    			nonAngledPeaks.add(item);
+				    		}
+				    		for (Double[] item : type2)
+				    		{
+				    			nonAngledPeaks.add(item);
+				    		}
+				    		for (Double[] item : type3)
+				    		{
+				    			nonAngledPeaks.add(item);
+				    		}
+				    		for (Double[] item : type4)
+				    		{
+				    			nonAngledPeaks.add(item);
+				    		}
+			    		}
+			    		if (nonAngledPeaks.size()==4)
+			    		{
+			    			for (Double[] item : nonAngledPeaks) 
+				    		{
+				    			sumDist += Math.sqrt(Math.pow(item[0]-halfWidth, 2) + Math.pow(item[1]-halfWidth, 2));
+				    		}
+				    		sumDist /= 4;
+				    		System.out.println(sumDist);
+				    		interval = (1/((2*sumDist/n)*(n/(2*heightWidthNM))))/heightWidthNM;
+			    		}
+			    		else
+			    		{
+			    			System.out.println("Failed to find lattice (adjust expected spacing or spacing uncertainty), using expected spacing");
+			    			interval = (1/((2*expectedLatticeSpacing/n)*(n/(2*heightWidthNM))))/heightWidthNM;
+			    		}
+			    	}
+			    	
+			    	final double intervalF = interval;
+			  		final double angleF = angle;
+					Platform.runLater(new Runnable() 
+					{
+						public void run() 
+						{
+							NavigationLayer latticeLayer = new NavigationLayer();
+							SampleNavigator.selectedLayer.getChildren().add(latticeLayer);
+							System.out.println(intervalF + " " + angleF);
+							SampleNavigator.addSegment(intervalF, angleF, latticeLayer, latticeStartingX, latticeStartingY);
+							NavigationLayer latticeLayer2 = new NavigationLayer();
+							SampleNavigator.selectedLayer.getChildren().add(latticeLayer2);
+							if (angleF>0)
+							{
+								SampleNavigator.addSegment(intervalF, angleF-(Math.PI/2), latticeLayer2, latticeStartingX, latticeStartingY);
+							}
+							else
+							{
+								SampleNavigator.addSegment(intervalF, angleF+(Math.PI/2), latticeLayer2, latticeStartingX, latticeStartingY);
+							}
+							SampleNavigator.refreshTreeEditor();
+						}
+					});
+				}
+			});
+			t.start();
+		}
+		catch (Exception ex)
+		{
+			ex.printStackTrace();
+		}
+	}
+	ArrayList<Double[]> removeDark(ArrayList<Double[]> input, BufferedImage transformedImage, double effectRadius)
+	{
+		List<Double[]> skipList = new ArrayList<Double[]>();
+		for (Double[] thisPoint : input)
+		{
+			for (Double[] thatPoint: input)
+			{
+				if (!skipList.contains(thisPoint)&&!skipList.contains(thatPoint)&&!thisPoint.equals(thatPoint))
+				{
+					if (Math.sqrt(Math.pow(thisPoint[0]-thatPoint[0],2)+Math.pow(thisPoint[1]-thatPoint[1],2))<(effectRadius))
+					{
+						int thisPixel = transformedImage.getRGB((int) Math.round(thisPoint[0]),(int) Math.round(thisPoint[1]));
+						int thatPixel = transformedImage.getRGB((int) Math.round(thatPoint[0]),(int) Math.round(thatPoint[1]));
+						Color thisColor = new Color(thisPixel);
+						Color thatColor = new Color(thatPixel);
+						if (thisColor.getRed()+thisColor.getGreen()+thisColor.getBlue()>thatColor.getRed()+thatColor.getGreen()+thatColor.getBlue())
+						{
+							skipList.add(thatPoint);
+						}
+						else
+						{
+							skipList.add(thisPoint);
+						}
+					}
+				}
+			}
+		}
+		for (Double[] removePoint : skipList)
+		{
+			input.remove(removePoint);
+		}
+		return input;
+	}
+	public void loadStartingPoint()
+	{
+		for (Node item : SampleNavigator.selectedLayer.getChildren())
+		{
+			if (item instanceof Positioner)
+			{
+				latticeStartingX = item.getTranslateX();
+				latticeStartingY = item.getTranslateY();
+				SampleNavigator.refreshAttributeEditor();
+			}
+		}
 	}
 }
