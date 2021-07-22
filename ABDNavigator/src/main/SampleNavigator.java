@@ -1764,6 +1764,154 @@ public class SampleNavigator extends Application
 		l.init();
 	}
 	
+	public static void addSegment(double spacing, double angle, NavigationLayer thisLayer, double xInit, double yInit)
+	{
+		if (thisLayer == null)
+			return;
+		
+		if (thisLayer instanceof GenericPathDisplayNode)
+		{
+			Node p = thisLayer.getParent();
+			if ((p != null) && (p instanceof LineSegment))
+			{
+				p = p.getParent();
+				if ((p != null) && (p instanceof NavigationLayer))
+					thisLayer = (NavigationLayer) p;
+			}
+		}
+		double i = 0;
+		double x = xInit;
+		double y = yInit;
+		double lLeftX = 0;
+		double lLeftY = 0;
+		double lRightX = 0;
+		double lRightY = 0;
+		boolean firstSide = true;
+		if (spacing == 0)
+		{
+			return;
+		}
+		double slope = 1/Math.tan(angle);
+		while(true)
+		{
+			if (!((x<0.5&&x>-0.5)||(y<0.5&&y>-0.5)))
+			{
+				if (firstSide)
+				{
+					firstSide = false;
+					i = 0;
+					x = xInit;
+					y = yInit;
+				}
+				else
+				{
+					break;
+				}
+			}
+			double yo = y;
+			double xo = x;
+			
+			double yLine1 = (slope*0.5)-(slope*xo)+yo;
+			double yLine2 = (slope*-0.5)-(slope*xo)+yo;
+			double xLine1 = (0.5-yo+(slope*xo))/slope;
+			double xLine2 = (-0.5-yo+(slope*xo))/slope;
+			
+			if (yLine1<=0.5&&yLine1>=-0.5)
+			{
+				lLeftX = 0.5-x;
+				lLeftY = yLine1-y;
+			}
+			else if (yLine2<=0.5&&yLine2>=-0.5)
+			{
+				lLeftX = -0.5-x;
+				lLeftY = yLine2-y;
+			}
+			else
+			{
+				if (xLine1<=0.5&&xLine1>=-0.5)
+				{
+					lLeftX = xLine2-x;
+					lLeftY = -0.5-y;
+				}
+				else if (xLine2<=0.5&&xLine2>=-0.5)
+				{
+					lLeftX = xLine1-x;
+					lLeftY = 0.5-y;
+				}
+			}
+			if (xLine1<=0.5&&xLine1>=-0.5)
+			{
+				lRightX = xLine1-x;
+				lRightY = 0.5-y;
+			}
+			else if (xLine2<=0.5&&xLine2>=-0.5)
+			{
+				lRightX = xLine2-x;
+				lRightY = -0.5-y;
+			}
+			else
+			{
+				if (yLine1<=0.5&&yLine1>=-0.5)
+				{
+					lRightX = -0.5-x;
+					lRightY = yLine2-y;
+				}
+				else if (yLine2<=0.5&&yLine2>=-0.5)
+				{
+					lRightX = 0.5-x;
+					lRightY = yLine1-y;
+				}
+			}
+			
+			if (angle == 0)
+			{
+				lLeftY = 0.5-y;
+				lRightY = -0.5-y;
+			}
+
+			if (lRightY+y>0.5||lRightY+y<-0.5||lLeftY+y>0.5||lLeftY+y<-0.5||(angle==0&&(x>0.5||x<-0.5))) 
+			{
+				if (firstSide)
+				{
+					firstSide = false;
+					i = 0;
+					x = xInit;
+					y = yInit;
+				}
+				else
+				{
+					break;
+				}
+			}
+
+			LineSegment l = new LineSegment();
+			l.setTranslateX(x);
+			l.setTranslateY(y);
+			refreshTreeEditor();
+			thisLayer.getChildren().add(l);
+			
+			l.init();
+
+			l.getChildren().get(0).setTranslateX(lLeftX);
+			l.getChildren().get(0).setTranslateY(lLeftY);
+			l.getChildren().get(1).setTranslateX(lRightX);
+			l.getChildren().get(1).setTranslateY(lRightY);
+
+			if (firstSide)
+			{
+				i+=spacing;
+				x = xInit+(i*Math.cos(angle));
+				y = yInit-(i*Math.sin(angle));
+			}
+			else
+			{
+				i+=spacing;
+				x = xInit-(i*Math.cos(angle));
+				y = yInit+(i*Math.sin(angle));
+			}
+		}
+	}
+	
 	public static Point2D getSceneMouseCoords()
 	{
 		Point2D pos = new Point2D(0,0);
