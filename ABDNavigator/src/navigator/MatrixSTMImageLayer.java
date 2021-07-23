@@ -64,13 +64,11 @@ public class MatrixSTMImageLayer extends ImageLayer
 	
 	public double expectedLatticeSpacing = 0.385;
 	public double spacingUncertainty = 0.13;
-	public double latticeStartingX = 0;
-	public double latticeStartingY = 0;
 	
 	public MatrixSTMImageLayer()
 	{
 		super();
-		appendActions( new String[]{"imageLeftRight","imageUpDown","togglePlaneSubtract","toggleLineByLineFlatten","nextColorScheme","locateMaxima","locateLattice","loadStartingPoint"} );
+		appendActions( new String[]{"imageLeftRight","imageUpDown","togglePlaneSubtract","toggleLineByLineFlatten","nextColorScheme","locateMaxima","locateLattice"} );
 		
 	}
 	
@@ -629,14 +627,6 @@ public class MatrixSTMImageLayer extends ImageLayer
 		if (s.length() > 0)
 			spacingUncertainty = Double.parseDouble(s);
 		
-		s = xml.getAttribute("latticeStartingX");
-		if (s.length() > 0)
-			latticeStartingX = Double.parseDouble(s);
-		
-		s = xml.getAttribute("latticeStartingY");
-		if (s.length() > 0)
-			latticeStartingY = Double.parseDouble(s);
-		
 		if (img == null)
 			return;
 		
@@ -662,8 +652,6 @@ public class MatrixSTMImageLayer extends ImageLayer
 		e.setAttribute("maximaExpectedDiameter", Double.toString(maximaExpectedDiameter));
 		e.setAttribute("latticeExpectedSpacingNM", Double.toString(expectedLatticeSpacing));
 		e.setAttribute("latticeSpacingUncertaintyNM", Double.toString(spacingUncertainty));
-		e.setAttribute("latticeStartingX", Double.toString(latticeStartingX));
-		e.setAttribute("latticeStartingY", Double.toString(latticeStartingY));
 		return e;
 	}
 	
@@ -838,6 +826,38 @@ public class MatrixSTMImageLayer extends ImageLayer
 		            		}
 			        
 					//Looks for bright spots in transformed image between upper and lower radii
+					if (spacingUncertainty==0)
+					{
+						spacingUncertainty=0.1;
+					}
+					
+					ArrayList<Node> itemList= new ArrayList<Node>();
+
+			    		for (Node item : SampleNavigator.selectedLayer.getChildren())
+					{
+						if (item instanceof Positioner)
+						{
+							itemList.add(item);
+						}
+					}
+			    	
+			    		double latticeStartingX = 0;
+			    		double latticeStartingY = 0;
+			    	
+			    		if (itemList.size()>=2)
+			    		{
+			    			double xDist = Math.abs(itemList.get(itemList.size()-1).getTranslateX() - itemList.get(itemList.size()-2).getTranslateX());
+			    			double yDist = Math.abs(itemList.get(itemList.size()-1).getTranslateY() - itemList.get(itemList.size()-2).getTranslateY());
+			    			expectedLatticeSpacing = heightWidthNM*Math.sqrt(Math.pow(xDist, 2) + Math.pow(yDist, 2));
+			    			latticeStartingX = itemList.get(itemList.size()-2).getTranslateX();
+				    		latticeStartingY = itemList.get(itemList.size()-2).getTranslateY();
+			    		}
+			    		else if (itemList.size()>=1)
+			    		{
+			    			latticeStartingX = itemList.get(itemList.size()-1).getTranslateX();
+				    		latticeStartingY = itemList.get(itemList.size()-1).getTranslateY();
+			    		}
+					
 			        	ArrayList<Double[]> peaks = new ArrayList<Double[]>();
 			        	double lowerNM = expectedLatticeSpacing + spacingUncertainty;
 			        	double upperNM = expectedLatticeSpacing - spacingUncertainty;
@@ -978,6 +998,8 @@ public class MatrixSTMImageLayer extends ImageLayer
 			    			}
 			    		}
 			    	
+					final double latticeStartingXF = latticeStartingX;
+			    		final double latticeStartingYF = latticeStartingY;
 			    		final double intervalF = interval;
 			  		final double angleF = angle;
 					Platform.runLater(new Runnable() 
@@ -987,16 +1009,16 @@ public class MatrixSTMImageLayer extends ImageLayer
 							NavigationLayer latticeLayer = new NavigationLayer();
 							SampleNavigator.selectedLayer.getChildren().add(latticeLayer);
 							System.out.println(intervalF + " " + angleF);
-							SampleNavigator.addSegment(intervalF, angleF, latticeLayer, latticeStartingX, latticeStartingY);
+							SampleNavigator.addSegment(intervalF, angleF, latticeLayer, latticeStartingXF, latticeStartingYF);
 							NavigationLayer latticeLayer2 = new NavigationLayer();
 							SampleNavigator.selectedLayer.getChildren().add(latticeLayer2);
 							if (angleF>0)
 							{
-								SampleNavigator.addSegment(intervalF, angleF-(Math.PI/2), latticeLayer2, latticeStartingX, latticeStartingY);
+								SampleNavigator.addSegment(intervalF, angleF-(Math.PI/2), latticeLayer2, latticeStartingXF, latticeStartingYF);
 							}
 							else
 							{
-								SampleNavigator.addSegment(intervalF, angleF+(Math.PI/2), latticeLayer2, latticeStartingX, latticeStartingY);
+								SampleNavigator.addSegment(intervalF, angleF+(Math.PI/2), latticeLayer2, latticeStartingXF, latticeStartingYF);
 							}
 							SampleNavigator.refreshTreeEditor();
 						}
@@ -1042,17 +1064,5 @@ public class MatrixSTMImageLayer extends ImageLayer
 			input.remove(removePoint);
 		}
 		return input;
-	}
-	public void loadStartingPoint()
-	{
-		for (Node item : SampleNavigator.selectedLayer.getChildren())
-		{
-			if (item instanceof Positioner)
-			{
-				latticeStartingX = item.getTranslateX();
-				latticeStartingY = item.getTranslateY();
-				SampleNavigator.refreshAttributeEditor();
-			}
-		}
 	}
 }
