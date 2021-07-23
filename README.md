@@ -63,7 +63,7 @@ As such, interested parties are welcome to clone and fork this project to develo
 
 [The Java Backus-Naur Test API, JBNT.jar,](http://jbnt.sourceforge.net/) is also covered by the [gnu general public license](https://www.gnu.org/licenses/gpl-3.0.en.html).
 
-[Apache Commons Math 3.6.1, commons-math3-3.6.1.jar,](https://commons.apache.org/proper/commons-math/download_math.cgi) is covered by the [apache license](http://www.apache.org/licenses/)
+[Apache Commons Math 3.6.1, commons-math3-3.6.1.jar,](https://commons.apache.org/proper/commons-math/download_math.cgi) is covered by the [apache license](http://www.apache.org/licenses/).
 
 ## 5. How to cite:
 The DOI for this project can be cited as [https://doi.org/10.18434/M32223](https://doi.org/10.18434/M32223)
