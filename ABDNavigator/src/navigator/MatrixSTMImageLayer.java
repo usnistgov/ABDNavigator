@@ -1041,7 +1041,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 			{
 				if (!skipList.contains(thisPoint)&&!skipList.contains(thatPoint)&&!thisPoint.equals(thatPoint))
 				{
-					if (Math.sqrt(Math.pow(thisPoint[0]-thatPoint[0],2)+Math.pow(thisPoint[1]-thatPoint[1],2))<(effectRadius))
+					if (Math.sqrt(Math.pow(thisPoint[0]-thatPoint[0],2) + Math.pow(thisPoint[1]-thatPoint[1],2))<(effectRadius))
 					{
 						int thisPixel = transformedImage.getRGB((int) Math.round(thisPoint[0]),(int) Math.round(thisPoint[1]));
 						int thatPixel = transformedImage.getRGB((int) Math.round(thatPoint[0]),(int) Math.round(thatPoint[1]));
