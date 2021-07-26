@@ -861,9 +861,9 @@ public class MatrixSTMImageLayer extends ImageLayer
 			        	ArrayList<Double[]> peaks = new ArrayList<Double[]>();
 			        	double lowerNM = expectedLatticeSpacing + spacingUncertainty;
 			        	double upperNM = expectedLatticeSpacing - spacingUncertainty;
-			        	double expectedRadius = (n/2)/(expectedLatticeSpacing*(n/(2*heightWidthNM)));
-			        	double lowerRadius = (n/2)/(lowerNM*(n/(2*heightWidthNM)));
-			        	double upperRadius = (n/2)/(upperNM*(n/(2*heightWidthNM)));
+			        	double expectedRadius = heightWidthNM/expectedLatticeSpacing;
+			        	double lowerRadius = heightWidthNM/lowerNM;
+			        	double upperRadius = heightWidthNM/upperNM;
 			        
 			        	for (double radius = lowerRadius; radius < upperRadius; radius++)
 			        	{
@@ -929,7 +929,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 			    			}
 			    			sumDist /= 4;
 			    			System.out.println(sumDist);
-			    			interval = (1/((2*sumDist/n)*(n/(2*heightWidthNM))))/heightWidthNM;
+			    			interval = 1/sumDist;
 			    		}
 			    		else 
 			    		{
@@ -989,12 +989,12 @@ public class MatrixSTMImageLayer extends ImageLayer
 				    			}
 				    			sumDist /= 4;
 				    			System.out.println(sumDist);
-				    			interval = (1/((2*sumDist/n)*(n/(2*heightWidthNM))))/heightWidthNM;
+				    			interval = 1/sumDist;
 			    			}
 			    			else
 			    			{
 			    				System.out.println("Failed to find lattice (adjust expected spacing or spacing uncertainty), using expected spacing");
-			    				interval = (1/((2*expectedLatticeSpacing/n)*(n/(2*heightWidthNM))))/heightWidthNM;
+			    				interval = expectedLatticeSpacing/heightWidthNM;
 			    			}
 			    		}
 			    	
