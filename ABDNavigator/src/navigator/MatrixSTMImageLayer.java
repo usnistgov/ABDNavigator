@@ -64,9 +64,11 @@ public class MatrixSTMImageLayer extends ImageLayer
 	public int maximaThreshold = 500;
 	public int maximaPrecision = 1;
 	public double maximaExpectedDiameter = 1;
+	public GroupLayer replaceGroup = null;
 	
 	public double expectedLatticeSpacing = 0.385;
 	public double spacingUncertainty = 0.07;
+	public GroupLayer replaceLattice = null;
 	
 	public MatrixSTMImageLayer()
 	{
@@ -685,9 +687,19 @@ public class MatrixSTMImageLayer extends ImageLayer
 	}
 	public void locateMaxima()
 	{
-		NavigationLayer maximaLayer = new NavigationLayer();
-		SampleNavigator.selectedLayer.getChildren().add(maximaLayer);
-		SampleNavigator.selectedLayer = maximaLayer;
+		if (replaceGroup!=null)
+		{
+			SampleNavigator.setSelectedLayer(replaceGroup);
+			SampleNavigator.selectedLayer.getChildren().removeAll(SampleNavigator.selectedLayer.getChildren());
+		}
+		else
+		{
+			GroupLayer maximaLayer = new GroupLayer();
+			maximaLayer.name = "locateMaxima";
+			SampleNavigator.selectedLayer.getChildren().add(maximaLayer);
+			SampleNavigator.selectedLayer = maximaLayer;
+			replaceGroup = maximaLayer;
+		}
 		SampleNavigator.refreshAttributeEditor();
 		try
 		{
@@ -1093,20 +1105,28 @@ public class MatrixSTMImageLayer extends ImageLayer
 							PrintStream printStream = System.out;
 							System.setOut(new PrintStream(new OutputStream() {public void write(int b) throws IOException {}}));
 							//prevents the print statements when the line segments are created
-							NavigationLayer latticeLayer = new NavigationLayer();
-							latticeLayer.setOpacity(0.2);
-							SampleNavigator.selectedLayer.getChildren().add(latticeLayer);
-							SampleNavigator.addSegment(intervalF, angleF, latticeLayer, latticeStartingXF, latticeStartingYF);
-							NavigationLayer latticeLayer2 = new NavigationLayer();
-							latticeLayer2.setOpacity(0.2);
-							SampleNavigator.selectedLayer.getChildren().add(latticeLayer2);
-							if (angleF > 0)
+							GroupLayer latticeLayer;
+							if (replaceLattice == null)
 							{
-								SampleNavigator.addSegment(intervalF, angleF-(Math.PI/2), latticeLayer2, latticeStartingXF, latticeStartingYF);
+								latticeLayer = new GroupLayer();
+								latticeLayer.name= "latticeLayer";
+								latticeLayer.setOpacity(0.2);
+								SampleNavigator.selectedLayer.getChildren().add(latticeLayer);
+								replaceLattice = latticeLayer;
 							}
 							else
 							{
-								SampleNavigator.addSegment(intervalF, angleF+(Math.PI/2), latticeLayer2, latticeStartingXF, latticeStartingYF);
+								latticeLayer = replaceLattice;
+								latticeLayer.getChildren().removeAll(latticeLayer.getChildren());
+							}
+							SampleNavigator.addSegment(intervalF, angleF, latticeLayer, latticeStartingXF, latticeStartingYF);
+							if (angleF > 0)
+							{
+								SampleNavigator.addSegment(intervalF, angleF-(Math.PI/2), latticeLayer, latticeStartingXF, latticeStartingYF);
+							}
+							else
+							{
+								SampleNavigator.addSegment(intervalF, angleF+(Math.PI/2), latticeLayer, latticeStartingXF, latticeStartingYF);
 							}
 							SampleNavigator.refreshTreeEditor();
 							System.setOut(printStream);
