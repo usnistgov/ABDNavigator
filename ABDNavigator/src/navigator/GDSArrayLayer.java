@@ -116,6 +116,7 @@ public class GDSArrayLayer extends GDSLayer
 				double dx = basisVecRow.getX()*(double)row + basisVecCol.getX()*(double)col;
 				double dy = basisVecRow.getY()*(double)row + basisVecCol.getY()*(double)col;
 				//
+				//
 				//gTrans.setTranslateX(dx);
 				//gTrans.setTranslateY(dy);
 				//gTrans.getChildren().add(l.clone());
