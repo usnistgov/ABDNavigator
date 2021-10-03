@@ -4,7 +4,8 @@ import java.awt.Point;
 import java.util.Vector;
 
 import com.ohrasys.cad.gds.GDSRecord;
-import com.sun.javafx.geom.Point2D;
+//import com.sun.javafx.geom.Point2D;
+import javafx.geometry.Point2D;
 
 import javafx.scene.Group;
 import javafx.scene.Node;
@@ -88,17 +89,19 @@ public class GDSArrayLayer extends GDSLayer
 		
 		
 		
-		Point2D basisVecCol = new Point2D(basis[1].x, basis[1].y);
-		basisVecCol.x -= basis[0].x;
-		basisVecCol.y -= basis[0].y;
-		basisVecCol.x /= (double)cols;
-		basisVecCol.y /= (double)cols;
+		Point2D basisVecCol = new Point2D(basis[1].x - basis[0].x, basis[1].y - basis[0].y);
+		//basisVecCol.x -= basis[0].x;
+		//basisVecCol.y -= basis[0].y;
+		basisVecCol = basisVecCol.multiply(1.0/(double)cols);
+		//basisVecCol.x /= (double)cols;
+		//basisVecCol.y /= (double)cols;
 		
-		Point2D basisVecRow = new Point2D(basis[2].x, basis[2].y);
-		basisVecRow.x -= basis[0].x;
-		basisVecRow.y -= basis[0].y;
-		basisVecRow.x /= (double)rows;
-		basisVecRow.y /= (double)rows;
+		Point2D basisVecRow = new Point2D(basis[2].x - basis[0].x, basis[2].y - basis[0].y);
+		//basisVecRow.x -= basis[0].x;
+		//basisVecRow.y -= basis[0].y;
+		basisVecRow = basisVecRow.multiply(1.0/(double)rows);
+		//basisVecRow.x /= (double)rows;
+		//basisVecRow.y /= (double)rows;
 		
 		System.out.println("cols,rows: " + cols + "   " + rows);
 		System.out.println(basisVecCol + "  " + basisVecRow);
@@ -110,8 +113,8 @@ public class GDSArrayLayer extends GDSLayer
 				GDSLayer clone = l.clone();
 				
 				
-				double dx = basisVecRow.x*(double)row + basisVecCol.x*(double)col;
-				double dy = basisVecRow.y*(double)row + basisVecCol.y*(double)col;
+				double dx = basisVecRow.getX()*(double)row + basisVecCol.getX()*(double)col;
+				double dy = basisVecRow.getY()*(double)row + basisVecCol.getY()*(double)col;
 				
 				//gTrans.setTranslateX(dx);
 				//gTrans.setTranslateY(dy);

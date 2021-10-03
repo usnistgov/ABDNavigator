@@ -3,7 +3,8 @@ package main;
 
 import controllers.*;
 import gui.*;
-import javafx.scene.input.KeyCode;
+//import javafx.scene.input.KeyCode;
+import java.awt.event.KeyEvent;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
