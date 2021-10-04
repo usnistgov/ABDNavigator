@@ -226,6 +226,8 @@ public class SampleNavigator extends Application
     	relativeDirectory = fullRelativize(userD,wd);//new File(userDir).toURI().relativize( new File(workingDirectory).toURI() ).getPath();
     	
     	
+    	
+    	
     	System.out.println("relative directory: " + relativeDirectory);
     	System.setProperty("user.dir", workingDirectory);
     	
@@ -1824,9 +1826,10 @@ public class SampleNavigator extends Application
     	
     	openingDirectory = openFile.getParent();
     	
-    	//System.out.println("opening directory: " + openingDirectory);
-    	//System.out.println("working directory: " + workingDirectory);
-    	//System.out.println(openingDirectory.startsWith(workingDirectory));
+    	System.out.println("opening an image...");
+    	System.out.println("opening directory: " + openingDirectory);
+    	System.out.println("working directory: " + workingDirectory);
+    	System.out.println(openingDirectory.startsWith(workingDirectory));
     	if (!openingDirectory.startsWith(workingDirectory))
     	{
     		//file is not part of this sample navigation root directory structure - so let's copy it into the root
@@ -1893,6 +1896,11 @@ public class SampleNavigator extends Application
     		URI f1 = new File(workingDirectory).toURI();
     		URI f2 = openFile.toURI();
     		String s = fullRelativize(f1,f2);
+    		
+    		System.out.println("opening gds...");
+    		System.out.println(f1);
+    		System.out.println(f2);
+    		System.out.println(s);
     		
     		GDSLayer l = new GDSLayer();
     		Point2D p = getLocalMouseCoords();
@@ -2036,9 +2044,15 @@ public class SampleNavigator extends Application
 		int numDirs = parentS.substring(i).split("/").length;
 		//System.out.println(parent.getPath() + "   " + numDirs);
 		StringBuffer backString = new StringBuffer();
-		for (int j = 0; j < numDirs; j ++)
-		{
-			backString.append("../");
+		System.out.println("relativising: " + childS + "    " + parentS);
+		
+		//append ../s as long as the child directory is on the same drive as the parent
+		if (childS.contains( parentS.substring(0,2) ))
+		{	
+			for (int j = 0; j < numDirs; j ++)
+			{
+				backString.append("../");
+			}
 		}
 		
 		return new String(backString.toString() + childS.substring(i) );

@@ -737,7 +737,8 @@ public class ImageLayer extends NavigationLayer
 	{
 		String imgNameString = new String(imgName);
 		imgNameString = imgNameString.replaceFirst("file:", "file:" + SampleNavigator.relativeDirectory);
-		//imgNameString = imgNameString.replaceFirst("file:", "file:/" + SampleNavigator.workingDirectory +"/");
+		System.out.println(SampleNavigator.workingDirectory);
+		//imgNameString = imgNameString.replaceFirst("file:", "file:" + SampleNavigator.workingDirectory +"/");
 		System.out.println( imgNameString );
 		
 		String fullFileName = imgNameString.replaceFirst("file:","");
