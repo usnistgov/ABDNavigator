@@ -2054,6 +2054,14 @@ public class SampleNavigator extends Application
 				backString.append("../");
 			}
 		}
+		else
+		{
+			//if this ends up needing to be an absolute location, double check if it exists - if not, maybe it needs a starting "/"
+			File f = new File(childS.substring(i));
+			if (!f.exists())
+				backString.append("/");
+		}
+		
 		
 		return new String(backString.toString() + childS.substring(i) );
 	}
