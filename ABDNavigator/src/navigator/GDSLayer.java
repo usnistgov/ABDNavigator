@@ -171,7 +171,7 @@ public class GDSLayer extends NavigationLayer
 		{
 			System.out.println("GDS name: " + gdsName);
 			File in = new File(gdsName);
-			
+			//
 			System.out.println("GDS file: " + in.getAbsolutePath());
 			
 			if (!in.exists())
