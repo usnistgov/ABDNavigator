@@ -313,6 +313,11 @@ public class ScannerLayer extends NavigationLayer
 			s = walk.getCalibrationName();
 			//for (int i = 0; i < walk.numSteps; i ++)
 			//{
+			
+			//Take 1 step
+			ABDClient.command(s + " " + 1);
+			Thread.sleep(100);
+			
 			ABDClient.command(s + "  " + walk.numSteps);
 			Thread.sleep(100*walk.numSteps);
 			//}
