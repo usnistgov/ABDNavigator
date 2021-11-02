@@ -29,6 +29,9 @@ public class GDSLayer extends NavigationLayer
 	public Vector<Point2D> snapPoints = new Vector<Point2D>();
 	public Vector<Point2D[]> segments = new Vector<Point2D[]>();
 	
+	//public double yBuffer = 0;
+	public Point2D yDir = new Point2D(0,1);
+	
 	public GDSLayer()
 	{
 		p = this;
@@ -574,7 +577,7 @@ public class GDSLayer extends NavigationLayer
 			double x = 0.5*(n0.getX()+n1.getX());
 			double y = 0.5*(n0.getY()+n1.getY());
 			
-			return isInside(x,y);
+			return (isInside(x,y) && (isInside(x+yDir.getX(),y+yDir.getY())) && (isInside(x-yDir.getX(),y-yDir.getY())));
 		}
 		
 		public String toString()

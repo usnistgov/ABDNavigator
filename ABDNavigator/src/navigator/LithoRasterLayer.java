@@ -29,6 +29,7 @@ public class LithoRasterLayer extends NavigationLayer
 	
 	public double tolerance = 1.2;
 	public double buffer = 0;
+	public double yBuffer = 0;
 	
 	public Color inColor = Color.BLUE;
 	public Color outColor = Color.ORANGE;
@@ -117,6 +118,7 @@ public class LithoRasterLayer extends NavigationLayer
 					
 					//build the command string
 					StringBuffer commandString = new StringBuffer("litho ");
+					boolean inside = false;
 					for (int i = 0; i < segments.length; i ++)
 					{
 						Point2D p0 = new Point2D(segments[i][0], segments[i][1]);
@@ -124,7 +126,8 @@ public class LithoRasterLayer extends NavigationLayer
 						p0 = localToParent(p0);
 						p1 = localToParent(p1);
 						
-						if (segmentsInside.get(i).booleanValue())
+						inside = segmentsInside.get(i).booleanValue();
+						if (inside)
 						{
 							commandString.append("true,");
 						}
@@ -132,6 +135,7 @@ public class LithoRasterLayer extends NavigationLayer
 						{
 							commandString.append("false,");
 						}
+						
 						double s = 2;
 						double x0 = s*p0.getX();
 						double y0 = -s*p0.getY();
@@ -272,6 +276,7 @@ public class LithoRasterLayer extends NavigationLayer
 		rast = rasterTypes[rasterType];
 		segments = rast.getSegments(width, height, pitch, yOffset);
 		
+		
 		//segments need to be transformed to local coordinate system of the scanSettings object
 		for (int i = 0; i < segments.length; i ++)
 		{
@@ -303,9 +308,18 @@ public class LithoRasterLayer extends NavigationLayer
 		if (l == null)
 			return;
 		
+		
 		segmentsInside = new Vector<Boolean>();
 		
 		Transform t = getLocalToParentTransform().createConcatenation(scanSettings.getLocalToParentTransform());
+		
+		//l.yBuffer = yBuffer;
+		Point2D yDir = t.transform(0,yBuffer/height);
+		Point2D oDir = t.transform(0,0);
+		l.yDir = yDir.subtract(oDir).multiply(1);
+		//l.yDir = yDir.multiply(yBuffer);
+		
+		
 		//now determine overlaps of segments with gds file(s)
 		for (int i = 0; i < segments.length; i ++)
 		{
@@ -374,13 +388,13 @@ public class LithoRasterLayer extends NavigationLayer
 							for (int k = 0; k < connectingPartitions.size(); k ++)
 							{
 								raster.addElement(connectingPartitions.get(k));
-								segmentsInside.add(new Boolean(in));
+								segmentsInside.add( Boolean.valueOf(in) );//new Boolean(in));
 							}
 						}
 					}
 					
 					raster.addElement(part);
-					segmentsInside.add(new Boolean(true));
+					segmentsInside.add( Boolean.TRUE );//new Boolean(true));
 				}
 			}
 		}
@@ -525,6 +539,10 @@ public class LithoRasterLayer extends NavigationLayer
 		if (s.length() > 0)
 			buffer = Double.parseDouble(s);
 		
+		s = xml.getAttribute("yBuffer");
+		if (s.length() > 0)
+			yBuffer = Double.parseDouble(s);
+		
 		//if (deep)
 		//	main.getChildren().add(textDisp);
 	}
@@ -541,6 +559,7 @@ public class LithoRasterLayer extends NavigationLayer
 		e.setAttribute("tolerance", Double.toString(tolerance));
 		e.setAttribute("rasterType", Integer.toString(rasterType));
 		e.setAttribute("buffer", Double.toString(buffer));
+		e.setAttribute("yBuffer", Double.toString(yBuffer));
 				
 		return e;
 	}
