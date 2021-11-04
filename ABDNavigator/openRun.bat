@@ -1,0 +1,1 @@
+java -Xmx3000m --module-path "%PATH_TO_FX%" --add-modules javafx.base,javafx.controls,javafx.graphics,javafx.fxml,javafx.swing -cp bin;lib/* main.SampleNavigator

@@ -315,7 +315,7 @@ public class ScannerLayer extends NavigationLayer
 			//{
 			
 			//Take 1 step
-			ABDClient.command(s + " " + 1);
+			ABDClient.command(s + "  " + 1);
 			Thread.sleep(100);
 			
 			ABDClient.command(s + "  " + walk.numSteps);

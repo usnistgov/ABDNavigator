@@ -1,0 +1,2 @@
+javac --module-path "%PATH_TO_FX%" --add-modules javafx.base,javafx.controls,javafx.graphics,javafx.fxml,javafx.swing -cp lib/* -d bin src/main/*.java src/navigator/*.java src/util/*.java
+copy src\main\SampleNavigator.css bin\main\SampleNavigator.css
