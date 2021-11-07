@@ -577,7 +577,18 @@ public class GDSLayer extends NavigationLayer
 			double x = 0.5*(n0.getX()+n1.getX());
 			double y = 0.5*(n0.getY()+n1.getY());
 			
-			return (isInside(x,y) && (isInside(x+yDir.getX(),y+yDir.getY())) && (isInside(x-yDir.getX(),y-yDir.getY())));
+			boolean midInside = isInside(x,y);
+			boolean lowerInside = isInside(x+yDir.getX(),y+yDir.getY());
+			boolean upperInside = isInside(x-yDir.getX(),y-yDir.getY());
+			
+			if (midInside && lowerInside && upperInside)
+				return true;
+			if (midInside && !(lowerInside) && !(upperInside))
+				return true;
+			
+			return false;
+			
+			//return (isInside(x,y) && (isInside(x+yDir.getX(),y+yDir.getY())) && (isInside(x-yDir.getX(),y-yDir.getY())));
 		}
 		
 		public String toString()
