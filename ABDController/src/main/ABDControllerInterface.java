@@ -15,13 +15,16 @@ public interface ABDControllerInterface
 	public void setTipSpeed(double s);
 	public double getTipSpeed();
 	public double[] getTipScanPosition();
-		
+	
+	//vertical tip position
+	public void setZOffset(double offset);
 	
 	//bias
 	public double getBias();
 	public void setBias(double Vb);
 	public BiasSignal getBiasSignal();
-	
+	public void setLithoModulation(boolean b);
+	public boolean getLithoModulation();
 	
 	//current
 	public double getCurrent();

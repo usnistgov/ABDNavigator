@@ -21,6 +21,7 @@ public class MatrixController implements ABDControllerInterface
 	
 	private int preampRange = 0;
 	private boolean allowPreampRangeChange = true;
+	private boolean lithoModulation = false;
 	
 	public MatrixController()
 	{
@@ -424,6 +425,14 @@ public class MatrixController implements ABDControllerInterface
 		matrix.setDoubleProperty("STM_AtomManipulation::Regulator.Setpoint_1", -1, val);
 	}
 	
+	synchronized public void setZOffset(double offset)
+	{
+		System.out.println("setting z offset to: " + offset + " nm");
+		//convert from nm to m since that's what matrix uses
+		double val = offset*1E-9;
+		
+		matrix.setDoubleProperty("STM_AtomManipulation::Regulator.Z_Offset", -1, val);
+	}
 
 	synchronized public double getScanWidth()
 	{
@@ -798,10 +807,14 @@ public class MatrixController implements ABDControllerInterface
 	
 	synchronized public void zRamp()
 	{
-		System.out.println("ramping z");
+		
 		matrix.setStringProperty("STM_AtomManipulation::XYScanner.Execute_Port_Colour", -1, "ZRamp");
 		matrix.callVoidFunction("STM_AtomManipulation::XYScanner.execute");
 		//matrix.setStringProperty("STM_AtomManipulation::XYScanner.Execute_Port_Colour", -1, "");
+		
+		
+			
+		
 	}
 	
 	synchronized public void vPulse()
@@ -811,6 +824,8 @@ public class MatrixController implements ABDControllerInterface
 		matrix.callVoidFunction("STM_AtomManipulation::XYScanner.execute");
 		//matrix.setStringProperty("STM_AtomManipulation::XYScanner.Execute_Port_Colour", -1, "");
 	}
+	
+	
 
 	
 	public void setAllowPreampRangeChange(boolean b) 
@@ -822,5 +837,15 @@ public class MatrixController implements ABDControllerInterface
 	public boolean getAllowPreampRangeChange()
 	{
 		return allowPreampRangeChange;
+	}
+	
+	public void setLithoModulation(boolean b)
+	{
+		lithoModulation = b;
+	}
+	
+	public boolean getLithoModulation()
+	{
+		return lithoModulation;
 	}
 }

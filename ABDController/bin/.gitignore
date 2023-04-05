@@ -1,7 +1,7 @@
-/main/
 /bot/
 /com/
+/com_MatrixInterface.h
 /controllers/
 /gds/
 /gui/
-/com_MatrixInterface.h
+/main/

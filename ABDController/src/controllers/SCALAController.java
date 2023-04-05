@@ -456,4 +456,22 @@ public class SCALAController implements ABDControllerInterface
 		// TODO Auto-generated method stub
 		return false;
 	}
+
+	public void setZOffset(double offset)
+	{
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void setLithoModulation(boolean b)
+	{
+		// TODO Auto-generated method stub
+		
+	}
+
+	public boolean getLithoModulation()
+	{
+		// TODO Auto-generated method stub
+		return false;
+	}
 }

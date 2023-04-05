@@ -63,8 +63,36 @@ public class Positioner extends NavigationLayer
 		
 	}
 	
+	double s = 2;
+	
+	double[] getScaledRelativeCoords()
+	{
+		double[] coords = new double[2];
+		Point2D p0 = new Point2D(getTranslateX(), getTranslateY());
+		p0 = localToParent(p0);
+				
+		
+		coords[0] = 0.5*s*p0.getX();
+		coords[1] = -0.5*s*p0.getY();
+		
+		return coords;
+	}
+	
+	double[] getScaledRelativeCoords(Positioner p)
+	{
+		double[] coords = new double[2];
+		Point2D p0 = new Point2D(p.getTranslateX() + getTranslateX(), p.getTranslateY() + getTranslateY());//p.localToParent(p.getTranslateX(), p.getTranslateY());
+		p0 = localToParent(p0);
+		
+		coords[0] = 0.5*s*p0.getX();
+		coords[1] = -0.5*s*p0.getY();
+		
+		return coords;
+	}
+	
 	public void moveTipNoThread()
 	{
+		/*
 		Point2D p0 = new Point2D(getTranslateX(), getTranslateY());
 		
 		p0 = localToParent(p0);
@@ -72,10 +100,16 @@ public class Positioner extends NavigationLayer
 		double s = 2;
 		double x0 = 0.5*s*p0.getX();
 		double y0 = -0.5*s*p0.getY();
+		*/
+		double[] p = getScaledRelativeCoords();
+		double x0 = p[0];
+		double y0 = p[1];
 		
 		outsideRange = false;
 		if ((x0 < -0.5*s) || (x0 > 0.5*s) || (y0 < -0.5*s) || (y0 > 0.5*s))
 		{
+			//do nothing
+			/*
 			//figure out where the position in the full scanner coordinates
 			Node n = getParent().getParent();
 			if (n instanceof ScannerLayer)
@@ -102,15 +136,8 @@ public class Positioner extends NavigationLayer
 				ABDClient.command("setScanX " + Double.toString( p.getX() ));
 				ABDClient.command("setScanY " + Double.toString( p.getY() ));
 				ABDClient.command("moveTo 0,0");
-				
-				/*
-				ABDClient.command("setScanWidth " + Double.toString(scale.getMxx()));
-				ABDClient.command("setScanHeight " + Double.toString(scale.getMyy()));
-				ABDClient.command("setScanAngle " + Double.toString(-rotation.getAngle()));
-				ABDClient.command("setScanX " + Double.toString(getTranslateX()));
-				ABDClient.command("setScanY " + Double.toString(-getTranslateY()));
-				 */
 			}
+			*/
 		}
 		else
 			ABDClient.command("moveTo " + x0 + "," + y0);
@@ -216,9 +243,112 @@ public class Positioner extends NavigationLayer
 	{
 		System.out.println("Layout Update");
 		if (fclOn)
-			actions = new String[]{"moveTip","abort","zRamp","vPulse"};
+			actions = new String[]{"abort"};//"moveTip","abort","zRamp","vPulse"};
 		else
-			actions = new String[]{"moveTip","fcl","zRamp","vPulse"};
+			actions = new String[]{"moveTip","fcl","fcp","zRamp","vPulse"};
+		SampleNavigator.attributeEditor.init(this);
+	}
+	
+	public void fcp()
+	{
+		try
+		{
+			Thread t = new Thread()
+			{
+				public void run()
+				{
+					//moveTipNoThread();
+					
+					//ABDClient.setLock(this, true);
+					
+					//ABDClient.waitForTip();
+					
+					//get coordinates to use
+					Positioner p1 = null;
+					Positioner p2 = null;
+					Vector<NavigationLayer> layerChildren = getLayerChildren();
+					for (int i = 0; i < layerChildren.size(); i ++)
+					{
+						if (layerChildren.get(i) instanceof Positioner)
+						{
+							if (p1 == null)
+								p1 = (Positioner)layerChildren.get(i);
+							else
+							{
+								p2 = (Positioner)layerChildren.get(i);
+								break;
+							}
+						}
+					}
+					
+					if (p1 == null)
+						return;
+										
+					double[] coords0 = getScaledRelativeCoords();
+					double[] coords1 = getScaledRelativeCoords(p1);
+					double[] coords2 = coords0;
+					if (p2 != null)
+						coords2 = getScaledRelativeCoords(p2);
+					
+					ABDClient.command("fcp " + coords0[0] + "," + coords0[1] + "," + coords1[0] + "," + coords1[1] + "," + coords2[0] + "," + coords2[1]);
+		
+					//ABDClient.setLock(this, false);
+					//if (outsideRange)
+					//	returnToOriginalScanRegion();
+				}
+			};
+			t.start();
+		}
+		catch (Exception ex)
+		{
+			ex.printStackTrace();
+			//ABDClient.setLock(this, false);
+		}
+		isFclOn();
+	}
+	
+	public void isFCPOn()
+	{
+		try
+		{
+			updateFCPButton(true);
+			Thread t = new Thread(new Runnable()
+			{
+				public void run()
+				{
+					try 
+					{
+						while (Boolean.parseBoolean(ABDClient.command("isFCPOn"))) {Thread.sleep(10);System.out.print(".");};
+					}
+					catch(Exception ex)
+					{
+						ex.printStackTrace();
+					}
+					Platform.runLater(new Runnable() 
+					{
+						public void run() 
+						{
+							updateFCPButton(false);
+						}
+					});
+				}
+			});
+			t.start();
+		}
+		catch (Exception ex)
+		{
+			ex.printStackTrace();
+			//ABDClient.setLock(this, false);
+		}
+	}
+	
+	public void updateFCPButton(Boolean fcpOn)
+	{
+		System.out.println("Layout Update");
+		if (fcpOn)
+			actions = new String[]{"abort"};
+		else
+			actions = new String[]{"moveTip","fcl","fcp","zRamp","vPulse"};
 		SampleNavigator.attributeEditor.init(this);
 	}
 	
@@ -326,7 +456,7 @@ public class Positioner extends NavigationLayer
 		System.out.println( "positioner parent: " + n.getClass() );
 		if ((n instanceof ScanRegionLayer) && (selectable))
 		{
-			actions = new String[]{"moveTip","fcl","zRamp","vPulse"};
+			actions = new String[]{"moveTip","fcl","fcp","zRamp","vPulse"};
 			scannerChild = true;
 		}
 	}

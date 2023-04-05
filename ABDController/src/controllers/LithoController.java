@@ -30,6 +30,7 @@ import main.ABDController;
 import main.ABDControllerInterface;
 import main.Signal;
 
+import com.ABDLabviewClient;
 import com.ABDReverseClient;
 import com.ohrasys.cad.gds.GDSInputStream;
 import com.ohrasys.cad.gds.GDSRecord;
@@ -704,7 +705,18 @@ public class LithoController implements DrawingComponent
 			{
 				controller.setTipSpeed(writeSpeed);
 								
-				
+				if (ABDController.controller.getLithoModulation())
+				{
+					ABDLabviewClient.command("SetLockinOscillatorOn True");
+					try
+					{
+						Thread.sleep(200);
+					}
+					catch(InterruptedException ex)
+				    {
+				        Thread.currentThread().interrupt();
+				    }
+				}
 				
 				biasSignal.ramp(writeBias);
 				while (biasSignal.ramping) {Thread.sleep(10);};
@@ -721,6 +733,19 @@ public class LithoController implements DrawingComponent
 				biasSignal.set(bias);
 				//while (biasSignal.ramping) {Thread.sleep(10);};
 				controller.setTipSpeed(speed);
+				
+				if (ABDController.controller.getLithoModulation())
+				{
+					ABDLabviewClient.command("SetLockinOscillatorOn False");
+					try
+					{
+						Thread.sleep(200);
+					}
+					catch(InterruptedException ex)
+				    {
+				        Thread.currentThread().interrupt();
+				    }
+				}
 				
 				System.out.println("bias should be: " + bias + "  and is: " + controller.getBias());
 				System.out.println("current should be: " + current + "  and is: " + controller.getCurrent());

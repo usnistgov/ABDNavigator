@@ -13,6 +13,7 @@ public class ABDServer
 	public static int port = 6889;//was 6789
 	public static boolean serverRunning = false;
 	public static boolean fclRunning = false;
+	public static boolean fcpRunning = false;
 	
 	public static ServerSocket server;
 	public static Thread serverThread;
@@ -152,6 +153,10 @@ public class ABDServer
 		{
 			out = Boolean.toString(ABDController.fclRunning);
 		}
+		else if (in.equals("isFCPOn"))
+		{
+			out = Boolean.toString(ABDController.fcpRunning);
+		}
 		else if (in.equals("isLithoOn"))
 		{
 			out = Boolean.toString(LithoController.lithoRunning);
@@ -274,6 +279,10 @@ public class ABDServer
 		else if (in.equals("fcl"))
 		{
 			doFCL();
+		}
+		else if (in.startsWith("fcp"))
+		{
+			doFCP(in);
 		}
 		else if (in.equals("abort"))
 		{
@@ -459,10 +468,42 @@ public class ABDServer
 		fclRunning=true;
 	}
 	
+	public static void doFCP(String in)
+	{
+		String s = getValueFrom(in);
+		String[] p = s.split(",");
+		
+		//parse coordinates
+		double[][] coords = new double[(int)((double)p.length/2.0)][];
+		for (int i = 0; i < coords.length; i ++)
+			coords[i] = new double[] {Double.parseDouble(p[2*i]),Double.parseDouble(p[2*i+1])};
+		
+		boolean scanning = ABDController.controller.isScanning();
+		if (scanning)
+			ABDController.controller.stopScan();
+		try
+		{
+			while (ABDController.controller.tipIsMoving()) {Thread.sleep(10);System.out.print(".");};
+			
+			ABDController.initFCPFromFields(coords);
+			ABDController.doFCP();
+		}
+		catch (Exception ex)
+		{
+			ex.printStackTrace();
+		}
+		
+		fcpRunning=true;
+	}
+	
+	
 	public static void doAbort()
 	{
 		ABDController.fclTriggered=true;
 		fclRunning=false;
+		
+		ABDController.fcpTriggered = true;
+		fcpRunning = false;
 	}
 	
 	public static void doZRamp()
@@ -476,7 +517,25 @@ public class ABDServer
 			while (ABDController.controller.tipIsMoving()) {Thread.sleep(10);System.out.print(".");};
 			
 			
+			if (ABDController.controller.getLithoModulation())
+			{
+				ABDLabviewClient.command("SetLockinOscillatorOn True");
+				try
+				{
+					Thread.sleep(200);
+				}
+				catch(InterruptedException ex)
+			    {
+			        Thread.currentThread().interrupt();
+			    }
+			}
+			
 			ABDController.controller.zRamp();
+			
+			if (ABDController.controller.getLithoModulation())
+			{
+				ABDLabviewClient.command("SetLockinOscillatorOn False");
+			}
 		}
 		catch (Exception ex)
 		{

@@ -10,6 +10,7 @@ import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 import com.ABDServer;
+import com.ABDLabviewClient;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -58,13 +59,49 @@ public class ABDController
 	private static double fclNegZTrigger = 0.01; //nm
 	private static float fclCurrent = 1.5f; //nA
 	//private static int fclTriggerReads = 10;
-	private static  JTextField fclMinBiasField = new JTextField(Float.toString( fclMinBias ));
-	private static JTextField fclMaxBiasField = new JTextField(Float.toString( fclMaxBias ));
-	private static JTextField fclBiasStepField = new JTextField(Float.toString( fclBiasStep ));
+	private static  JTextField fclMinBiasField = new JTextField(Float.toString( fclMinBias ));//test
+	private static JTextField fclMaxBiasField = new JTextField(Float.toString( fclMaxBias ));//test
+	private static JTextField fclBiasStepField = new JTextField(Float.toString( fclBiasStep ));//test
 	private static JTextField fclMeasureTimeField = new JTextField(Long.toString( fclMeasureTime ));
 	private static JTextField deltaZField = new JTextField(numForm.format( fclZTrigger ));
 	private static JTextField deltaZNegField = new JTextField(numForm.format( fclNegZTrigger ));
 	private static JTextField fclCurrentField = new JTextField(Float.toString( fclCurrent ));
+	
+	
+	public static double[] fcpZ = new double[3];
+	public static double fcpPrevZDiff = 0;
+	public static double fcpZDiff = 0;
+	public static boolean fcpRunning = false;
+	public static boolean fcpTriggered = false;
+	
+	
+	private static float fcpMaxBias = 2.5f; //V
+	private static float fcpMinBias = 2f; //V
+	private static float fcpBiasStep = 0.05f; //V
+	private static long fcpMeasureTime = 100; //ms
+	private static long fcpPulseTime = 100; //ms
+	private static double fcpZTrigger = 0.02; //nm
+	private static float fcpCurrent = 1.5f; //nA
+	private static double[][] fcpCoords = null; //nm,nm
+	private static  JTextField fcpMinBiasField = new JTextField(Float.toString( fcpMinBias ));
+	private static JTextField fcpMaxBiasField = new JTextField(Float.toString( fcpMaxBias ));
+	private static JTextField fcpBiasStepField = new JTextField(Float.toString( fcpBiasStep ));
+	private static JTextField fcpMeasureTimeField = new JTextField(Long.toString( fcpMeasureTime ));
+	private static JTextField fcpPulseTimeField = new JTextField(Long.toString( fcpPulseTime ));
+	private static JTextField fcpDeltaZField = new JTextField(numForm.format( fcpZTrigger ));
+	private static JTextField fcpCurrentField = new JTextField(Float.toString( fcpCurrent ));
+	
+	
+	public static boolean fczRunning = false;
+	
+	public static float fczBias = 0f; //V
+	public static long fczWaitTime = 10; //ms
+	public static float fczZ = -0.2f; //nm
+	private static JTextField fczBiasField = new JTextField(Float.toString( fczBias ));
+	private static JTextField fczWaitTimeField = new JTextField(Long.toString( fczWaitTime ));
+	private static JTextField fczZField = new JTextField(Float.toString( fczZ ));
+	
+	
 	
 	private static float multiScanSetBias = -2f; //V
 	private static float multiScanSetCurrent = .03f; //nA
@@ -80,6 +117,8 @@ public class ABDController
 	
 	
 	public static Properties settings = new Properties();
+	
+	private static double[] aveData = null;
 	
 	
 	public static void main(String[] args)
@@ -134,6 +173,16 @@ public class ABDController
 		fFCL.setSize(500,200);
 		fFCL.setLocation(0,220);
 		fFCL.setLayout( new GridLayout(4,1) );
+		
+		final JFrame fFCP = new JFrame("FCP");
+		fFCP.setSize(500,200);
+		fFCP.setLocation(0,220);
+		fFCP.setLayout( new GridLayout(4,1) );
+		
+		final JFrame fFCZ = new JFrame("FCZ");
+		fFCZ.setSize(500,200);
+		fFCZ.setLocation(0,220);
+		fFCZ.setLayout( new GridLayout(4,1) );
 		
 		JPanel graphs = new JPanel();
 		graphs.setLayout( new GridLayout(4,1) );
@@ -277,6 +326,26 @@ public class ABDController
 		} );
 		p.add(saveButton);
 		
+		final JButton testButton = new JButton("Stop Labview Server");
+		testButton.addActionListener( new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				ABDLabviewClient.command("End");
+			}
+		} );
+		p.add(testButton);
+		/*
+		final JButton testButton2 = new JButton("Oscillator Off");
+		testButton2.addActionListener( new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				ABDLabviewClient.command("SetLockinOscillatorOn False");
+			}
+		} );
+		p.add(testButton2);*/
+		
 		f.add(p, BorderLayout.NORTH);
 		
 		JPanel pB = new JPanel();
@@ -334,6 +403,21 @@ public class ABDController
 		} );
 		p.add(biasRampField);
 		
+		final JCheckBox lithoModulationBox = new JCheckBox("Litho Modulation",false);
+		String s = settings.getProperty("lithoModulation");
+		if (s != null)
+			lithoModulationBox.setSelected( Boolean.parseBoolean(s) );
+		controller.setLithoModulation( lithoModulationBox.isSelected() );
+				
+		lithoModulationBox.addActionListener( new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				controller.setLithoModulation( lithoModulationBox.isSelected() );
+			}
+		} );
+		p.add(lithoModulationBox);
+		
 		pB.add(p);
 		
 		
@@ -390,10 +474,11 @@ public class ABDController
 		p.add(currentRampField);
 		
 		final JCheckBox preampRangeChangeBox = new JCheckBox("Auto Preamp Range Switching",true);
-		String s = settings.getProperty("autoPreamp");
+		s = settings.getProperty("autoPreamp");
 		if (s != null)
 			preampRangeChangeBox.setSelected( Boolean.parseBoolean(s) );
-				
+		controller.setAllowPreampRangeChange( preampRangeChangeBox.isSelected() );
+		
 		preampRangeChangeBox.addActionListener( new ActionListener()
 		{
 			public void actionPerformed(ActionEvent e)
@@ -536,6 +621,7 @@ public class ABDController
 		{
 			public void actionPerformed(ActionEvent e)
 			{
+				settings.setProperty( "lithoModulation", Boolean.toString(lithoModulationBox.isSelected()) );
 				settings.setProperty( "autoPreamp", Boolean.toString(preampRangeChangeBox.isSelected()) );
 				settings.setProperty( "sleepTime", Integer.toString(sleepTime) );
 				settings.setProperty( "dataLength", Integer.toString(dataLength) );
@@ -556,6 +642,18 @@ public class ABDController
 				settings.setProperty( "fclZTrigger", deltaZField.getText() );
 				settings.setProperty( "fclNegZTrigger", deltaZNegField.getText() );
 				settings.setProperty( "fclCurrent", fclCurrentField.getText() );
+				
+				settings.setProperty( "fcpMinBias",  fcpMinBiasField.getText() );
+				settings.setProperty( "fcpMaxBias", fcpMaxBiasField.getText() );
+				settings.setProperty( "fcpBiasStep", fcpBiasStepField.getText() );
+				settings.setProperty( "fcpMeasureTime", fcpMeasureTimeField.getText() );
+				settings.setProperty( "fcpPulseTime", fcpPulseTimeField.getText() );
+				settings.setProperty( "fcpZTrigger", fcpDeltaZField.getText() );
+				settings.setProperty( "fcpCurrent", fcpCurrentField.getText() );
+				
+				settings.setProperty( "fczBias", fczBiasField.getText() );
+				settings.setProperty( "fczWaitTime", fczWaitTimeField.getText() );
+				settings.setProperty( "fczZ", fczZField.getText() );
 				
 				try 
 				{
@@ -752,6 +850,111 @@ public class ABDController
 		
 		
 		
+		//FCP
+		JPanel fcpP = new JPanel();
+		fcpP.setLayout( new FlowLayout() );
+		fFCP.add(fcpP);
+		
+		fcpP.add( new JLabel("   Start Bias (V): ") );
+		setTextFieldProperty("fcpMinBias", fcpMinBiasField);
+		fcpP.add(fcpMinBiasField);
+		
+		fcpP.add( new JLabel("   Max Bias (V): ") );
+		setTextFieldProperty("fcpMaxBias", fcpMaxBiasField);
+		fcpP.add(fcpMaxBiasField);
+		
+		fcpP.add( new JLabel("   Bias Step (V): ") );
+		setTextFieldProperty("fcpBiasStep", fcpBiasStepField);
+		fcpP.add(fcpBiasStepField);
+				
+		fcpP = new JPanel();
+		fcpP.setLayout( new FlowLayout() );
+		fFCP.add(fcpP);
+				
+		fcpP.add( new JLabel("   Measure Time (ms): ") );
+		setTextFieldProperty("fcpMeasureTime", fcpMeasureTimeField);
+		fcpP.add(fcpMeasureTimeField);
+		
+		fcpP.add( new JLabel("   Pulse Time (ms): ") );
+		setTextFieldProperty("fcpPulseTime", fcpPulseTimeField);
+		fcpP.add(fcpPulseTimeField);
+		
+		fcpP.add( new JLabel("   Trigger +deltaZ (nm): ") );
+		setTextFieldProperty("fcpZTrigger", fcpDeltaZField);
+		fcpP.add(fcpDeltaZField);
+		
+		fcpP = new JPanel();
+		fcpP.setLayout( new FlowLayout() );
+		fFCP.add(fcpP);
+		
+		fcpP.add( new JLabel("   FCP Current (nA): ") );
+		setTextFieldProperty("fcpCurrent", fcpCurrentField);
+		fcpP.add(fcpCurrentField);
+		
+		final JButton abortFCP = new JButton("Abort");
+		abortFCP.addActionListener( new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				fcpTriggered = true;
+			}
+		});
+		fcpP.add(abortFCP);
+		
+		fFCP.setVisible(true);
+		
+		
+		
+		//FCZ
+		JPanel fczP = new JPanel();
+		fczP.setLayout( new FlowLayout() );
+		fFCZ.add(fczP);
+				
+		fczP.add( new JLabel("   Bias (V): ") );
+		setTextFieldProperty("fczBias", fczBiasField);
+		fczP.add(fczBiasField);
+						
+		fczP = new JPanel();
+		fczP.setLayout( new FlowLayout() );
+		fFCZ.add(fczP);
+						
+		fczP.add( new JLabel("   Wait Time (ms): ") );
+		setTextFieldProperty("fczWaitTime", fczWaitTimeField);
+		fczP.add(fczWaitTimeField);
+				
+		fczP.add( new JLabel("   Z (nm): ") );
+		setTextFieldProperty("fczZ", fczZField);
+		fczP.add(fczZField);
+				
+		fczP = new JPanel();
+		fczP.setLayout( new FlowLayout() );
+		fFCZ.add(fczP);
+		
+		final JButton doFCZ = new JButton("FCZ");
+		doFCZ.addActionListener( new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				initFCZFromFields();
+								
+				doFCZ();
+			}
+		} );
+		fczP.add(doFCZ);
+				
+		final JButton abortFCZ = new JButton("Abort");
+		abortFCZ.addActionListener( new ActionListener()
+		{
+			public void actionPerformed(ActionEvent e)
+			{
+				//fczTriggered = true;
+			}
+		});
+		fczP.add(abortFCZ);
+				
+		fFCZ.setVisible(true);
+		
+		
 		
 		//listeners for the various signals
 		biasSignal.setListeners.add( new ActionListener()
@@ -866,20 +1069,39 @@ public class ABDController
 						current[current.length-1] = I;
 						iGraph.setData(current);
 						
-						double[] aveData = runningAverage(data, averages);
+						aveData = runningAverage(data, averages);
 						aveZTrace = aveData;
 						
 						graph.setData(aveData);
 						
-						double[] dzData = calcdz(aveData);
-						dzGraph.setData(dzData);
-						
-						zDiff = dzData[dzData.length-1];
-						if (zDiff > fclZTrigger)
-							fclTriggered = true;
-						if (zDiff < -fclNegZTrigger)
-							fclTriggered = true;
-						
+						if (fclRunning)
+						{
+							double[] dzData = calcdz(aveData);
+							dzGraph.setData(dzData);
+							
+							zDiff = dzData[dzData.length-1];
+							if (zDiff > fclZTrigger)
+								fclTriggered = true;
+							if (zDiff < -fclNegZTrigger)
+								fclTriggered = true;
+						}
+						else if ((fcpRunning) && (fcpIdxRead < fcpReadIdx))
+						{
+							fcpZ[fcpReadIdx] = aveData[aveData.length-1];
+							
+							if (fcpReadIdx == 2)
+							{
+								fcpZDiff = Math.abs(fcpZ[2]-fcpZ[1]);
+								System.out.println("zDiff = " + fcpZDiff);
+								if (Math.abs(fcpZDiff-fcpPrevZDiff) > fcpZTrigger)
+									fcpTriggered = true;
+								
+								fcpPrevZDiff = fcpZDiff;
+							}
+							
+							fcpIdxRead = fcpReadIdx;
+						}
+												
 						Thread.sleep(sleepTime);
 					}
 				}
@@ -913,6 +1135,38 @@ public class ABDController
 		deltaZField.setForeground(Color.black);
 		deltaZNegField.setForeground(Color.black);
 		fclCurrentField.setForeground(Color.black);
+	}
+	
+	public static void initFCPFromFields(double[][] coords)
+	{
+		fcpCoords = coords;
+		
+		fcpMinBias = Float.parseFloat(fcpMinBiasField.getText());
+		fcpMaxBias = Float.parseFloat(fcpMaxBiasField.getText());
+		fcpBiasStep = Float.parseFloat(fcpBiasStepField.getText());
+		fcpMeasureTime = Long.parseLong(fcpMeasureTimeField.getText());
+		fcpPulseTime = Long.parseLong(fcpPulseTimeField.getText());
+		fcpZTrigger = Double.parseDouble(fcpDeltaZField.getText());
+		fcpCurrent = Float.parseFloat(fcpCurrentField.getText());
+		
+		fcpMinBiasField.setForeground(Color.black);
+		fcpMaxBiasField.setForeground(Color.black);
+		fcpBiasStepField.setForeground(Color.black);
+		fcpMeasureTimeField.setForeground(Color.black);
+		fcpPulseTimeField.setForeground(Color.black);
+		fcpDeltaZField.setForeground(Color.black);
+		fcpCurrentField.setForeground(Color.black);
+	}
+	
+	public static void initFCZFromFields()
+	{
+		fczBias = Float.parseFloat(fczBiasField.getText());
+		fczWaitTime = Long.parseLong(fczWaitTimeField.getText());
+		fczZ = Float.parseFloat(fczZField.getText());
+		
+		fczBiasField.setForeground(Color.black);
+		fczWaitTimeField.setForeground(Color.black);
+		fczZField.setForeground(Color.black);
 	}
 	
 	public static double[] calcdz(double[] data)
@@ -1141,6 +1395,142 @@ public class ABDController
 		};
 		fclThread.start();
 	}
+	
+	private static void fcpMeasure(int idx) throws Exception
+	{
+		controller.moveTipTo(fcpCoords[idx][0],fcpCoords[idx][1]);
+		while (controller.tipIsMoving()) {Thread.sleep(10);}
+		
+		if (idx == 0)
+			return;
+		
+		Thread.sleep(fcpMeasureTime);
+		fcpReadIdx = idx;
+		fcpIdxRead = idx-1;
+		while (fcpIdxRead < idx) {Thread.sleep(10);}
+		
+		//fcpReadIdx = 0;
+	}
+	
+	private static int fcpReadIdx = 0;
+	private static int fcpIdxRead = -1;
+	
+	public static void doFCP()
+	{
+		fcpRunning = true;
+		Thread fcpThread = new Thread()
+		{
+			public void run()
+			{
+				double i0 = currentSignal.get();
+				double b0 = biasSignal.get();
+				
+				try 
+				{
+					//measure initial coordinate height difference
+					fcpMeasure(1);
+					fcpMeasure(2);		
+					
+					fcpTriggered = false;
+					
+				
+					//ramp bias, then monitor, then ramp some more
+					for (float fcpBias = fcpMinBias; fcpBias < fcpMaxBias; fcpBias += fcpBiasStep)
+					{
+						//move tip to FCP position
+						fcpMeasure(0);
+						
+						//ramp current and bias and maintain for pulse time
+						biasSignal.ramp(fcpBias);
+						while (biasSignal.ramping) {Thread.sleep(10);}
+						
+						currentSignal.ramp(fcpCurrent);
+						while (currentSignal.ramping) {Thread.sleep(10);}
+						
+						Thread.sleep(fcpPulseTime);
+												
+						currentSignal.ramp(i0);
+						while (currentSignal.ramping) {Thread.sleep(10);}
+							
+						biasSignal.ramp(b0);
+						while (biasSignal.ramping) {Thread.sleep(10);}
+						
+						//mesure the test sites
+						fcpMeasure(1);
+						fcpMeasure(2);
+						
+						if (fcpTriggered)
+							break;
+					}
+					
+					fcpRunning = false;
+					
+					
+					//fcp is done, so reset current and bias (they should already be correct, but just in case)
+					currentSignal.ramp(i0);
+					while (currentSignal.ramping) {Thread.sleep(600);}
+						
+					biasSignal.ramp(b0);
+					while (biasSignal.ramping) {Thread.sleep(600);}
+				} 
+				catch (Exception ex) 
+				{
+					ex.printStackTrace();
+				}
+				
+				fcpRunning = false;
+			}
+		};
+		fcpThread.start();
+	}
+	
+	public static void doFCZ()
+	{
+		fczRunning = true;
+		Thread fczThread = new Thread()
+		{
+			public void run()
+			{
+				double b0 = biasSignal.get();
+				
+				try 
+				{
+					//turn off feedback
+					controller.setFeedback(false);
+					Thread.sleep(100);
+										
+					//ramp bias (typically to 0)
+					biasSignal.ramp(fczBias);
+					while (biasSignal.ramping) {Thread.sleep(600);}
+					
+					//set z-offset to chosen value
+					controller.setZOffset(fczZ);
+					
+					//wait
+					Thread.sleep(fczWaitTime);
+					
+					//set z-offset back to 0
+					controller.setZOffset(0);
+					
+					//ramp bias back to original value
+					biasSignal.ramp(b0);
+					while (biasSignal.ramping) {Thread.sleep(600);}
+					
+					//turn feedback back on
+					controller.setFeedback(true);
+					Thread.sleep(100);
+					
+					fczRunning = false;
+				}
+				catch (Exception ex)
+				{
+					ex.printStackTrace();
+				}
+			}
+		};
+		fczThread.start();
+	}
+	
 	/*
 	public static boolean checkZTrigger()
 	{
