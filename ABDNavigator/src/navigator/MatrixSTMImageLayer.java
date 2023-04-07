@@ -74,6 +74,8 @@ public class MatrixSTMImageLayer extends ImageLayer
 	{
 		super();
 		appendActions( new String[]{"imageLeftRight","imageUpDown","togglePlaneSubtract","toggleLineByLineFlatten","nextColorScheme","locateMaxima","locateLattice"} );
+		tabs.put("maxima", new String[] {"locateMaxima","maximaExpectedDiameter","maximaPrecision","maximaThreshold"});
+		tabs.put("lattice", new String[] {"locateLattice","latticeExpectedSpacingNM","latticeSpacingUncertaintyNM"});
 	}
 	
 	public void handleVisibilityChange()

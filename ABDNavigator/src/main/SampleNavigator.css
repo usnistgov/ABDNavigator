@@ -57,6 +57,24 @@
 	-fx-font-size: 18px;
 }
 
+.tab-pane .tab-header-area .tab-header-background {
+	/*-fx-background-color: transparent;*/
+}
+
+.tab-label {
+    -fx-text-fill: white;
+	-fx-font-size: 16px;
+	-fx-font-weight: bold;
+	-fx-effect: dropshadow( gaussian, rgba(55,55,55,0.75), 6,.7,0,0 ); 
+}
+
+.scroll-pane {
+	-fx-background-color: transparent;
+}
+
+.scroll-pane .viewport {
+	-fx-background-color: transparent;
+}
 
 .text-area .scroll-pane {
     -fx-background-color: transparent;

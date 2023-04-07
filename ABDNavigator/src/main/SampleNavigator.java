@@ -317,19 +317,28 @@ public class SampleNavigator extends Application
 		
 		attributeEditorGroup = new Group();
 				
-		BorderPane bp1 = new BorderPane();
-		bp1.prefWidthProperty().bind(scene.widthProperty());
-		bp1.prefHeightProperty().bind(scene.heightProperty());
-		bp1.setPickOnBounds(false);
+		//BorderPane bp1 = new BorderPane();
+		//bp1.prefWidthProperty().bind(scene.widthProperty());
+		//bp1.prefHeightProperty().bind(scene.heightProperty());
+		//bp1.setPickOnBounds(false);
 		
-		BorderPane bp2 = new BorderPane();
-		bp2.setPickOnBounds(false);
-		bp1.setBottom(bp2);
 		
-		attributeEditorGroup.getChildren().add(bp1);
+		//BorderPane bp2 = new BorderPane();
+		//bp2.setPickOnBounds(false);
+		//bp1.setBottom(bp2);
+		////BorderPane.setMargin(bp2, new Insets(10,0,25,0) );
+		
+		AnchorPane ap0 = new AnchorPane();
+		ap0.prefWidthProperty().bind(scene.widthProperty());
+		ap0.prefHeightProperty().bind(scene.heightProperty());
+		ap0.setPickOnBounds(false);
+		
+		//attributeEditorGroup.getChildren().add(bp1);
+		attributeEditorGroup.getChildren().add(ap0);
 		
 		attributeEditor = new AttributeEditor();
-		
+		//attributeEditor.prefHeightProperty().bind(scene.heightProperty());
+		attributeEditor.maxHeightProperty().bind(scene.heightProperty());
 		
     	editorBG = new Rectangle(
 				scene.getWidth(), 
@@ -358,7 +367,10 @@ public class SampleNavigator extends Application
 		g.getChildren().add(editorBG);
     	
     	g.getChildren().add(attributeEditor);
-    	bp2.setLeft(g);
+    	//bp2.setLeft(g);
+    	AnchorPane.setLeftAnchor(g, 0.0);
+    	AnchorPane.setBottomAnchor(g, 0.0);
+    	ap0.getChildren().add(g);
     	
     	
 		attributeEditorGroup.setVisible(false);
@@ -370,12 +382,12 @@ public class SampleNavigator extends Application
 		
 		helpWindowGroup = new Group();
 		
-		bp1 = new BorderPane();
+		BorderPane bp1 = new BorderPane();
 		bp1.prefWidthProperty().bind(scene.widthProperty());
 		bp1.prefHeightProperty().bind(scene.heightProperty());
 		bp1.setPickOnBounds(false);
 		
-		bp2 = new BorderPane();
+		BorderPane bp2 = new BorderPane();
 		bp2.setPickOnBounds(false);
 		bp1.setBottom(bp2);
 		
@@ -452,7 +464,7 @@ public class SampleNavigator extends Application
 		g.getChildren().add(editorBG);
     	
     	g.getChildren().add(treeEditor);
-    	ap1.setRightAnchor(g, 0.);
+    	AnchorPane.setRightAnchor(g, 0.);
     	ap1.getChildren().add(g);
     	
     	treeEditor.getSelectionModel().selectedItemProperty().addListener( new ChangeListener<TreeItem<String>>() 
