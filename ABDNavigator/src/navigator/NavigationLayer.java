@@ -44,6 +44,7 @@ public class NavigationLayer extends Group
 	public String[] actions = {};
 	public String[] deepAttributes = {};
 	public Hashtable<String,String[]> tabs = new Hashtable<String,String[]>();
+	public String currentTab = null;
 	
 	public Rotate rotation = null;
 	public Scale scale = null;
@@ -1532,5 +1533,29 @@ public class NavigationLayer extends Group
 	public void fireTransforming()
 	{
 		
+	}
+	
+	public GroupLayer getOrMakeGroup(String groupName)
+	{
+		GroupLayer groupL = null;
+		
+		Vector<NavigationLayer> children = getLayerChildren();
+		for (int i = 0; i < children.size(); i ++)
+		{
+			NavigationLayer child = children.get(i);
+			if ((child instanceof GroupLayer) && (child.getName().equals(groupName)))
+			{
+				groupL = (GroupLayer)child;
+			}
+		}
+		
+		if (groupL == null)
+		{
+			groupL = new GroupLayer();
+			groupL.name = groupName;
+			getChildren().add(groupL);
+		}
+		
+		return groupL;
 	}
 }

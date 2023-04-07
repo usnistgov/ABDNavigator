@@ -19,6 +19,7 @@ import java.nio.ShortBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Vector;
 
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
@@ -73,9 +74,10 @@ public class MatrixSTMImageLayer extends ImageLayer
 	public MatrixSTMImageLayer()
 	{
 		super();
-		appendActions( new String[]{"imageLeftRight","imageUpDown","togglePlaneSubtract","toggleLineByLineFlatten","nextColorScheme","locateMaxima","locateLattice"} );
+		appendActions( new String[]{"imageLeftRight","imageUpDown","togglePlaneSubtract","toggleLineByLineFlatten","nextColorScheme","locateMaxima","locateLattice","addExample"} );
 		tabs.put("maxima", new String[] {"locateMaxima","maximaExpectedDiameter","maximaPrecision","maximaThreshold"});
 		tabs.put("lattice", new String[] {"locateLattice","latticeExpectedSpacingNM","latticeSpacingUncertaintyNM"});
+		tabs.put("machine learning", new String[] {"addExample"});
 	}
 	
 	public void handleVisibilityChange()
@@ -1146,4 +1148,19 @@ public class MatrixSTMImageLayer extends ImageLayer
 		}
 	}
 	
+	
+	
+	
+	public void addExample()
+	{
+		GroupLayer exampleGroup = this.getOrMakeGroup("examples");
+		
+		RegionSelectionLayer l = new RegionSelectionLayer();
+		exampleGroup.getChildren().add(l);
+		l.scale.setX(0.2);
+		l.scale.setY(0.2);
+		
+		l.init();
+		SampleNavigator.refreshTreeEditor();
+	}
 }
