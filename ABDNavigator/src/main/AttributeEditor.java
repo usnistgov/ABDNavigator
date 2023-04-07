@@ -133,11 +133,33 @@ public class AttributeEditor extends GridPane
 			allActionsAndAttributes.addAll( Arrays.asList(layer.tabs.get(tabName)) );
 		}
 		
+		String currentTab = null;
+		Tab tabToSelect = null;
+		if (layer.currentTab != null)
+		{
+			currentTab = layer.currentTab;
+		}
+		
 		for (String tabName: tabKeys)
 		{
 			GridPane tabGrid = new GridPane();
 			Tab tab = new Tab(tabName, tabGrid);
 			tab.setClosable(false);
+			tab.setOnSelectionChanged( new EventHandler<Event>()
+			{
+				public void handle(Event evt) 
+				{
+					if (evt.getSource() instanceof Tab)
+					{
+						Tab t = (Tab)evt.getSource();
+						if (t.isSelected())
+						{
+							layer.currentTab = t.getText();
+							System.out.println("currentTab: " + layer.currentTab);
+						}
+					}
+				}
+			} );
 			
 			
 			//String[] actionsAndAttributes = layer.tabs.get(tabName);
@@ -295,8 +317,18 @@ public class AttributeEditor extends GridPane
 			numItems += row;
 			
 			if (numItems > 0)
+			{
 				tabs.getTabs().add(tab);
+				if (tabName.equals(currentTab))
+					tabToSelect = tab;
+			}
 		}
+		
+		if (tabToSelect != null)
+		{
+			tabs.getSelectionModel().select(tabToSelect);
+		}
+		
 		//add(attributePane, 0, row, 2, 1);
 		
 		//setTranslateX( layer.getTranslateX() );
