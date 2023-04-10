@@ -45,6 +45,7 @@ public class NavigationLayer extends Group
 	public String[] deepAttributes = {};
 	public Hashtable<String,String[]> tabs = new Hashtable<String,String[]>();
 	public String currentTab = null;
+	public Hashtable<String,String[]> categories = new Hashtable<String,String[]>();
 	
 	public Rotate rotation = null;
 	public Scale scale = null;
@@ -358,7 +359,8 @@ public class NavigationLayer extends Group
 					try
 					{
 						Class c = Class.forName(name);
-						NavigationLayer nav = (NavigationLayer)c.newInstance();
+						//NavigationLayer nav = (NavigationLayer)c.newInstance();
+						NavigationLayer nav = (NavigationLayer)c.getDeclaredConstructor().newInstance();
 						nav.isXMLSetRoot = false;
 						nav.setFromXML((Element)n);
 		
@@ -914,6 +916,22 @@ public class NavigationLayer extends Group
 		return new Point2D(xScale,yScale);
 	}
 	
+	public Point2D getLocalToRootScale()
+	{
+		Point2D xVec = new Point2D(1,0);
+		Point2D yVec = new Point2D(0,1);
+		Point2D zero = new Point2D(0,0);
+		zero = localToRoot(zero);
+		xVec = localToRoot(xVec).subtract(zero);
+		yVec = localToRoot(yVec).subtract(zero);
+
+		double xScale = xVec.magnitude();
+		double yScale = yVec.magnitude();
+		
+		return new Point2D(xScale,yScale);
+
+	}
+	
 	public double getLocalToSceneRotation()
 	{
 		Point2D xVec = new Point2D(1,0);
@@ -1376,7 +1394,7 @@ public class NavigationLayer extends Group
 		SampleNavigator.refreshTreeEditor();
 	}
 	
-	public void copyTransforms()
+	public Element getTransformsAsXML()
 	{
 		Element e = SampleNavigator.doc.createElement("TransformData");
 		
@@ -1404,6 +1422,13 @@ public class NavigationLayer extends Group
 			ScalePoint s = scalePoints.get(i);
 			e.appendChild( s.getAsXML() );
 		}
+		
+		return e;
+	}
+	
+	public void copyTransforms()
+	{
+		Element e = getTransformsAsXML();
 		
 		StringSelection sel = new StringSelection( SampleNavigator.xmlToString(e) );
 		Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();

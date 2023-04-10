@@ -1153,14 +1153,8 @@ public class MatrixSTMImageLayer extends ImageLayer
 	
 	public void addExample()
 	{
-		GroupLayer exampleGroup = this.getOrMakeGroup("examples");
+		SampleNavigator.addExample(this, 0, 0);
 		
-		RegionSelectionLayer l = new RegionSelectionLayer();
-		exampleGroup.getChildren().add(l);
-		l.scale.setX(0.2);
-		l.scale.setY(0.2);
 		
-		l.init();
-		SampleNavigator.refreshTreeEditor();
 	}
 }

@@ -114,6 +114,7 @@ public class SampleNavigator extends Application
 	public static int transformType = NOT_TRANSFORMING;
 	
 	public static ScannerLayer scanner = null;
+	public static MLControlLayer mlController = null;
 	
 	public static class UndoObject
 	{
@@ -288,8 +289,8 @@ public class SampleNavigator extends Application
 				
 				new LinearGradient(0f, 0f, 1f, 1f, true, CycleMethod.NO_CYCLE, new Stop[]
 				{
-					new Stop(0, new Color(bgR,bgG,bgB,1) ),
-					new Stop(1, new Color(bgR,bgG,bgB,0.9) )
+					new Stop(0, new Color(bgR,bgG,bgB,0.9) ),  //1
+					new Stop(1, new Color(bgR,bgG,bgB,0.8) )//0.9
 				} ) );
     	editorBG.widthProperty().bind(scene.widthProperty());
     	editorBG.heightProperty().bind(scene.heightProperty());
@@ -346,8 +347,8 @@ public class SampleNavigator extends Application
 				
 				new LinearGradient(0f, 0f, 1f, 1f, true, CycleMethod.NO_CYCLE, new Stop[]
 				{
-					new Stop(0, new Color(bgR,bgG,bgB,1) ),
-					new Stop(1, new Color(bgR,bgG,bgB,0.9) )
+					new Stop(0, new Color(bgR,bgG,bgB,0.5) ),//1
+					new Stop(1, new Color(bgR,bgG,bgB,0.3) )//0.9
 				} ) );
     	editorBG.widthProperty().bind(attributeEditor.widthProperty());
     	editorBG.heightProperty().bind(attributeEditor.heightProperty());
@@ -401,8 +402,8 @@ public class SampleNavigator extends Application
 				
 				new LinearGradient(0f, 0f, 1f, 1f, true, CycleMethod.NO_CYCLE, new Stop[]
 				{
-					new Stop(0, new Color(bgR,bgG,bgB,1) ),
-					new Stop(1, new Color(bgR,bgG,bgB,0.9) )
+					new Stop(0, new Color(bgR,bgG,bgB,0.9) ),
+					new Stop(1, new Color(bgR,bgG,bgB,0.8) )
 				} ) );
     	editorBG.widthProperty().bind(helpWindow.widthProperty());
     	editorBG.heightProperty().bind(helpWindow.heightProperty());
@@ -452,8 +453,8 @@ public class SampleNavigator extends Application
 				
 				new LinearGradient(0f, 0f, 1f, 1f, true, CycleMethod.NO_CYCLE, new Stop[]
 				{
-					new Stop(0, new Color(bgR,bgG,bgB,1) ),
-					new Stop(1, new Color(bgR,bgG,bgB,0.9) )
+					new Stop(0, new Color(bgR,bgG,bgB,0.5) ),//1
+					new Stop(1, new Color(bgR,bgG,bgB,0.3) )//0.9
 				} ) );
     	editorBG.widthProperty().bind(treeEditor.widthProperty());
     	editorBG.heightProperty().bind(treeEditor.heightProperty());
@@ -758,6 +759,13 @@ public class SampleNavigator extends Application
     				if (k.isControlDown())
     				{
     					addPositioner();
+    				}
+    			}
+    			if (k.getCode() == KeyCode.Q)
+    			{
+    				if (k.isControlDown())
+    				{
+    					addExample();
     				}
     			}
     			
@@ -1236,6 +1244,49 @@ public class SampleNavigator extends Application
 	public static void setSelectedPath(PathLayer l)
 	{
 		selectedPath = l;
+	}
+	
+	public static void addExample()
+	{
+		if (selectedLayer instanceof MatrixSTMImageLayer)
+		{
+			Point2D p = getLocalMouseCoords();
+			addExample( selectedLayer, p.getX(), p.getY() );
+		}
+	}
+	
+	public static void addExample( NavigationLayer parent, double x, double y)
+	{
+		GroupLayer exampleGroup = parent.getOrMakeGroup("examples");
+		
+		ExampleLayer l = new ExampleLayer();
+		exampleGroup.getChildren().add(l);
+		
+		
+		l.scale.setX(0.2);
+		l.scale.setY(0.2);
+		
+		boolean isFirst = true;
+		if ((SampleNavigator.mlController != null) && (SampleNavigator.mlController.currentExample != null))
+			isFirst = false;
+		
+		l.checkMLController();
+		
+		if (!isFirst)
+		{
+			l.setTransformsFromXML( SampleNavigator.mlController.currentExample.getTransformsAsXML() );
+			l.setFeaturesFromXML( SampleNavigator.mlController.currentExample.getFeaturesAsXML() );
+		}
+		
+		l.init();
+		
+		l.setTranslateX(x);
+		l.setTranslateY(y);
+		
+		if (isFirst)
+			l.chooseMLSettings();
+				
+		SampleNavigator.refreshTreeEditor();
 	}
 	
 	public static void addPositioner()
@@ -1730,6 +1781,29 @@ public class SampleNavigator extends Application
     	}
     	
     	return e;
+	}
+	
+	public static Element loadXML(String fileName)
+	{
+		Element e = null;
+		
+		try
+		{
+			File f = new File(fileName);
+    		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+    		
+    		DocumentBuilder builder = factory.newDocumentBuilder();
+    		Document doc = builder.parse(f);
+    		
+    		doc.getDocumentElement().normalize();
+    		e = doc.getDocumentElement();
+		}
+		catch (Exception ex)
+		{
+			ex.printStackTrace();
+		}
+		
+		return e;
 	}
 	
 	public static void addGroup()

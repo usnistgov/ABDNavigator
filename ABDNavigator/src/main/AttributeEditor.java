@@ -16,18 +16,19 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.Node;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.control.TabPane;
-import javafx.scene.control.Tab;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
+//import javafx.scene.control.Label;
+//import javafx.scene.control.ScrollPane;
+//import javafx.scene.control.TabPane;
+//import javafx.scene.control.Tab;
+//import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
+import javafx.collections.*;
 
 import javafx.application.Platform;
 import javafx.event.*;
@@ -59,26 +60,6 @@ public class AttributeEditor extends GridPane
     	
     	title.setId("title");
 		title.setFill(Color.WHITE);
-		
-    	//add(title,0,0,2,1);
-    	
-    	/*
-    	actionPane = new GridPane();
-    	actionPane.setHgap(10);
-    	actionPane.setVgap(10);
-    	
-    	attributePane = new GridPane();
-    	attributePane.setHgap(10);
-    	attributePane.setVgap(10);
-    	attributePane.setPadding( new Insets(0,0,25,0) );
-    	
-    	attributeScroll = new ScrollPane();   	
-    	
-    	add(actionPane,0,1,2,1);
-    	
-    	attributeScroll.setContent(attributePane);
-    	add(attributeScroll,0,2,2,1);
-    	*/
 
 	}
 	
@@ -105,26 +86,16 @@ public class AttributeEditor extends GridPane
 		Group p = (Group)getParent();
 		if (!p.getChildren().contains(closeButton))
 			p.getChildren().add(closeButton);
-		//getChildren().add(closeButton);
 		closeButton.toFront();
 		
-		
-		//System.out.println(layer);
 		getChildren().clear();
 		
-		//Text title = new Text(xml.getNodeName());
 		title.setText( xml.getNodeName() );
-		
 		add(title,0,0,2,1);
 		
 		tabs = new TabPane();
-		
 		add(tabs,0,1,2,1);
-		
-		
-		//actionPane.getChildren().clear();
-		//attributePane.getChildren().clear();
-		
+				
 		Set<String> tabKeys = layer.tabs.keySet();
 		
 		List<String> allActionsAndAttributes = new ArrayList<String>();
@@ -155,14 +126,12 @@ public class AttributeEditor extends GridPane
 						if (t.isSelected())
 						{
 							layer.currentTab = t.getText();
-							System.out.println("currentTab: " + layer.currentTab);
+							//System.out.println("currentTab: " + layer.currentTab);
 						}
 					}
 				}
 			} );
 			
-			
-			//String[] actionsAndAttributes = layer.tabs.get(tabName);
 			List<String> actionsAndAttributes = Arrays.asList( layer.tabs.get(tabName) );
 			
 			GridPane actionPane = new GridPane();
@@ -181,7 +150,7 @@ public class AttributeEditor extends GridPane
 	    			{		    			
 		    			String action = layer.actions[i];
 		    			Button b = new Button(action);
-		    			//b.setTextFill( Color.AQUA );
+		    			
 		    			b.setOnAction( new EventHandler<ActionEvent>()
 		    			{
 							public void handle(ActionEvent e)
@@ -210,20 +179,19 @@ public class AttributeEditor extends GridPane
 		    				Method mSettings = layer.getClass().getMethod(layer.actions[i] + "Settings", null);
 		    				if (mSettings != null)
 		    				{
-		    					//b = new Button("[" + action + " settings]");
 		    					b = new Button("[...]");
 		    					b.setUserData(mSettings);
-		    	    			//b.setTextFill( Color.AQUA );
+		    	    			
 		    	    			b.setOnAction( new EventHandler<ActionEvent>()
 		    	    			{
 		    						public void handle(ActionEvent e)
 		    						{
 		    							Button thisButton = (Button)e.getSource();
-		    							//String thisAction = thisButton.getText();
+		    							
 		    							try
 		    							{
 		    								doneEditing();
-		    								//Method m = layer.getClass().getMethod(thisAction, null);
+		    								
 		    								Method m = (Method)thisButton.getUserData();
 		    								m.invoke(layer, null);
 		    							}
@@ -272,43 +240,57 @@ public class AttributeEditor extends GridPane
 					Label l = new Label(name);
 			    	attributePane.add(l, 0, row);
 			    	
-			    	final TextField t = new TextField(val);
-			    	t.setUserData( name );
-			    	t.setOnAction( new EventHandler<ActionEvent>()
-			    	{
-						public void handle(ActionEvent e)
-						{
-							doneEditing();
-							t.setId(null);//"editedTextField");
-							fieldChanged(e.getSource());
-						}	
-			    	});
-			    	t.setOnMouseClicked(new EventHandler<MouseEvent>()
-			    	{
-						public void handle(MouseEvent event)
-						{
-							editing = true;	
-						}	
-			    	});
+			    	String[] options = layer.categories.get(name);
 			    	
-			    	t.setOnKeyPressed(new EventHandler<KeyEvent>()
+			    	if (options == null)
 			    	{
-						public void handle(KeyEvent event)
-						{
-							if (event.getCode() != KeyCode.ENTER)
-								t.setId("editingTextField");
-						}
-						
-			    	});
-			    	/*t.setOnMouseExited(new EventHandler<MouseEvent>()
+				    	final TextField t = new TextField(val);
+				    	t.setUserData( name );
+				    	t.setOnAction( new EventHandler<ActionEvent>()
+				    	{
+							public void handle(ActionEvent e)
+							{
+								doneEditing();
+								t.setId(null);//"editedTextField");
+								fieldChanged(e.getSource());
+							}	
+				    	});
+				    	t.setOnMouseClicked(new EventHandler<MouseEvent>()
+				    	{
+							public void handle(MouseEvent event)
+							{
+								editing = true;	
+							}	
+				    	});
+				    	
+				    	t.setOnKeyPressed(new EventHandler<KeyEvent>()
+				    	{
+							public void handle(KeyEvent event)
+							{
+								if (event.getCode() != KeyCode.ENTER)
+									t.setId("editingTextField");
+							}
+							
+				    	});
+				    				    	
+				    	attributePane.add(t, 1, row);
+			    	}
+			    	else
 			    	{
-						public void handle(MouseEvent event)
-						{
-							t.setId(null);
-						}	
-			    	});*/
-			    	
-			    	attributePane.add(t, 1, row);
+			    		final ComboBox<String> c = new ComboBox<String>(FXCollections.observableArrayList(options));
+			    		c.setValue(val);
+			    		c.setUserData(name);
+			    		c.setOnAction( new EventHandler<ActionEvent>()
+				    	{
+							public void handle(ActionEvent e)
+							{
+								//doneEditing();
+								fieldChanged(e.getSource());
+							}	
+				    	});
+			    		
+			    		attributePane.add(c, 1, row);
+			    	}
 			    	
 			    	row ++;
 				}
@@ -329,14 +311,7 @@ public class AttributeEditor extends GridPane
 			tabs.getSelectionModel().select(tabToSelect);
 		}
 		
-		//add(attributePane, 0, row, 2, 1);
 		
-		//setTranslateX( layer.getTranslateX() );
-		//setTranslateY( layer.getTranslateY() );
-		//System.out.println( p.getBoundsInParent().getWidth() );
-		//System.out.println(this.getBoundsInLocal().getMinX());
-		//closeButton.setTranslateX( this.getBoundsInParent().getWidth() + getBoundsInParent().getMinX() );
-		//closeButton.setTranslateY( closeButton.getHeight() );
 		closeButton.setOnAction( new EventHandler<ActionEvent>()
 		{
 			public void handle(ActionEvent e)
@@ -355,13 +330,7 @@ public class AttributeEditor extends GridPane
 		{
 	        public void run() 
 	        {
-	        	/*
-	            System.out.println(getBoundsInParent());
-	            System.out.println(getBoundsInLocal());
-	            System.out.println(getHeight());
-	            
-	            Group p = (Group)getParent();
-	            p.setTranslateY( SampleNavigator.scene.getHeight() - p.getBoundsInParent().getHeight() );*/
+	        	
 	        }
 	    });
 	}
@@ -374,6 +343,12 @@ public class AttributeEditor extends GridPane
 			if ((field.getUserData() != null) && (field.getUserData() instanceof String))
 				fieldChanged((String)field.getUserData(), field.getText());
 		}
+		else if (source instanceof ComboBox)
+		{
+			ComboBox<String> field = (ComboBox<String>)source;
+			if ((field.getUserData() != null) && (field.getUserData() instanceof String))
+				fieldChanged((String)field.getUserData(), field.getValue());
+		}
 	}
 	private void fieldChanged(String name, String value)
 	{
@@ -382,7 +357,6 @@ public class AttributeEditor extends GridPane
 		xml = layer.getAsXML();
 		xml.setAttribute(name, value);
 		
-		//boolean deep = false;
 		Arrays.sort(layer.deepAttributes);
 		int idx = Arrays.binarySearch(layer.deepAttributes, name);
 		boolean deep = (idx >= 0);
