@@ -13,6 +13,7 @@ import org.w3c.dom.NamedNodeMap;
 
 import navigator.*;
 import javafx.geometry.Insets;
+import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.Node;
@@ -233,7 +234,7 @@ public class AttributeEditor extends GridPane
 			{
 				org.w3c.dom.Node n = attributes.item(i);
 				String name = n.getNodeName();
-				String val = n.getNodeValue();
+				String val = conditionValue(name, n.getNodeValue());
 				
 				if ((actionsAndAttributes.contains(name)) || (tabName.equals("main") && !allActionsAndAttributes.contains(name)))
 				{
@@ -354,6 +355,8 @@ public class AttributeEditor extends GridPane
 	{
 		SampleNavigator.addUndo(layer, false);
 		
+		value = unConditionValue(name, value);
+		
 		xml = layer.getAsXML();
 		xml.setAttribute(name, value);
 		
@@ -362,5 +365,42 @@ public class AttributeEditor extends GridPane
 		boolean deep = (idx >= 0);
 		layer.setFromXML(xml, deep);
 		layer.fireFieldChanged(name);
+	}
+	
+	private String conditionValue(String name, String val)
+	{
+		String returnVal = val;
+		if (layer.displayRootScale) 
+		{
+			if (name.equals("scaleX"))
+			{
+				returnVal = Double.toString( layer.getLocalToRootScale().getX() );
+			}
+			else if (name.equals("scaleY"))
+			{
+				returnVal = Double.toString( layer.getLocalToRootScale().getY() );
+			}
+		}
+		
+		return returnVal;
+	}
+	
+	private String unConditionValue(String name, String val)
+	{
+		String returnVal = val;
+		if (layer.displayRootScale) 
+		{
+			if (name.equals("scaleX"))
+			{
+				double scaleFactor = Double.parseDouble(val)/layer.getLocalToRootScale().getX();
+				returnVal = Double.toString(scaleFactor*layer.scale.getMxx());
+			}
+			else if (name.equals("scaleY"))
+			{
+				double scaleFactor = Double.parseDouble(val)/layer.getLocalToRootScale().getY();
+				returnVal = Double.toString(scaleFactor*layer.scale.getMyy());
+			}
+		}
+		return returnVal;
 	}
 }

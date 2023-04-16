@@ -5,12 +5,14 @@ package navigator;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.ByteBuffer;
+import java.nio.DoubleBuffer;
 import java.nio.ByteOrder;
 import java.nio.CharBuffer;
 import java.nio.FloatBuffer;
@@ -19,7 +21,9 @@ import java.nio.ShortBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.Vector;
+import java.util.Hashtable;
 
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
@@ -117,20 +121,21 @@ public class MatrixSTMImageLayer extends ImageLayer
 			String fullFileName = imgNameString.replaceFirst("file:","");
 			SampleNavigator.linkRegistry.add(fullFileName);
 			
-			
+			loadParamFile(fullFileName);
 			
 			File f = new File(fullFileName);
 			
-			FileInputStream in = new FileInputStream(f);
+			FileInputStream fin = new FileInputStream(f);
+			BufferedInputStream in = new BufferedInputStream(fin);
 			
 			ByteBuffer bIn = ByteBuffer.allocate(16);
 			//bIn.order(ByteOrder.BIG_ENDIAN);
 			bIn.order(ByteOrder.LITTLE_ENDIAN);
 			
 			IntBuffer iIn = bIn.asIntBuffer();
-			ShortBuffer sIn = bIn.asShortBuffer();
-			FloatBuffer fIn = bIn.asFloatBuffer();
-			CharBuffer cIn = bIn.asCharBuffer();
+			//ShortBuffer sIn = bIn.asShortBuffer();
+			//FloatBuffer fIn = bIn.asFloatBuffer();
+			//CharBuffer cIn = bIn.asCharBuffer();
 			
 			
 			
@@ -141,7 +146,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 			
 			String s = readFourChars(in);
 			
-			long len = intVal(in, bIn, iIn);
+			//long len = intVal(in, bIn, iIn);
 			
 			if (s.toString().equals("TLKB"))
 			{
@@ -271,7 +276,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 				
 			}
 			
-			in.close();
+			fin.close();
 			
 			
 			
@@ -286,6 +291,409 @@ public class MatrixSTMImageLayer extends ImageLayer
 			ex.printStackTrace();
 		}
 	}
+	
+	private static int bytesRead = 0;
+	private static int headerBytesRead = 0;
+	private List<String> nonTimeStampHeaders = Arrays.asList( new String[] {"REFX","NACS","TCID","SCHC","TSNI","SXNC","LNEG"} );
+	private List<String> unimportantHeaders = Arrays.asList( new String[] {"ICNI","KRAM","WEIV","CORP", "DOMP"} );
+	private void loadParamFile(String fileName)
+	{
+		try
+		{
+			//look for a file with the same first part of the file name, but ending in _0001.mtrx
+			//that file will be the param file
+			System.out.println("loading param file for: " + fileName);
+			String[] fileHead = fileName.split("--");
+			StringBuffer paramFile = new StringBuffer();
+			for (int i = 0; i < fileHead.length-1; i ++)
+			{
+				paramFile.append(fileHead[i]);
+				if (i < fileHead.length-2)
+					paramFile.append("--");
+			}
+			paramFile.append("_0001.mtrx");
+			
+			File f = new File(paramFile.toString());
+			System.out.println( paramFile.toString() + " exists: " + f.exists() );
+			
+			if (!f.exists())
+				return;
+			
+			//start reading in the data from the param file
+			FileInputStream fin = new FileInputStream(f);
+			BufferedInputStream in = new BufferedInputStream(fin);
+			
+			ByteBuffer bIn = ByteBuffer.allocate(16);
+			bIn.order(ByteOrder.LITTLE_ENDIAN);
+			
+			IntBuffer iIn = bIn.asIntBuffer();
+			//ShortBuffer sIn = bIn.asShortBuffer();
+			//FloatBuffer fIn = bIn.asFloatBuffer();
+			CharBuffer cIn = bIn.asCharBuffer();
+			DoubleBuffer dIn = bIn.asDoubleBuffer();
+			
+			
+			
+			//read the beginning of the file to figure out what type it is
+			//byte[] inVals = new byte[4];
+			//in.read(inVals);
+			
+			//the first 8 characters (bytes) are an identifier
+			String s = readChars(in, 8);
+			System.out.println("first eight chars: " + s);
+						
+			//the next 4 characters should be the version, which should be 0101
+			String version = readChars(in, 4);
+			System.out.println("version: " + version);
+			
+			
+			
+			//read all of the blocks of data until eof:
+			int bytesRead = 0;
+			while (bytesRead != -1)
+			{
+				bytesRead =	readBlock(in, bIn, iIn, cIn, dIn, 0);
+			}
+				
+			fin.close();
+		}
+		catch (Exception ex)
+		{
+			ex.printStackTrace();
+		}
+	}
+	
+	private String currentBlockHeader = null;
+	public int readBlock(BufferedInputStream in, ByteBuffer bIn, IntBuffer iIn, CharBuffer cIn, DoubleBuffer dIn, int limitBytes) throws Exception
+	{
+		//if (limitBytes > 0)
+		//	in.mark(8);
+		
+		//read the header of the block
+		bytesRead = 0;
+		String blockHeader = readChars(in, 4);
+		currentBlockHeader = blockHeader;
+		System.out.println(blockHeader);
+		
+				
+		//read the length of the block (in Bytes)
+		long len = intVal(in, bIn, iIn);
+		System.out.println("block length: " + len);
+		
+		/*
+		if ((limitBytes != 0) && (len > limitBytes))
+		{
+			//rewind 8 bytes and return 0
+			System.out.println( in.markSupported() );
+			in.reset();
+			return -1;
+		}*/
+		
+		if (nonTimeStampHeaders.contains(blockHeader))
+		{
+			//no time stamp available
+		}
+		else
+		{
+			//advance by 8 bytes to skip over timestamp
+			readChars(in, 8);
+		}
+		
+		headerBytesRead = bytesRead;
+		
+		//start counting how many bytes have been read
+		bytesRead = 0;
+		
+		
+		switch (blockHeader)
+		{
+			case "ATEM":
+				//beginning of parameter file
+				String programName = readString(in, bIn, iIn, cIn);
+				System.out.println("program name: " + programName);
+				
+				String programVersion = readString(in, bIn, iIn, cIn);
+				System.out.println("program version: " + programVersion);
+				
+				//skip 4 bytes for some reason
+				readChars(in, 4);
+				
+				String profileName = readString(in, bIn, iIn, cIn);
+				System.out.println("profile name: " + profileName);
+				
+				String userName = readString(in, bIn, iIn, cIn);
+				System.out.println("user name: " + userName);
+				
+				break;
+				
+			case "DPXE":
+				//description and project files
+				
+				//skip 4 bytes for some reason
+				readChars(in, 4);
+				
+				//read 7 strings
+				for (int i = 0; i < 7; i ++)
+				{
+					String s = readString(in, bIn, iIn, cIn);
+					System.out.println("DPXE string " + i + ": " + s);
+				}
+				
+				break;
+				
+			case "QESF":
+				//don't know what this is and I guess I don't care
+				break;
+				
+			case "SPXE":
+				//initial configuration
+				
+				//skip 4 bytes for some reason
+				readChars(in, 4);
+				
+				int subBytesRead = bytesRead;
+				while (subBytesRead < len)
+				{
+					int subBytes = readBlock(in, bIn, iIn, cIn, dIn, (int)(len-subBytesRead));
+					//if (subBytes == -1) //reading the next block would have gone over the allowed length
+					//	break;
+					//else
+					subBytesRead += subBytes;  
+				}
+				
+				System.out.println("subBytes read: " + subBytesRead);
+				
+				bytesRead = (int)len;//subBytesRead;
+				break;
+			
+			case "LNEG":
+				//description
+				for (int i = 0; i < 3; i ++)
+				{
+					String s = readString(in, bIn, iIn, cIn);
+					System.out.println("LNEG string " + i + ": " + s);
+				}
+				break;
+				
+			case "TSNI":
+				//configuration of instances
+				long numInstances = intVal(in, bIn, iIn);
+				System.out.println("number of instances: " + numInstances);
+				
+				for (int i = 0; i < numInstances; i ++)
+				{
+					String s1 = readString(in, bIn, iIn, cIn);
+					String s2 = readString(in, bIn, iIn, cIn);
+					String s3 = readString(in, bIn, iIn, cIn);
+					
+					System.out.println("TSNI instance " + i + " strings: " + s1 + "  " + s2 + "  " + s3);
+					
+					long numProperties = intVal(in, bIn, iIn);
+					for (int j = 0; j < numProperties; j ++)
+					{
+						String t1 = readString(in, bIn, iIn, cIn);
+						String t2 = readString(in, bIn, iIn, cIn);
+						
+						System.out.println("TSNI property " + j + ": " + t1 + "  " + t2);
+					}
+				}
+				
+				break;
+				
+			case "SXNC":
+				//configuration of boards... not important so ignoring
+				break;
+				
+			case "APEE":
+				//The different experimental components (such as XYScanner, Regulator, etc.)
+								
+				//skip 4 bytes for some reason
+				readChars(in, 4);
+				
+				//number of components
+				long numComponents = intVal(in, bIn, iIn);
+				System.out.println("APEE num components: " + numComponents);
+				
+				Hashtable<String, Hashtable<String,String[]>> components = new Hashtable<String,Hashtable<String,String[]>>();
+				for (int compIdx = 0; compIdx < numComponents; compIdx ++)
+				{
+					String component = readString(in, bIn, iIn, cIn);
+										
+					long numProperties = intVal(in, bIn, iIn);
+					Hashtable<String,String[]> properties = new Hashtable<String,String[]>();
+					for (int propIdx = 0; propIdx < numProperties; propIdx ++)
+					{
+						//System.out.println("processing prop: " + propIdx);
+						
+						String prop = readString(in, bIn, iIn, cIn);
+						String unit = readString(in, bIn, iIn, cIn);
+						String propVal = readPropertyData(in, bIn, iIn, cIn, dIn, true);
+						
+						properties.put(prop, new String[] {propVal, unit});
+					}
+					
+					components.put(component, properties);
+					//break;
+				}
+				
+				Set<String> compKeys = components.keySet();
+				for (String key: compKeys)
+				{
+					System.out.println("component: " + key);
+					
+					Hashtable<String,String[]> properties = components.get(key);
+					Set<String> propKeys = properties.keySet();
+					for (String prop: propKeys)
+					{
+						String[] val = properties.get(prop);
+						System.out.println("  " + prop + " = " + val[0] + " (" + val[1] + ")");
+					}
+				}
+				
+				break;
+				
+			case "DOMP":
+				//a parameter was modified during a scan
+				
+				//skip 4 bytes for some reason
+				readChars(in, 4);
+				
+				String component = readString(in, bIn, iIn, cIn);
+				String prop = readString(in, bIn, iIn, cIn);
+				String unit = readString(in, bIn, iIn, cIn);
+				String propVal = readPropertyData(in, bIn, iIn, cIn, dIn, true);
+				
+				System.out.println("changed: " + component + "  " + prop + " = " + propVal + " (" + unit + ")");
+				break;
+				
+			case "ICNI":
+				//state of experiment... doesn't seem important
+				break;
+			
+			case "KRAM":
+				//system calibration
+				String cal = readString(in, bIn, iIn, cIn);
+				System.out.println("calibration: " + cal);
+				
+			case "WEIV":
+				//something something scanning windows... whatever
+				break;
+				
+			case "CORP":
+				//processors of the scanning windows... ok
+				break;
+				
+			case "FERB":
+				//image file name
+				
+				//skip 4 bytes for some reason
+				readChars(in, 4);
+				
+				String fileName = readString(in, bIn, iIn, cIn);
+				System.out.println("file name: " + fileName);
+				break;
+				
+			case "YSCC":
+				//?
+				
+				//skip 4 bytes for some reason
+				readChars(in, 4);
+				
+				//this has inner blocks of TCID, SCHC, NACS, and REFX
+				int ysccBytesRead = bytesRead;
+				while (ysccBytesRead < len)
+				{
+					int ysccBytes = readBlock(in, bIn, iIn, cIn, dIn, (int)(len-ysccBytesRead));
+					//if (ysccBytes == -1) //reading the next block would have gone over the allowed length
+					//	break;
+					//else
+					ysccBytesRead += ysccBytes;  
+					
+				}
+				
+				System.out.println("ysccBytes read: " + ysccBytesRead);
+				
+				bytesRead = (int)len;//subBytesRead;
+				break;
+				
+			case "TCID":
+				//description and internal number of captured channels
+				//has to be linked to the physical devices given in XFER to get
+				//scaling
+				
+				//skip 8 bytes for some reason
+				readChars(in, 8);
+				
+				long num = intVal(in, bIn, iIn);
+				for (int i = 0; i < num; i ++)
+				{
+					//read some stuff, because why not?
+					readChars(in, 16);
+					readString(in, bIn, iIn, cIn);
+					readString(in, bIn, iIn, cIn);
+				}
+				
+				//number of channels
+				num = intVal(in, bIn, iIn);
+				for (int i = 0; i < num; i ++)
+				{
+					readChars(in, 4);
+					long channelVal = intVal(in, bIn, iIn);
+					readChars(in, 8);
+					
+					String name = readString(in, bIn, iIn, cIn);
+					String unitVal = readString(in, bIn, iIn, cIn);
+					System.out.println("TCID " + name + ": " + channelVal + " (" + unitVal +")");
+				}
+				
+				break;
+				
+			case "SCHC":
+				//triangle curves header
+				break;
+				
+			case "NACS":
+				//triangle curves data
+				break;
+				
+			case "REFX":
+				//data after triangle curves
+				//factors for scaling, given for the physical devices
+				
+				while (bytesRead < len)
+				{
+					readChars(in, 4);
+					
+					long numFactors = intVal(in, bIn, iIn);
+					String name = readString(in, bIn, iIn, cIn);
+					String unitVal = readString(in, bIn, iIn, cIn);
+					
+					long numProps = intVal(in, bIn, iIn);
+					for (int i = 0; i < numProps; i ++)
+					{
+						String propS = readString(in, bIn, iIn, cIn);
+						String propResult = readPropertyData(in, bIn, iIn, cIn, dIn, false);
+						
+						System.out.println("REFX " + name + " " + numFactors + "  " + propS + "  " + propResult + " (" + unitVal + ")");
+					}
+				}
+				
+				break;
+				
+			case "DEOE":
+				//end of file
+				return -1;
+		}
+		
+		System.out.println("bytes read: " + bytesRead + " vs block length: " + len);
+		
+		//read in the rest of the block
+		readChars(in, (int)(len - bytesRead));
+		
+		return bytesRead + headerBytesRead;
+	}
+	
+	
 	
 	public void setImageDirection(String s)
 	{
@@ -545,8 +953,8 @@ public class MatrixSTMImageLayer extends ImageLayer
 	}
 
 
-
-	private static String readFourChars(FileInputStream in) throws Exception
+	//reads 4 single-byte characters
+	private static String readFourChars(BufferedInputStream in) throws Exception
 	{
 		StringBuffer s = new StringBuffer();
 		byte[] inVals = new byte[4];
@@ -554,39 +962,149 @@ public class MatrixSTMImageLayer extends ImageLayer
 		
 		for (int i = 0; i < 4; i ++)
 			s.append((char)inVals[i]);
+		
+		bytesRead += 4;
+		
 		return s.toString();
 	}
 	
-	private static long intVal(FileInputStream in, ByteBuffer bIn, IntBuffer iIn) throws Exception
+	//reads some number of single-byte characters
+	private static String readChars(BufferedInputStream in, int numChars) throws Exception
+	{
+		if (numChars == 0)
+			return "";
+		
+		StringBuffer s = new StringBuffer();
+		byte[] inVals = new byte[numChars];
+		in.read(inVals);
+		
+		for (int i = 0; i < numChars; i ++)
+			s.append((char)inVals[i]);
+		
+		bytesRead += numChars;
+		
+		return s.toString();
+	}
+	
+	//chars are actually 2 bytes, so this reads a full 2-byte character
+	private static String readFullChar(BufferedInputStream in, ByteBuffer bIn, CharBuffer cIn) throws Exception
+	{
+		StringBuffer s = new StringBuffer();
+		byte[] inVals = new byte[2];
+		in.read(inVals);
+		bIn.position(0);
+		bIn.put(inVals);
+		
+		s.append( cIn.get(0) );
+		bytesRead += 2;
+		return s.toString();
+	}
+	
+	private static String readString(BufferedInputStream in, ByteBuffer bIn, IntBuffer iIn, CharBuffer cIn) throws Exception
+	{
+		long len = intVal(in, bIn, iIn);  //number of characters in string
+				
+		if (len == 0)
+			return "";
+		
+		StringBuffer s = new StringBuffer();
+		for (int i = 0; i < len; i ++)
+			s.append(readFullChar(in, bIn, cIn) ); //s.toString();
+		
+		return s.toString();
+	}
+	
+	private static long intVal(BufferedInputStream in, ByteBuffer bIn, IntBuffer iIn) throws Exception
 	{
 		byte[] inVals = new byte[4];
 		in.read(inVals);
 		bIn.position(0);
 		bIn.put(inVals);
 		int iInVal = iIn.get(0);
+		bytesRead += 4;
 		return Integer.toUnsignedLong(iInVal);
 	}
 	
-	private static int trueIntVal(FileInputStream in, ByteBuffer bIn, IntBuffer iIn) throws Exception
+	private static int trueIntVal(BufferedInputStream in, ByteBuffer bIn, IntBuffer iIn) throws Exception
 	{
 		byte[] inVals = new byte[4];
 		in.read(inVals);
 		bIn.position(0);
 		bIn.put(inVals);
 		int iInVal = iIn.get(0);
+		bytesRead += 4;
 		return iInVal;
 	}
 	
-	private static float floatVal(FileInputStream in, ByteBuffer bIn, FloatBuffer fIn) throws Exception
+	private static float floatVal(BufferedInputStream in, ByteBuffer bIn, FloatBuffer fIn) throws Exception
 	{
 		byte[] inVals = new byte[4];
 		in.read(inVals);
 		bIn.position(0);
 		bIn.put(inVals);
+		bytesRead += 4;
 		return fIn.get(0);
 	}
 	
+	private static double doubleVal(BufferedInputStream in, ByteBuffer bIn, DoubleBuffer dIn) throws Exception
+	{
+		byte[] inVals = new byte[8];
+		in.read(inVals);
+		bIn.position(0);
+		bIn.put(inVals);
+		bytesRead += 8;
+		return dIn.get(0);
+	}
 	
+	private static String readPropertyData(BufferedInputStream in,  ByteBuffer bIn, IntBuffer iIn, CharBuffer cIn, DoubleBuffer dIn, boolean performCheck) throws Exception
+	{
+		in.mark(4);
+		
+		if (performCheck)
+		{
+			long test = intVal(in, bIn, iIn);
+			if (test != 0)
+			{
+				in.reset();
+				bytesRead -= 4;
+				System.out.println("test != 0...");
+				return "";
+			}
+		}
+		
+		String outVal = "?";
+		
+		String id = readChars(in, 4);
+		//System.out.println("ID: " + id);
+		switch (id)
+		{
+			case "GNOL":
+				//UInt32
+				long valInt = intVal(in, bIn, iIn);
+				outVal = Long.toString(valInt);
+				break;
+				
+			case "LOOB":
+				//32 bit boolean
+				long valBoolInt = intVal(in, bIn, iIn);
+				boolean valBool = (valBoolInt != 0);
+				outVal = Boolean.toString(valBool);
+				break;
+				
+			case "BUOD":
+				//64 bit double
+				double valDouble = doubleVal(in, bIn, dIn);
+				outVal = Double.toString(valDouble);
+				break;
+				
+			case "GRTS":
+				//string
+				outVal = readString(in, bIn, iIn, cIn);
+				break;
+		}
+		
+		return outVal;
+	}
 	
 	public void setFromXML(Element xml, boolean deep)
 	{

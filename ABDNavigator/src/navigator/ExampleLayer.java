@@ -35,6 +35,8 @@ public class ExampleLayer extends NavigationLayer
 		appendActions( new String[] {"chooseMLSettings","defaultSettings"} );
 		//actions = new String[]{/*"autoRotate",*/"update",/*"addScalePoint",*/"addLine","addPerpendicular"};
 		tabs.put("settings", new String[] {"chooseMLSettings","defaultSettings", "ML_settings"});
+		
+		displayRootScale = true;
 	}
 	
 	public String mlSettings = "";
@@ -98,7 +100,7 @@ public class ExampleLayer extends NavigationLayer
 		
 		
 		
-		update();
+		//update();
 	}
 	
 	public void checkMLController()
@@ -108,19 +110,23 @@ public class ExampleLayer extends NavigationLayer
     	{
     		SampleNavigator.mlController = new MLControlLayer();
     		SampleNavigator.rootLayer.getChildren().add( SampleNavigator.mlController );
-    		SampleNavigator.mlController.currentExample = this;
+    		
     	}
     	else
     	{
     		//if this is not the first example layer, then this layer should initialize based on existing settings
     		if (mlSettingsXML == null)
     		{
-    			mlSettings = SampleNavigator.mlController.mlSettings;
+    			if (mlSettings.length() == 0)
+    				mlSettings = SampleNavigator.mlController.mlSettings;
     			defaultSettings();
     			//mlSettingsXML = (Element)SampleNavigator.mlController.mlSettingsXML.cloneNode(true);
     			//settingsFromXML(true);
     		}
     	}
+    	
+    	if (SampleNavigator.mlController.examples.size() == 0)
+    		SampleNavigator.mlController.currentExample = this;
     	
     	SampleNavigator.mlController.examples.add(this);
     	SampleNavigator.refreshTreeEditor();
@@ -144,10 +150,10 @@ public class ExampleLayer extends NavigationLayer
 	
 	//double[] xCoords = null;
 	
-	public void update()
+	public BufferedSTMImage getImageData()
 	{
 		if (data == null)
-			return;
+			return null;
 		
 		//decide number of points to include per line
 		Transform t = getLocalToParentTransform();
@@ -157,11 +163,14 @@ public class ExampleLayer extends NavigationLayer
 		int numLinePts = (int)Math.ceil( (double)Math.max(data.length, data[0].length)*2.0*widthFraction );
 				
 		//generate array of data for the cropped image
-		double[][] croppedData = new double[numLinePts][numLinePts];
+		float[][] croppedData = new float[numLinePts][numLinePts];
 		
 		double x = 0;
 		double y = 0;
 		double s = 1./(double)(numLinePts-1);
+		
+		float max = 0;
+		float min = 9999;
 		
 		//determine the cropped image
 		for (int yIdx = 0; yIdx < numLinePts; yIdx ++)
@@ -180,25 +189,28 @@ public class ExampleLayer extends NavigationLayer
 				double xFract = imgIdxs[2];
 				double yFract = imgIdxs[3];
 				
-				croppedData[yIdx][xIdx] = (1-xFract)*(1-yFract)*data[y0][x0]+(xFract)*(1-yFract)*data[y0][x1]+(xFract)*(yFract)*data[y1][x1]+(1-xFract)*(yFract)*data[y1][x0];
+				croppedData[yIdx][xIdx] = (float)((1-xFract)*(1-yFract)*data[y0][x0]+(xFract)*(1-yFract)*data[y0][x1]+(xFract)*(yFract)*data[y1][x1]+(1-xFract)*(yFract)*data[y1][x0]);
+				if (min > croppedData[yIdx][xIdx])
+					min = croppedData[yIdx][xIdx];
+				if (max < croppedData[yIdx][xIdx])
+					max = croppedData[yIdx][xIdx];
 			}
-
 		}
 		
-		/*
-			l = new Line();
-			l.setStartX(xCoords[2]);
-			l.setStartY(-0.5);
-			l.setEndX(xCoords[3]);
-			l.setEndY(0.5);
-			l.setStrokeWidth(0.01);
-			l.setStroke(Color.ORANGE);
-			l.getStrokeDashArray().addAll(.02d);
-			profileGroup.getChildren().add(l);
-			*/
+		if (max > min)
+		{
+			for (int i = 0; i < croppedData.length; i ++)
+				for (int j = 0; j < croppedData[0].length; j ++)
+					croppedData[i][j] = (croppedData[i][j] - min)/(max - min);
+		}
+		
+		//System.out.println("minmax: " + min +"  " + max);
+		
+		BufferedSTMImage img = new BufferedSTMImage(croppedData);
+		img.draw();
 			
 		
-			
+		return img;
 	}
 	
 	
@@ -243,7 +255,16 @@ public class ExampleLayer extends NavigationLayer
 		
 		String s = xml.getAttribute("ML_settings");
 		if (s.length() > 0)
+		{
 			mlSettings = s;
+			
+			//if there are mlSettings, but no feature names, then they need to get initialized
+			if (featureNames.size() == 0)
+			{
+				System.out.println("no feature names, defaulting to " + mlSettings);
+				defaultSettings();
+			}
+		}
 		
 		setFeaturesFromXML(xml);
 	}
@@ -251,9 +272,7 @@ public class ExampleLayer extends NavigationLayer
 	private List<String> appearanceFeatures = Arrays.asList( new String[] {"x","y","scaleX","scaleY","angle","transparency","visible"} );
 	public void setFeaturesFromXML(Element xml)
 	{
-		
-		
-		features.clear();
+		//features.clear();
 		NamedNodeMap attributes = xml.getAttributes();
 		for (int j = 0; j < attributes.getLength(); j ++)
 		{
@@ -293,9 +312,10 @@ public class ExampleLayer extends NavigationLayer
 		
 		//Point2D s = getLocalToSceneScale();
 		//System.out.println("x scale: " + s.getX());
-		System.out.println("x scale: " + getParent().getParent().getScaleX() );
-		System.out.println("x scale comp: " + this.getLocalToRootScale().getX() );
-		
+		//System.out.println("x scale: " + getParent().getParent().getScaleX() );
+		//System.out.println("x scale comp: " + this.getLocalToRootScale().getX() );
+		//System.out.println("x scale mult: " + ((NavigationLayer)getParent()).getLocalToRootScale().getX() );
+		//Point2D mul = ((NavigationLayer)getParent()).getLocalToRootScale();
 		
 		
 		if (mlSettingsXML == null)
@@ -339,11 +359,13 @@ public class ExampleLayer extends NavigationLayer
     		return;
     	
     	//String workingDirectory = openFile.getParent();
-    	String userDir = System.getProperty("user.dir");
+    	//String userDir = System.getProperty("user.dir");
 		
-		URI wd = openFile.toURI();// File(workingDirectory).toURI();
-    	URI userD = new File(userDir).toURI();
-    	mlSettings = SampleNavigator.fullRelativize(userD,wd);
+		//URI wd = openFile.toURI();// File(workingDirectory).toURI();
+    	//URI userD = new File(userDir).toURI();
+    	URI wd = (new File(SampleNavigator.workingDirectory)).toURI();
+    	URI file = openFile.toURI();
+    	mlSettings = SampleNavigator.fullRelativize(wd, file);//userD,wd);
     	
     	defaultSettings();
     	
@@ -436,6 +458,41 @@ public class ExampleLayer extends NavigationLayer
 	
 	public void finalSetFromXML()
 	{
+		//boolean isFirst = true;
+		//if ((SampleNavigator.mlController != null) && (SampleNavigator.mlController.currentExample != null))
+		//	isFirst = false;
+				
+		checkMLController();
+		
 		init();
+		
+		SampleNavigator.mlController.mlSettings = mlSettings;
+		
+		//boolean isFirst = true;
+		//if ((SampleNavigator.mlController != null) && (SampleNavigator.mlController.currentExample != null))
+		//	isFirst = false;
+		
+		//if (isFirst)
+		//if (SampleNavigator.mlController == null)
+			//chooseMLSettings();
+			//checkMLController();
+	}
+	
+	public Hashtable<String,String> getCorrectedFeatures()
+	{
+		Hashtable<String,String> correctedFeatures = new Hashtable<String,String>();
+		
+		Set<String> keys = features.keySet();
+		for (String key: keys)
+		{
+			if (key.equals("scaleX"))
+				correctedFeatures.put(key, Double.toString( getLocalToRootScale().getX() ));
+			else if (key.equals("scaleY"))
+				correctedFeatures.put(key, Double.toString( getLocalToRootScale().getY() ));
+			else
+				correctedFeatures.put(key, features.get(key));
+		}
+		
+		return correctedFeatures;
 	}
 }

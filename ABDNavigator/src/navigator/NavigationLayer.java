@@ -65,6 +65,7 @@ public class NavigationLayer extends Group
 	public boolean supressChildren = false;
 	public boolean selectable = true;
 	public boolean isImobile = false;
+	public boolean displayRootScale = false;
 	
 	public NavigationLayer editTarget = null;
 	
@@ -929,7 +930,21 @@ public class NavigationLayer extends Group
 		double yScale = yVec.magnitude();
 		
 		return new Point2D(xScale,yScale);
+	}
+	
+	public Point2D getRootToLocalScale(Point2D s)
+	{
+		Point2D xVec = new Point2D(s.getX(),0);
+		Point2D yVec = new Point2D(0,s.getY());
+		Point2D zero = new Point2D(0,0);
+		zero = rootToLocal(zero);
+		xVec = rootToLocal(xVec).subtract(zero);
+		yVec = rootToLocal(yVec).subtract(zero);
 
+		double xScale = xVec.magnitude();
+		double yScale = yVec.magnitude();
+		
+		return new Point2D(xScale,yScale);
 	}
 	
 	public double getLocalToSceneRotation()
@@ -1193,6 +1208,13 @@ public class NavigationLayer extends Group
 	{
 		Point2D pPrime = localToScene(p);
 		pPrime = rootLayer.sceneToLocal(pPrime);
+		return pPrime;
+	}
+	
+	public Point2D rootToLocal(Point2D p)
+	{
+		Point2D pPrime = rootLayer.localToScene(p); 
+		pPrime = sceneToLocal(pPrime);
 		return pPrime;
 	}
 	

@@ -1789,7 +1789,8 @@ public class SampleNavigator extends Application
 		
 		try
 		{
-			File f = new File(fileName);
+			System.out.println("how about this: " + SampleNavigator.relativeDirectory + fileName);
+			File f = new File(SampleNavigator.relativeDirectory + fileName);
     		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
     		
     		DocumentBuilder builder = factory.newDocumentBuilder();
@@ -2266,17 +2267,34 @@ public class SampleNavigator extends Application
 		if (!rel.equals(child.getPath()))
 			return rel;
 		
-		int i = 0;
+		
+		//int i = 0;
 		String parentS = parent.getPath();
 		String childS = child.getPath();
-		while (parentS.substring(i, i+1).equals(childS.substring(i, i+1)))
+		//while (parentS.substring(i, i+1).equals(childS.substring(i, i+1)))
+		//{
+		//	i++;
+		//}
+		
+		String[] splitChild = childS.split("/");
+		String[] splitParent = parentS.split("/");
+		int diffStart = 0;
+		while (splitChild[diffStart].equals(splitParent[diffStart]))
+			diffStart ++;
+		StringBuffer diffChild = new StringBuffer();
+		for (int i = diffStart; i < splitChild.length; i ++)
 		{
-			i++;
+			diffChild.append(splitChild[i]);
+			if (i < splitChild.length-1)
+				diffChild.append("/");
 		}
 		
-		//String base = parentS.substring(0,i);
-		int numDirs = parentS.substring(i).split("/").length;
-		//System.out.println(parent.getPath() + "   " + numDirs);
+		if (new File(child).isDirectory())
+			diffChild.append("/");
+		
+		//int numDirs = parentS.substring(i).split("/").length;
+		int numDirs = diffStart;
+		
 		StringBuffer backString = new StringBuffer();
 		System.out.println("relativising: " + childS + "    " + parentS);
 		
@@ -2291,13 +2309,15 @@ public class SampleNavigator extends Application
 		else
 		{
 			//if this ends up needing to be an absolute location, double check if it exists - if not, maybe it needs a starting "/"
-			File f = new File(childS.substring(i));
+			//File f = new File(childS.substring(i));
+			File f = new File(diffChild.toString());
 			if (!f.exists())
 				backString.append("/");
 		}
 		
 		
-		return new String(backString.toString() + childS.substring(i) );
+		//return new String(backString.toString() + childS.substring(i) );
+		return new String(backString.toString() + diffChild.toString() );
 	}
 
 	public static void refreshTreeEditor()
