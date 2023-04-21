@@ -241,38 +241,52 @@ public class AttributeEditor extends GridPane
 					Label l = new Label(name);
 			    	attributePane.add(l, 0, row);
 			    	
+			    	String unit = layer.units.get(name);
+			    	if (unit != null)
+			    	{
+			    		l = new Label(unit);
+			    		attributePane.add(l,  2, row);
+			    	}
+			    	
 			    	String[] options = layer.categories.get(name);
 			    	
 			    	if (options == null)
 			    	{
 				    	final TextField t = new TextField(val);
 				    	t.setUserData( name );
-				    	t.setOnAction( new EventHandler<ActionEvent>()
+				    	if (layer.uneditable.contains(name))
 				    	{
-							public void handle(ActionEvent e)
-							{
-								doneEditing();
-								t.setId(null);//"editedTextField");
-								fieldChanged(e.getSource());
-							}	
-				    	});
-				    	t.setOnMouseClicked(new EventHandler<MouseEvent>()
+				    		t.setEditable(false);
+				    	}
+				    	else
 				    	{
-							public void handle(MouseEvent event)
-							{
-								editing = true;	
-							}	
-				    	});
-				    	
-				    	t.setOnKeyPressed(new EventHandler<KeyEvent>()
-				    	{
-							public void handle(KeyEvent event)
-							{
-								if (event.getCode() != KeyCode.ENTER)
-									t.setId("editingTextField");
-							}
-							
-				    	});
+					    	t.setOnAction( new EventHandler<ActionEvent>()
+					    	{
+								public void handle(ActionEvent e)
+								{
+									doneEditing();
+									t.setId(null);//"editedTextField");
+									fieldChanged(e.getSource());
+								}	
+					    	});
+					    	t.setOnMouseClicked(new EventHandler<MouseEvent>()
+					    	{
+								public void handle(MouseEvent event)
+								{
+									editing = true;	
+								}	
+					    	});
+					    	
+					    	t.setOnKeyPressed(new EventHandler<KeyEvent>()
+					    	{
+								public void handle(KeyEvent event)
+								{
+									if (event.getCode() != KeyCode.ENTER)
+										t.setId("editingTextField");
+								}
+								
+					    	});
+				    	}
 				    				    	
 				    	attributePane.add(t, 1, row);
 			    	}
@@ -281,14 +295,21 @@ public class AttributeEditor extends GridPane
 			    		final ComboBox<String> c = new ComboBox<String>(FXCollections.observableArrayList(options));
 			    		c.setValue(val);
 			    		c.setUserData(name);
-			    		c.setOnAction( new EventHandler<ActionEvent>()
+			    		if (layer.uneditable.contains(name))
 				    	{
-							public void handle(ActionEvent e)
-							{
-								//doneEditing();
-								fieldChanged(e.getSource());
-							}	
-				    	});
+				    		c.setEditable(false);
+				    	}
+			    		else
+			    		{
+				    		c.setOnAction( new EventHandler<ActionEvent>()
+					    	{
+								public void handle(ActionEvent e)
+								{
+									//doneEditing();
+									fieldChanged(e.getSource());
+								}	
+					    	});
+			    		}
 			    		
 			    		attributePane.add(c, 1, row);
 			    	}

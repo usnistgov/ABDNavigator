@@ -44,6 +44,12 @@ import main.SampleNavigator;
 
 public class MatrixSTMImageLayer extends ImageLayer
 {
+	//information collected from params files
+	public static Hashtable<String, Hashtable<String,String[]>> paramData = new Hashtable<String, Hashtable<String,String[]>>();
+	private static Hashtable<String,String[]> currentParams = new Hashtable<String,String[]>();
+	//private static Hashtable<String,String[]> currentChannelInfo = new Hashtable<String,String[]>();
+	private static Hashtable<Long, String> currentChannelIdxs = new Hashtable<Long, String>();
+	
 	private float[][] upTraceForwardData;
 	private float[][] upTraceBackwardData;
 	private float[][] downTraceForwardData;
@@ -78,10 +84,21 @@ public class MatrixSTMImageLayer extends ImageLayer
 	public MatrixSTMImageLayer()
 	{
 		super();
-		appendActions( new String[]{"imageLeftRight","imageUpDown","togglePlaneSubtract","toggleLineByLineFlatten","nextColorScheme","locateMaxima","locateLattice","addExample"} );
+		//appendActions( new String[]{"imageLeftRight","imageUpDown","togglePlaneSubtract","toggleLineByLineFlatten","nextColorScheme","locateMaxima","locateLattice","addExample"} );
+		appendActions( new String[]{"locateMaxima","locateLattice","addExample"} );
 		tabs.put("maxima", new String[] {"locateMaxima","maximaExpectedDiameter","maximaPrecision","maximaThreshold"});
-		tabs.put("lattice", new String[] {"locateLattice","latticeExpectedSpacingNM","latticeSpacingUncertaintyNM"});
+		tabs.put("lattice", new String[] {"locateLattice","latticeExpectedSpacing","latticeSpacingUncertainty"});
 		tabs.put("machine learning", new String[] {"addExample"});
+		tabs.put("settings", new String[] {"sampleBias","current"});
+		categories.put("colorSchemeIndex", new String[] {"0","1","2","3"});
+		categories.put("imageDirection", new String[] {"upForward","upBackward","downForward","downBackward"});
+		categories.put("lineByLineFlatten", new String[] {"true","false"});
+		categories.put("planeSubtract", new String[] {"true","false"});
+		units.put("latticeExpectedSpacing", "nm");
+		units.put("latticeSpacingUncertainty", "nm");
+		units.put("maximaExpectedDiameter", "nm");
+		units.put("sampleBias", "V");
+		units.put("current", "nA");
 	}
 	
 	public void handleVisibilityChange()
@@ -116,12 +133,13 @@ public class MatrixSTMImageLayer extends ImageLayer
 			String imgNameString = new String(imgName);
 			imgNameString = imgNameString.replaceFirst("file:", "file:" + SampleNavigator.relativeDirectory);
 			//imgNameString = imgNameString.replaceFirst("file:", "file:/" + SampleNavigator.workingDirectory +"/");
-			//System.out.println( imgNameString );
+			System.out.println( "image name: " + imgNameString );
 			
 			String fullFileName = imgNameString.replaceFirst("file:","");
 			SampleNavigator.linkRegistry.add(fullFileName);
 			
 			loadParamFile(fullFileName);
+			extractParamsFor(fullFileName);
 			
 			File f = new File(fullFileName);
 			
@@ -129,29 +147,17 @@ public class MatrixSTMImageLayer extends ImageLayer
 			BufferedInputStream in = new BufferedInputStream(fin);
 			
 			ByteBuffer bIn = ByteBuffer.allocate(16);
-			//bIn.order(ByteOrder.BIG_ENDIAN);
 			bIn.order(ByteOrder.LITTLE_ENDIAN);
-			
 			IntBuffer iIn = bIn.asIntBuffer();
-			//ShortBuffer sIn = bIn.asShortBuffer();
-			//FloatBuffer fIn = bIn.asFloatBuffer();
-			//CharBuffer cIn = bIn.asCharBuffer();
-			
-			
-			
-			
+						
 			byte[] inVals = new byte[12];
 			//read the beginning of the file to figure out what type it is
 			in.read(inVals);
 			
 			String s = readFourChars(in);
-			
-			//long len = intVal(in, bIn, iIn);
-			
 			if (s.toString().equals("TLKB"))
 			{
 				//this is an image file
-				//System.out.println(len);
 				
 				//the next 8 bytes are a timestamp
 				inVals = new byte[8];
@@ -169,10 +175,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 				
 				long intendedNumberOfPoints = intVal(in, bIn, iIn);
 				long capturedNumberOfPoints = intVal(in, bIn, iIn);
-								
-				//System.out.println(intendedNumberOfPoints);
-				//System.out.println(capturedNumberOfPoints);
-				
+												
 				//next is image data
 				while (!s.equals("ATAD"))
 				{
@@ -182,11 +185,21 @@ public class MatrixSTMImageLayer extends ImageLayer
 				inVals = new byte[4];
 				in.read(inVals);
 				
-				//assuming square pixels...
-				int width = (int)Math.floor(Math.sqrt((double)intendedNumberOfPoints/4.));
-				int height = width;
-				//System.out.println("*** " + width);
-				
+				int width = 1;
+				int height = 1;
+				if (paramsExtracted)
+				{
+					width = xPixels;
+					height = yPixels;
+				}
+				else
+				{
+					//couldn't extract these values from the parameter file, so
+					//assuming square pixels...
+					width = (int)Math.floor(Math.sqrt((double)intendedNumberOfPoints/4.));
+					height = width;
+				}
+								
 				capturedLinesU = (int)((double)capturedNumberOfPoints/(2.0*(double)width));
 				capturedLinesD = capturedLinesU - height;
 				if (capturedLinesD < 2)
@@ -200,16 +213,13 @@ public class MatrixSTMImageLayer extends ImageLayer
 				
 				float min = 0;
 				float max = 0;
-				int ltz = 0;
+				
 				upTraceForwardData = new float[width][height];
 				upTraceBackwardData = new float[width][height];
 				for (int yIdx = 0; yIdx < height; yIdx ++)
 				{
 					for (int xIdx = 0; xIdx < width; xIdx ++)
 					{
-						
-						
-						//long val0 = intVal(in, bIn, iIn);
 						int val0 = trueIntVal(in, bIn, iIn);
 						float val = (float)val0;
 						
@@ -228,7 +238,6 @@ public class MatrixSTMImageLayer extends ImageLayer
 					
 					for (int xIdx = 0; xIdx < width; xIdx ++)
 					{
-						//long val0 = intVal(in, bIn, iIn);
 						int val0 = trueIntVal(in, bIn, iIn);
 						float val = (float)val0;
 						
@@ -237,6 +246,9 @@ public class MatrixSTMImageLayer extends ImageLayer
 					
 				}
 				
+				System.out.println("forward up image z variation: " + (max - min) + "  from (max,min):" + max + "," + min);
+				if (paramsExtracted)
+					System.out.println("z variation rescaled: " + (max - min)/zFactor + "m");
 				
 				
 				downTraceForwardData = new float[width][height];
@@ -292,19 +304,121 @@ public class MatrixSTMImageLayer extends ImageLayer
 		}
 	}
 	
+	private double zFactor = 1;
+	private double zOffset = 0;
+	private int xPixels = 1;
+	private int yPixels = 1;
+	private double bias = 2; //V
+	private double current = 0.01; //nA
+	public double scaleX0 = 100; //nm
+	public double scaleY0 = 100; //nm 
+	public double angle0 = 0; //deg
+	public boolean paramsExtracted = false;
+	private void extractParamsFor(String fileName)
+	{
+		Hashtable<String,String[]> params = paramData.get(fileName);
+		if (params == null)
+			return;
+		
+		/*
+		System.out.println("extracting parameters for: " + fileName);
+		Set<String> keys = params.keySet();
+		for (String key: keys)
+		{
+			String[] vals = params.get(key);
+			System.out.println("  " + key + " = " + vals[0] + " (" + vals[1] + ")");
+		}
+		*/
+		
+		String[] s = params.get("Z Factor");
+		if (s != null)
+			zFactor = Double.parseDouble(s[0]);
+		
+		s = params.get("Z Offset");
+		if (s != null)
+			zOffset = Double.parseDouble(s[0]);
+		
+		s = params.get("XYScanner Points");
+		if (s != null)
+			xPixels = Integer.parseInt(s[0]);
+		
+		s = params.get("XYScanner Lines");
+		if (s != null)
+			yPixels = Integer.parseInt(s[0]);
+		
+		s = params.get("GapVoltageControl Voltage");
+		if (s != null)
+			bias = Double.parseDouble(s[0]);
+
+		s = params.get("Regulator Setpoint_1");
+		if (s != null)
+			current = Double.parseDouble(s[0])*1e9;  //convert from A to nA
+		
+		s = params.get("XYScanner Width");
+		if (s != null)
+			scaleX0 = Double.parseDouble(s[0])*1e9;  //convert from m to nm
+		
+		s = params.get("XYScanner Height");
+		if (s != null)
+			scaleY0 = Double.parseDouble(s[0])*1e9;
+
+		s = params.get("XYScanner Angle");
+		if (s != null)
+			angle0 = -Double.parseDouble(s[0]);
+		
+		paramsExtracted = true;
+	}
+	
+	public static StringBuffer getParamFileFor(String fileName)
+	{
+		StringBuffer paramFile = new StringBuffer();
+		String[] fileHead = fileName.split("--");
+		
+		for (int i = 0; i < fileHead.length-1; i ++)
+		{
+			paramFile.append(fileHead[i]);
+			if (i < fileHead.length-2)
+				paramFile.append("--");
+		}
+		paramFile.append("_0001.mtrx");
+		
+		return paramFile;
+	}
+	
 	private static int bytesRead = 0;
 	private static int headerBytesRead = 0;
 	private List<String> nonTimeStampHeaders = Arrays.asList( new String[] {"REFX","NACS","TCID","SCHC","TSNI","SXNC","LNEG"} );
-	private List<String> unimportantHeaders = Arrays.asList( new String[] {"ICNI","KRAM","WEIV","CORP", "DOMP"} );
+	private List<String> importantComponentProperties = Arrays.asList( new String[] {"GapVoltageControl Voltage", "Regulator Setpoint_1", "XYScanner X_Offset", "XYScanner Y_Offset", "XYScanner Angle", "XYScanner Points", "XYScanner Lines", "XYScanner Width", "XYScanner Height" });
+	private List<String> importantChannels = Arrays.asList( new String[] {"Z"} );
+	private StringBuffer paramFile = null;
+	private StringBuffer imagePath = new StringBuffer();
 	private void loadParamFile(String fileName)
 	{
 		try
 		{
+			Hashtable<String,String[]> params = paramData.get(fileName);
+			if (params != null)
+			{
+				System.out.println("param file for: " + fileName + " is already loaded");
+				return;
+			}
+			
 			//look for a file with the same first part of the file name, but ending in _0001.mtrx
 			//that file will be the param file
 			System.out.println("loading param file for: " + fileName);
+			
+			//System.out.println("aka: " + imgName);
+			String[] splitName = fileName.split("/");
+			for (int i = 0; i < splitName.length - 1; i ++)
+			{
+				imagePath.append(splitName[i] + "/");
+			}
+			System.out.println("image path: " + imagePath);
+			
+			paramFile = getParamFileFor(fileName);//new StringBuffer();
+			/*
 			String[] fileHead = fileName.split("--");
-			StringBuffer paramFile = new StringBuffer();
+			
 			for (int i = 0; i < fileHead.length-1; i ++)
 			{
 				paramFile.append(fileHead[i]);
@@ -312,6 +426,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 					paramFile.append("--");
 			}
 			paramFile.append("_0001.mtrx");
+			*/
 			
 			File f = new File(paramFile.toString());
 			System.out.println( paramFile.toString() + " exists: " + f.exists() );
@@ -356,6 +471,18 @@ public class MatrixSTMImageLayer extends ImageLayer
 			}
 				
 			fin.close();
+			
+			Set<String> files = paramData.keySet();
+			for (String fName: files)
+			{
+				System.out.println("file name: " + fName);
+				Set<String> keys = paramData.get(fName).keySet();
+				for (String key: keys)
+				{
+					String[] vals = paramData.get(fName).get(key);
+					System.out.println("  " + key + " = " + vals[0] + " (" + vals[1] + ")");
+				}
+			}
 		}
 		catch (Exception ex)
 		{
@@ -379,6 +506,9 @@ public class MatrixSTMImageLayer extends ImageLayer
 		//read the length of the block (in Bytes)
 		long len = intVal(in, bIn, iIn);
 		System.out.println("block length: " + len);
+		
+		if (len == 0)
+			return -1;
 		
 		/*
 		if ((limitBytes != 0) && (len > limitBytes))
@@ -408,6 +538,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 		switch (blockHeader)
 		{
 			case "ATEM":
+				/*
 				//beginning of parameter file
 				String programName = readString(in, bIn, iIn, cIn);
 				System.out.println("program name: " + programName);
@@ -423,12 +554,12 @@ public class MatrixSTMImageLayer extends ImageLayer
 				
 				String userName = readString(in, bIn, iIn, cIn);
 				System.out.println("user name: " + userName);
-				
+				*/
 				break;
 				
 			case "DPXE":
 				//description and project files
-				
+				/*
 				//skip 4 bytes for some reason
 				readChars(in, 4);
 				
@@ -438,7 +569,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 					String s = readString(in, bIn, iIn, cIn);
 					System.out.println("DPXE string " + i + ": " + s);
 				}
-				
+				*/
 				break;
 				
 			case "QESF":
@@ -447,7 +578,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 				
 			case "SPXE":
 				//initial configuration
-				
+				/*
 				//skip 4 bytes for some reason
 				readChars(in, 4);
 				
@@ -455,30 +586,31 @@ public class MatrixSTMImageLayer extends ImageLayer
 				while (subBytesRead < len)
 				{
 					int subBytes = readBlock(in, bIn, iIn, cIn, dIn, (int)(len-subBytesRead));
-					//if (subBytes == -1) //reading the next block would have gone over the allowed length
-					//	break;
-					//else
 					subBytesRead += subBytes;  
 				}
 				
-				System.out.println("subBytes read: " + subBytesRead);
 				
-				bytesRead = (int)len;//subBytesRead;
+				
+				bytesRead = subBytesRead; //(int)len;
+				*/
 				break;
 			
 			case "LNEG":
 				//description
+				/*
 				for (int i = 0; i < 3; i ++)
 				{
 					String s = readString(in, bIn, iIn, cIn);
 					System.out.println("LNEG string " + i + ": " + s);
 				}
+				*/
 				break;
 				
 			case "TSNI":
+				/*
 				//configuration of instances
 				long numInstances = intVal(in, bIn, iIn);
-				System.out.println("number of instances: " + numInstances);
+				//System.out.println("number of instances: " + numInstances);
 				
 				for (int i = 0; i < numInstances; i ++)
 				{
@@ -497,7 +629,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 						System.out.println("TSNI property " + j + ": " + t1 + "  " + t2);
 					}
 				}
-				
+				*/
 				break;
 				
 			case "SXNC":
@@ -523,8 +655,6 @@ public class MatrixSTMImageLayer extends ImageLayer
 					Hashtable<String,String[]> properties = new Hashtable<String,String[]>();
 					for (int propIdx = 0; propIdx < numProperties; propIdx ++)
 					{
-						//System.out.println("processing prop: " + propIdx);
-						
 						String prop = readString(in, bIn, iIn, cIn);
 						String unit = readString(in, bIn, iIn, cIn);
 						String propVal = readPropertyData(in, bIn, iIn, cIn, dIn, true);
@@ -546,7 +676,11 @@ public class MatrixSTMImageLayer extends ImageLayer
 					for (String prop: propKeys)
 					{
 						String[] val = properties.get(prop);
-						System.out.println("  " + prop + " = " + val[0] + " (" + val[1] + ")");
+												
+						if (importantComponentProperties.contains( key + " " + prop ))
+						{
+							currentParams.put( key + " " + prop, val );
+						}
 					}
 				}
 				
@@ -563,7 +697,11 @@ public class MatrixSTMImageLayer extends ImageLayer
 				String unit = readString(in, bIn, iIn, cIn);
 				String propVal = readPropertyData(in, bIn, iIn, cIn, dIn, true);
 				
-				System.out.println("changed: " + component + "  " + prop + " = " + propVal + " (" + unit + ")");
+				if (importantComponentProperties.contains( component + " " + prop ))
+				{
+					currentParams.put(component + " " + prop, new String[] {propVal, unit});
+				}
+				//System.out.println("changed: " + component + "  " + prop + " = " + propVal + " (" + unit + ")");
 				break;
 				
 			case "ICNI":
@@ -573,7 +711,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 			case "KRAM":
 				//system calibration
 				String cal = readString(in, bIn, iIn, cIn);
-				System.out.println("calibration: " + cal);
+				//System.out.println("calibration: " + cal);
 				
 			case "WEIV":
 				//something something scanning windows... whatever
@@ -590,7 +728,27 @@ public class MatrixSTMImageLayer extends ImageLayer
 				readChars(in, 4);
 				
 				String fileName = readString(in, bIn, iIn, cIn);
-				System.out.println("file name: " + fileName);
+				//System.out.println("file name: " + fileName);
+				
+				Hashtable<String,String[]> params = new Hashtable<String,String[]>();
+				Set<String> keys = currentParams.keySet();
+				for (String key: keys)
+				{
+					String[] vals = currentParams.get(key);
+					//System.out.println("  " + key + " = " + vals[0] + " (" + vals[1] + ")");
+					
+					params.put( key, vals.clone() );
+				}
+				
+				//store the current params for this file
+				/*
+				 public static Hashtable<String, Hashtable<String,String[]>> paramData = new Hashtable<String, Hashtable<String,String[]>>();
+	private static Hashtable<String,String[]> currentParams = new Hashtable<String,String[]>();
+				 */
+				
+				String fullFileName = new String( imagePath + fileName );				
+				paramData.put(fullFileName, params);
+				
 				break;
 				
 			case "YSCC":
@@ -611,7 +769,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 					
 				}
 				
-				System.out.println("ysccBytes read: " + ysccBytesRead);
+				//System.out.println("ysccBytes read: " + ysccBytesRead);
 				
 				bytesRead = (int)len;//subBytesRead;
 				break;
@@ -643,7 +801,11 @@ public class MatrixSTMImageLayer extends ImageLayer
 					
 					String name = readString(in, bIn, iIn, cIn);
 					String unitVal = readString(in, bIn, iIn, cIn);
-					System.out.println("TCID " + name + ": " + channelVal + " (" + unitVal +")");
+					//System.out.println("TCID " + name + ": " + channelVal + " (" + unitVal +")");
+					
+					if (importantChannels.contains(name))
+						currentChannelIdxs.put(channelVal, name);
+					
 				}
 				
 				break;
@@ -664,7 +826,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 				{
 					readChars(in, 4);
 					
-					long numFactors = intVal(in, bIn, iIn);
+					long channelVal = intVal(in, bIn, iIn);
 					String name = readString(in, bIn, iIn, cIn);
 					String unitVal = readString(in, bIn, iIn, cIn);
 					
@@ -674,7 +836,11 @@ public class MatrixSTMImageLayer extends ImageLayer
 						String propS = readString(in, bIn, iIn, cIn);
 						String propResult = readPropertyData(in, bIn, iIn, cIn, dIn, false);
 						
-						System.out.println("REFX " + name + " " + numFactors + "  " + propS + "  " + propResult + " (" + unitVal + ")");
+						//System.out.println("REFX " + name + " " + channelVal + "  " + propS + "  " + propResult + " (" + unitVal + ")");
+						
+						String channelName = currentChannelIdxs.get(channelVal);
+						if (channelName != null)
+							currentParams.put(channelName + " " + propS, new String[]{propResult, unitVal} );
 					}
 				}
 				
@@ -685,7 +851,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 				return -1;
 		}
 		
-		System.out.println("bytes read: " + bytesRead + " vs block length: " + len);
+		//System.out.println("bytes read: " + bytesRead + " vs block length: " + len);
 		
 		//read in the rest of the block
 		readChars(in, (int)(len - bytesRead));
@@ -1145,13 +1311,23 @@ public class MatrixSTMImageLayer extends ImageLayer
 		if (s.length() > 0)
 			maximaExpectedDiameter = Double.parseDouble(s);
 		
-		s = xml.getAttribute("latticeExpectedSpacingNM");
+		s = xml.getAttribute("latticeExpectedSpacing");
 		if (s.length() > 0)
 			expectedLatticeSpacing = Double.parseDouble(s);
 
-		s = xml.getAttribute("latticeSpacingUncertaintyNM");
+		s = xml.getAttribute("latticeSpacingUncertainty");
 		if (s.length() > 0)
 			spacingUncertainty = Double.parseDouble(s);
+		
+		/*
+		s = xml.getAttribute("sampleBias");
+		if (s.length() > 0)
+			bias = Double.parseDouble(s);
+		
+		s = xml.getAttribute("current");
+		if (s.length() > 0)
+			current = Double.parseDouble(s);
+		*/
 		
 		if (img == null)
 			return;
@@ -1176,8 +1352,10 @@ public class MatrixSTMImageLayer extends ImageLayer
 		e.setAttribute("maximaThreshold", Integer.toString(maximaThreshold));
 		e.setAttribute("maximaPrecision", Integer.toString(maximaPrecision));
 		e.setAttribute("maximaExpectedDiameter", Double.toString(maximaExpectedDiameter));
-		e.setAttribute("latticeExpectedSpacingNM", Double.toString(expectedLatticeSpacing));
-		e.setAttribute("latticeSpacingUncertaintyNM", Double.toString(spacingUncertainty));
+		e.setAttribute("latticeExpectedSpacing", Double.toString(expectedLatticeSpacing));
+		e.setAttribute("latticeSpacingUncertainty", Double.toString(spacingUncertainty));
+		e.setAttribute("sampleBias", Double.toString(bias));
+		e.setAttribute("current", Double.toString(current));
 		return e;
 	}
 	

@@ -609,8 +609,16 @@ public class SampleNavigator extends Application
     			{
     				if (k.isControlDown())
     				{
-    					addImageFile();
-    					refreshTreeEditor();
+    					if (k.isShiftDown())
+    					{
+    						addImageFolder();
+    						refreshTreeEditor();
+    					}
+    					else
+    					{
+	    					addImageFile();
+	    					refreshTreeEditor();
+    					}
     				}
     			}
     			if (k.getCode() == KeyCode.F)
@@ -2035,7 +2043,69 @@ public class SampleNavigator extends Application
 		return p;
 	}
 	
-	
+	public static void addImageFolder()
+	{
+		DirectoryChooser dc = new DirectoryChooser();
+		dc.setInitialDirectory( new File(openingDirectory) );
+		File openFolder = dc.showDialog(SampleNavigator.stage);
+		if (openFolder == null)
+			return;
+		
+		openingDirectory = openFolder.getPath();
+		if (!openingDirectory.startsWith(workingDirectory))
+    	{
+    		//file is not part of this sample navigation root directory structure - so let's copy it into the root
+    		try
+    		{
+    			File newDir = new File(workingDirectory + "/copiedData");
+    			if (!newDir.exists())
+    				newDir.mkdir();
+    			
+    			newDir = new File(workingDirectory + "/copiedData/" + (new File(openingDirectory)).getName());
+    			if (!newDir.exists())
+    				newDir.mkdir();
+    			
+    			//copy over all _mtrx and _0001.mtrx files
+    			String[] files = openFolder.list( new FilenameFilter()
+    			{
+    				public boolean accept(File dir, String name) 
+    				{
+    					return (name.endsWith("_mtrx") || name.endsWith("_0001.mtrx"));
+    				}
+    			} );
+    			
+    			for (int i = 0; i < files.length; i ++)
+    			{
+    				File openFile = new File(openingDirectory + "/" + files[i]);
+	    			File newFile = new File(newDir + "/" + openFile.getName()); 	
+	    			
+	    			//System.out.println("copying from: " + openFile.toPath() + "   to   " + newFile.toPath());
+	    			Files.copy(openFile.toPath(), newFile.toPath(), REPLACE_EXISTING);
+    			}
+    			
+    			openFolder = newDir;
+    		}
+    		catch (Exception ex)
+    		{
+    			ex.printStackTrace();
+    		}
+    	}
+		
+		STMFolderLayer l = new STMFolderLayer();
+		
+		URI f1 = new File(workingDirectory).toURI();
+		URI f2 = openFolder.toURI();
+		l.name = fullRelativize(f1,f2);
+		
+		System.out.println("folder name of image folder: " + l.name);
+		
+		Point2D p = getLocalMouseCoords();
+		l.setTranslateX(p.getX());
+	    l.setTranslateY(p.getY());
+		l.init();
+		
+		selectedLayer.getChildren().add(l);
+	}
 	
 	public static void addImageFile()
 	{
@@ -2081,14 +2151,26 @@ public class SampleNavigator extends Application
     			File newFile = new File(newDir + "/" + openFile.getName()); 				    	
     			Files.copy(openFile.toPath(), newFile.toPath(), REPLACE_EXISTING);
     			
+    			String prevFile = openFile.getAbsolutePath();
     			System.out.println("previous file: " + openFile.getAbsolutePath() + "  " + openingDirectory);
-    			//openingDirectory = new String(newDir.toPath());
     			openFile = newFile;
     			
-    			
-    			//openingDirectory = openFile.getParent();
-    			
-    			//System.out.println("new file: " + openFile.getAbsolutePath() + "  " + openingDirectory);
+    			//if this is a matrix file, we should also copy over the appropriate parameter file
+    			if (fc.getSelectedExtensionFilter() == filter0)
+    			{
+    				System.out.println("finding param file for: " + prevFile );
+    				StringBuffer paramFileS = MatrixSTMImageLayer.getParamFileFor( prevFile );
+    				System.out.println("param file name: " + paramFileS.toString());
+    				File paramFile = new File( paramFileS.toString() );
+    				System.out.println("param file: " + paramFile.toString());
+    				if (paramFile.exists())
+    				{
+    					File newParamFile = new File(newDir + "/" + paramFile.getName());
+    					Files.copy(paramFile.toPath(), newParamFile.toPath(), REPLACE_EXISTING);
+    					
+    					System.out.println("copied over param file: " + newParamFile.getPath());
+    				}
+    			}
     			
     		}
     		catch (Exception ex)
@@ -2207,40 +2289,57 @@ public class SampleNavigator extends Application
     		
     		l.init();
     		
+    		if (l.paramsExtracted)
+    		{
+    			//if we were able to get info from the params file...
+    			l.scale.setX(l.scaleX0);
+    			l.scale.setY(l.scaleY0);
+    			l.rotation.setAngle(l.angle0);
+    		}
+    		
     		Vector<NavigationLayer> navChildren = lParent.getLayerChildren();
-    		if (navChildren.contains(scanner))
-    		{
-    			System.out.println("setting image data based on scanner");
-    			Element xml = scanner.scan.getAsXML();
-    			
-    			String s = xml.getAttribute("scaleX");
-    			if (s.length() > 0)
-    				l.scale.setX( Double.parseDouble(s) );
-    			s = xml.getAttribute("scaleY");
-    			if (s.length() > 0)
-    				l.scale.setY( Double.parseDouble(s) );
-    			s = xml.getAttribute("x");
-    			if (s.length() > 0)
-    				l.setTranslateX( Double.parseDouble(s) );
-    			s = xml.getAttribute("y");
-    			if (s.length() > 0)
-    				l.setTranslateY( Double.parseDouble(s) );
-    			s = xml.getAttribute("angle");
-    			if (s.length() > 0)
-    				l.rotation.setAngle( Double.parseDouble(s) );
-    			
-    		}
-    		else
-    		{
-	    		//set position to current location
-	    		Point2D p = getLocalMouseCoords();//selectedLayer.sceneToLocal( 0, 0 );
-	    		l.setTranslateX(p.getX());
-	    		l.setTranslateY(p.getY());
+	    	if (navChildren.contains(scanner))
+	    	{
+	    		System.out.println("setting image data based on scanner");
+	    		Element xml = scanner.scan.getAsXML();
+	    			
+	    		String s = null;
 	    		
-	    		Point2D s = selectedLayer.getLocalToSceneScale();
-	    		l.scale.setX( 200.0/s.getX() );
-	    		l.scale.setY( 200.0/s.getX() );
-    		}
+	    		if (!l.paramsExtracted)
+	    		{
+		    		s = xml.getAttribute("scaleX");
+		    		if (s.length() > 0)
+		    			l.scale.setX( Double.parseDouble(s) );
+		    		s = xml.getAttribute("scaleY");
+		    		if (s.length() > 0)
+		    			l.scale.setY( Double.parseDouble(s) );
+		    		s = xml.getAttribute("angle");
+		    		if (s.length() > 0)
+		    			l.rotation.setAngle( Double.parseDouble(s) );
+	    		}
+	    		
+	    		s = xml.getAttribute("x");
+	    		if (s.length() > 0)
+	    			l.setTranslateX( Double.parseDouble(s) );
+	    		s = xml.getAttribute("y");
+	    		if (s.length() > 0)
+	    			l.setTranslateY( Double.parseDouble(s) );	
+	    	}
+	    	else
+	    	{
+		    	//set position to current location
+		    	Point2D p = getLocalMouseCoords();//selectedLayer.sceneToLocal( 0, 0 );
+		    	l.setTranslateX(p.getX());
+		    	l.setTranslateY(p.getY());
+		    	
+		    	if (!l.paramsExtracted)
+	    		{
+			    	Point2D s = selectedLayer.getLocalToSceneScale();
+			    	l.scale.setX( 200.0/s.getX() );
+			    	l.scale.setY( 200.0/s.getX() );
+	    		}
+	    	}
+    		
     		
     		//if the image is being added to an imagesGroup, then the translation needs to be adjusted occording to the imageGroup's offset
     		if (imagesGroup)

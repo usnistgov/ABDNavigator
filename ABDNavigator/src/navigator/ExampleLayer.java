@@ -436,12 +436,14 @@ public class ExampleLayer extends NavigationLayer
 					String name = e.getAttribute("name");
 					String value = e.getAttribute("value");
 					String type = e.getAttribute("type");
+					String unit = e.getAttribute("unit");
 					
 					String[] cats = categoryData.get(type);
 					if (cats != null)
-					{
 						categories.put(name, cats);
-					}
+
+					if (unit != null)
+						units.put(name, unit);
 										
 					if ((!justCategories) && (name != null) && (value != null))
 					{

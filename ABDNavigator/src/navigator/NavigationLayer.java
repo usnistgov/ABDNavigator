@@ -34,7 +34,7 @@ import java.nio.file.Files;
 import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.Vector;
-import java.util.Hashtable;
+import java.util.*;
 
 
 public class NavigationLayer extends Group 
@@ -46,6 +46,8 @@ public class NavigationLayer extends Group
 	public Hashtable<String,String[]> tabs = new Hashtable<String,String[]>();
 	public String currentTab = null;
 	public Hashtable<String,String[]> categories = new Hashtable<String,String[]>();
+	public Hashtable<String,String> units = new Hashtable<String,String>();
+	public HashSet<String> uneditable = new HashSet<String>();
 	
 	public Rotate rotation = null;
 	public Scale scale = null;
@@ -88,6 +90,12 @@ public class NavigationLayer extends Group
 		
 		tabs.put("main", new String[] {});
 		tabs.put("appearance", new String[] {"clearTransforms","copyTransforms","pasteTransforms","generateKeyFrame","angle","scaleX","scaleY","transparency","visible","x","y"});
+		categories.put("visible", new String[] {"true","false"});
+		units.put("angle", "°");
+		units.put("scaleX", "nm");
+		units.put("scaleY", "nm");
+		units.put("x", "nm");
+		units.put("y", "nm");
 		
 		pickNode = this;
 		editTarget = this;
