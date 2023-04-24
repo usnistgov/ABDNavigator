@@ -510,6 +510,21 @@ public class NavigationLayer extends Group
 		return layerChildren;
 	}
 	
+	public <T> Vector<T> getChildrenOfType(Class<T> type)
+	{
+		Vector<T> tChildren = new Vector<T>();
+		
+		ObservableList<javafx.scene.Node> children = getChildren();
+		for (int i = 0; i < children.size(); i ++)
+		{
+			javafx.scene.Node child = children.get(i);
+			if (child.getClass().equals(type))
+				tChildren.add((T)child);
+		}
+		
+		return tChildren;
+	}
+	
 	public Vector<NavigationLayer> getLayerAncestors()
 	{
 		Vector<NavigationLayer> layerAncestors = new Vector<NavigationLayer>();

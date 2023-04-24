@@ -65,14 +65,7 @@ public class ExampleLayer extends NavigationLayer
 		ds.setRadius(.1);
 		ds.setSpread(.2);
 		
-		//segment = new Line();
-		//segment.setVisible(false);
-		//segment.setStartX(0);
-		//segment.setStartY(0);
-		//segment.setStroke(Color.WHITE);
-		//segment.setStrokeWidth(2);
-		//segment.setEffect(ds);
-		//getChildren().add(segment);
+		
 		
 		r = new Rectangle();
 		r.setX(-0.5);
@@ -83,8 +76,7 @@ public class ExampleLayer extends NavigationLayer
 		r.setStrokeWidth(.02);
 		r.setEffect(ds);
 		
-		//r.setFill(Color.YELLOW);
-		//r.setOpacity(0.2);
+		
 		r.setId("example");
 				
 		main.getChildren().add(r);
@@ -98,9 +90,7 @@ public class ExampleLayer extends NavigationLayer
 		width = data[0].length;
 		height = data.length;
 		
-		
-		
-		//update();
+		setFeaturesFromParent();
 	}
 	
 	public void checkMLController()
@@ -157,6 +147,11 @@ public class ExampleLayer extends NavigationLayer
 		
 		//decide number of points to include per line
 		Transform t = getLocalToParentTransform();
+		if (getParent() == null)
+		{
+			System.out.println("orphaned example layer!!!!");
+			return null;
+		}
 		toParent = getParent().getLocalToParentTransform().createConcatenation(t);
 		
 		double widthFraction = Math.min( scale.getMxx(), scale.getMyy() );
@@ -283,6 +278,26 @@ public class ExampleLayer extends NavigationLayer
 			if ((!attrName.equals("ML_settings")) && (featureNames.contains(attrName)))
 			{
 				features.put(attrName, attrVal);
+			}
+		}
+	}
+	
+	private String[] stmFeatures = new String[] {"current","sampleBias"};
+	public void setFeaturesFromParent()
+	{
+		if (parentImage == null)
+			return;
+		
+		
+		Set<String> featureNames = features.keySet();
+		for (String feat: stmFeatures)
+		{
+			if (featureNames.contains(feat))
+			{
+				Element e = parentImage.getAsXML();
+				String s = e.getAttribute(feat);
+				if (s != null)
+					features.put(feat, new String(s));
 			}
 		}
 	}
@@ -460,9 +475,7 @@ public class ExampleLayer extends NavigationLayer
 	
 	public void finalSetFromXML()
 	{
-		//boolean isFirst = true;
-		//if ((SampleNavigator.mlController != null) && (SampleNavigator.mlController.currentExample != null))
-		//	isFirst = false;
+		
 				
 		checkMLController();
 		
@@ -470,14 +483,7 @@ public class ExampleLayer extends NavigationLayer
 		
 		SampleNavigator.mlController.mlSettings = mlSettings;
 		
-		//boolean isFirst = true;
-		//if ((SampleNavigator.mlController != null) && (SampleNavigator.mlController.currentExample != null))
-		//	isFirst = false;
 		
-		//if (isFirst)
-		//if (SampleNavigator.mlController == null)
-			//chooseMLSettings();
-			//checkMLController();
 	}
 	
 	public Hashtable<String,String> getCorrectedFeatures()

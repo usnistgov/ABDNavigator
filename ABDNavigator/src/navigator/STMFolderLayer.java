@@ -18,6 +18,7 @@ public class STMFolderLayer extends GroupLayer//NavigationLayer
 	
 	public STMFolderLayer()
 	{
+		appendActions(new String[] {"resetFolder"});
 		categories.put("sort", new String[] {"time order","size"});
 		uneditable.add("name");
 	}
@@ -211,5 +212,10 @@ public class STMFolderLayer extends GroupLayer//NavigationLayer
 		    xPos += width/2;
 		}
 		System.out.println();
+	}
+	
+	public void resetFolder()
+	{
+		SampleNavigator.setImageFolderData(this);
 	}
 }

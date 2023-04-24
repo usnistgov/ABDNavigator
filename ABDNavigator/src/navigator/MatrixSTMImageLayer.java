@@ -85,10 +85,10 @@ public class MatrixSTMImageLayer extends ImageLayer
 	{
 		super();
 		//appendActions( new String[]{"imageLeftRight","imageUpDown","togglePlaneSubtract","toggleLineByLineFlatten","nextColorScheme","locateMaxima","locateLattice","addExample"} );
-		appendActions( new String[]{"locateMaxima","locateLattice","addExample"} );
+		appendActions( new String[]{"locateMaxima","locateLattice","addExample","clearExamples"} );
 		tabs.put("maxima", new String[] {"locateMaxima","maximaExpectedDiameter","maximaPrecision","maximaThreshold"});
 		tabs.put("lattice", new String[] {"locateLattice","latticeExpectedSpacing","latticeSpacingUncertainty"});
-		tabs.put("machine learning", new String[] {"addExample"});
+		tabs.put("machine learning", new String[] {"addExample","clearExamples"});
 		tabs.put("settings", new String[] {"sampleBias","current"});
 		categories.put("colorSchemeIndex", new String[] {"0","1","2","3"});
 		categories.put("imageDirection", new String[] {"upForward","upBackward","downForward","downBackward"});
@@ -1852,5 +1852,16 @@ public class MatrixSTMImageLayer extends ImageLayer
 		SampleNavigator.addExample(this, 0, 0);
 		
 		
+	}
+	
+	public void clearExamples()
+	{
+		GroupLayer exampleGroup = getOrMakeGroup("examples");
+		//<T> Vector<T> getChildrenOfType(Class<T> type)
+		Vector<ExampleLayer> examples = exampleGroup.getChildrenOfType(ExampleLayer.class);
+		for (ExampleLayer example: examples)
+			exampleGroup.getChildren().remove(example);
+		
+		SampleNavigator.refreshTreeEditor();
 	}
 }

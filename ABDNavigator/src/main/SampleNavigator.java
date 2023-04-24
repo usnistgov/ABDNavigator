@@ -1286,6 +1286,8 @@ public class SampleNavigator extends Application
 			l.setFeaturesFromXML( SampleNavigator.mlController.currentExample.getFeaturesAsXML() );
 		}
 		
+		//l.setFeaturesFromParent(parent);
+		
 		l.init();
 		
 		l.setTranslateX(x);
@@ -2045,6 +2047,17 @@ public class SampleNavigator extends Application
 	
 	public static void addImageFolder()
 	{
+		STMFolderLayer l = new STMFolderLayer();
+		Point2D p = getLocalMouseCoords();
+		l.setTranslateX(p.getX());
+	    l.setTranslateY(p.getY());
+	    
+	    setImageFolderData(l);
+	    selectedLayer.getChildren().add(l);
+	}
+	
+	public static void setImageFolderData(STMFolderLayer l)
+	{
 		DirectoryChooser dc = new DirectoryChooser();
 		dc.setInitialDirectory( new File(openingDirectory) );
 		File openFolder = dc.showDialog(SampleNavigator.stage);
@@ -2091,7 +2104,7 @@ public class SampleNavigator extends Application
     		}
     	}
 		
-		STMFolderLayer l = new STMFolderLayer();
+		
 		
 		URI f1 = new File(workingDirectory).toURI();
 		URI f2 = openFolder.toURI();
@@ -2099,12 +2112,10 @@ public class SampleNavigator extends Application
 		
 		System.out.println("folder name of image folder: " + l.name);
 		
-		Point2D p = getLocalMouseCoords();
-		l.setTranslateX(p.getX());
-	    l.setTranslateY(p.getY());
+		
 		l.init();
 		
-		selectedLayer.getChildren().add(l);
+		
 	}
 	
 	public static void addImageFile()
