@@ -237,6 +237,7 @@ public class SampleNavigator extends Application
 		//folder = new String(relativeFolder);
     	
     	System.out.println(workingDirectory);
+    	
     	//System.exit(0);
     	
     	
@@ -2388,6 +2389,12 @@ public class SampleNavigator extends Application
 		
 		String[] splitChild = childS.split("/");
 		String[] splitParent = parentS.split("/");
+		/*
+		for (int i = 0; i < splitChild.length; i ++)
+		{
+			System.out.println("* " + splitChild[i]);
+		}*/
+		
 		int diffStart = 0;
 		while (splitChild[diffStart].equals(splitParent[diffStart]))
 			diffStart ++;
@@ -2403,7 +2410,7 @@ public class SampleNavigator extends Application
 			diffChild.append("/");
 		
 		//int numDirs = parentS.substring(i).split("/").length;
-		int numDirs = diffStart;
+		int numDirs = splitParent.length - diffStart;
 		
 		StringBuffer backString = new StringBuffer();
 		System.out.println("relativising: " + childS + "    " + parentS);

@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.Vector;
 import java.util.Hashtable;
 
+import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -41,6 +42,7 @@ import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.Node;
 import javafx.scene.image.Image;
 import main.SampleNavigator;
+import util.FFT2D;
 
 public class MatrixSTMImageLayer extends ImageLayer
 {
@@ -85,9 +87,9 @@ public class MatrixSTMImageLayer extends ImageLayer
 	{
 		super();
 		//appendActions( new String[]{"imageLeftRight","imageUpDown","togglePlaneSubtract","toggleLineByLineFlatten","nextColorScheme","locateMaxima","locateLattice","addExample"} );
-		appendActions( new String[]{"locateMaxima","locateLattice","addExample","clearExamples"} );
+		appendActions( new String[]{"locateMaxima","locateLattice","altLocateLattice","addExample","clearExamples"} );
 		tabs.put("maxima", new String[] {"locateMaxima","maximaExpectedDiameter","maximaPrecision","maximaThreshold"});
-		tabs.put("lattice", new String[] {"locateLattice","latticeExpectedSpacing","latticeSpacingUncertainty"});
+		tabs.put("lattice", new String[] {"locateLattice","altLocateLattice","latticeExpectedSpacing","latticeSpacingUncertainty"});
 		tabs.put("machine learning", new String[] {"addExample","clearExamples"});
 		tabs.put("settings", new String[] {"sampleBias","current"});
 		categories.put("colorSchemeIndex", new String[] {"0","1","2","3"});
@@ -1477,19 +1479,36 @@ public class MatrixSTMImageLayer extends ImageLayer
 		}
 		
 	}
+	
+	public void altLocateLattice()
+	{
+		//currentImageData
+		if (currentImageData == null)
+			return;
+		
+		int w = currentImageData[0].length;
+		int h = currentImageData.length;
+		float[][] real = new float[h][w];
+		float[][] imag = new float[h][w];
+		float[][] mod = new float[h][w];
+		
+		FFT2D.fft(currentImageData, real, imag, mod);
+		setImageTo(mod);
+	}
+	
 	public void locateLattice() 
 	{
 		try
 		{
 			Thread t = new Thread(new Runnable()
 			{
-				@SuppressWarnings("deprecation")
+				//@SuppressWarnings("deprecation")
 				public void run()
 				{
 					int width = bImg.getWidth();
-		        		int height = bImg.getHeight();
+		        	int height = bImg.getHeight();
 		        	
-		        		double heightWidthNM = scale.getMxx();
+		        	double heightWidthNM = scale.getMxx();
 					if (width != height || scale.getMxx() != scale.getMyy())
 					{
 						System.out.println("Failed: image not square");
@@ -1550,6 +1569,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 					Complex[][] answers = new Complex[n][n];
 					FastFourierTransformer f = new FastFourierTransformer(DftNormalization.STANDARD);
 					answers = (Complex[][]) f.mdfft(pixel, TransformType.FORWARD);
+					
 
 					//Converts array to image
 					
@@ -1570,6 +1590,16 @@ public class MatrixSTMImageLayer extends ImageLayer
 							int brightnessInt = (int) brightness;
 							transformedImage.setRGB((i+n/2)%n,(j+n/2)%n,255<<24|brightnessInt<<16|brightnessInt<<8|brightnessInt);
 						}
+					}
+					
+					try
+					{
+						File imageOut = new File("fftImage.png");
+						ImageIO.write(transformedImage, "png", imageOut);
+					} 
+					catch (Exception exc)
+					{
+						exc.printStackTrace();
 					}
 
 					//Gets most likely angle
