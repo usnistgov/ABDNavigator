@@ -1095,7 +1095,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 			}
 		}
 		
-		//System.out.println("new min max: " + min + "  " + max);
+		System.out.println("new min max: " + min + "  " + max);
 		
 		
 		for (int xIdx = 0; xIdx < pixWidth; xIdx ++)
@@ -1488,12 +1488,160 @@ public class MatrixSTMImageLayer extends ImageLayer
 		
 		int w = currentImageData[0].length;
 		int h = currentImageData.length;
-		float[][] real = new float[h][w];
-		float[][] imag = new float[h][w];
-		float[][] mod = new float[h][w];
 		
-		FFT2D.fft(currentImageData, real, imag, mod);
-		setImageTo(mod);
+		if (h != w)
+			return;
+		
+		//pad the image data with 0's to have dimensions of power of 2
+		double exp = Math.ceil( Math.log(h)/Math.log(2) );
+		int N = (int)Math.pow(2, exp);
+		System.out.println("w: " + w + "    N: " + N);
+		
+		float[][] mod = new float[N][N];
+		float[][] paddedData = new float[N][N];
+		for (int yIdx = 0; yIdx < N; yIdx ++)
+		{
+			for (int xIdx = 0; xIdx < N; xIdx ++)
+			{
+				if ((xIdx < w) && (yIdx < h))
+					paddedData[yIdx][xIdx] = currentImageData[yIdx][xIdx];
+				else
+					paddedData[yIdx][xIdx] = 0;
+			}
+		}
+		
+		//flatten the image
+		//now do the plane subtract
+		float dzdxAve = 0;
+		float dzdyAve = 0;
+		for (int yIdx = capturedLinesStart; yIdx < capturedLinesEnd; yIdx ++)
+		{
+			dzdxAve += paddedData[pixWidth-1][yIdx]-paddedData[0][yIdx];
+		}
+		
+		for (int xIdx = 0; xIdx < pixWidth-1; xIdx ++)
+		{
+			dzdyAve += paddedData[xIdx][capturedLinesEnd-1]-paddedData[xIdx][capturedLinesStart];
+		}
+					
+		dzdxAve /= ((pixWidth-1)*(capturedLinesEnd-capturedLinesStart));
+		dzdyAve /= ((pixWidth-1)*(capturedLinesEnd-capturedLinesStart-1));
+		
+		//System.out.println("slopes: " + dzdxAve + "   " + dzdyAve);
+		
+		for (int yIdx = 0; yIdx < pixHeight; yIdx ++)
+		{
+			for (int xIdx = 0; xIdx < pixWidth; xIdx ++)
+			{
+				paddedData[xIdx][yIdx] -= (float)(dzdxAve*xIdx+dzdyAve*yIdx);
+			}
+		}
+		
+		float min = 99999;
+		float max = 0;
+		for (int yIdx = 0; yIdx < w; yIdx ++)
+		{
+			for (int xIdx = 0; xIdx < w; xIdx ++)
+			{
+				if (paddedData[yIdx][xIdx] < min)
+					min = paddedData[yIdx][xIdx];
+				if (paddedData[yIdx][xIdx] > max)
+					max = paddedData[yIdx][xIdx];
+			}
+		}
+		
+		float ave = 0;
+		for (int yIdx = 0; yIdx < w; yIdx ++)
+		{
+			for (int xIdx = 0; xIdx < w; xIdx ++)
+			{
+				paddedData[yIdx][xIdx] = (paddedData[yIdx][xIdx] - min)/(max-min);
+				ave += paddedData[yIdx][xIdx];
+			}
+		}
+		
+		ave /= (w*w);
+		
+		for (int yIdx = 0; yIdx < w; yIdx ++)
+		{
+			for (int xIdx = 0; xIdx < w; xIdx ++)
+			{
+				paddedData[yIdx][xIdx] -= ave;
+			}
+		}
+		
+		
+		//apply a Hann window to the data
+		for (int yIdx = 0; yIdx < w; yIdx ++)
+		{
+			for (int xIdx = 0; xIdx < w; xIdx ++)
+			{
+				float x = (w-1)/2 - xIdx;
+				float y = (w-1)/2 - yIdx;
+				float r = (float)Math.sqrt(x*x + y*y);
+				float s = (float)Math.sin(Math.PI*r/w);
+				s *= s;
+				
+				if (r >= (w-1)/2)
+					s = 1;
+				
+				paddedData[yIdx][xIdx] = (1-s)*(paddedData[yIdx][xIdx]);//-min)/(max-min);
+			}
+		}
+		
+		
+		
+		FFT2D.fft2Dmod(paddedData, mod);
+		//mod = paddedData;
+		
+		min = 99999;
+		max = 0;
+		for (int yIdx = 0; yIdx < N; yIdx ++)
+		{
+			for (int xIdx = 0; xIdx < N; xIdx ++)
+			{
+				if (mod[yIdx][xIdx] < min)
+					min = mod[yIdx][xIdx];
+				if (mod[yIdx][xIdx] > max)
+					max = mod[yIdx][xIdx];
+			}
+		}
+		System.out.println("fft2D min: " + min + "    max: " + max);
+		float s = 1f/(max-min);
+		//normalize the data
+		float[][] shiftMod = new float[N][N]; 
+		for (int yIdx = 0; yIdx < N; yIdx ++)
+		{
+			for (int xIdx = 0; xIdx < N; xIdx ++)
+			{
+				//float val = (float)Math.log( 1.0 + s*(mod[(yIdx+N/2)%N][(xIdx+N/2)%N] - min) );
+				float val = s*(mod[(yIdx+N/2)%N][(xIdx+N/2)%N] - min);
+				//val = (float)Math.log(1+val);
+				val = (float)Math.pow(Math.log(1+val),0.2);
+				shiftMod[yIdx][xIdx] = val;//s*(mod[(yIdx+N/2)%N][(xIdx+N/2)%N] - min);
+			}
+		}
+		
+		//setImageTo(shiftMod);
+		
+		BufferedSTMImage bImg = new BufferedSTMImage(shiftMod);
+		bImg.colorSchemeIdx = this.colorSchemeIdx;
+		bImg.minZFraction = this.minZFraction;
+		bImg.maxZFraction = this.maxZFraction;
+		bImg.processData = false;
+		bImg.draw();
+		
+		try
+		{
+			File imageOut = new File("fftImage.png");
+			ImageIO.write(bImg, "png", imageOut);
+		} 
+		catch (Exception exc)
+		{
+			exc.printStackTrace();
+		}
+		
+		setImageTo(paddedData);
 	}
 	
 	public void locateLattice() 
