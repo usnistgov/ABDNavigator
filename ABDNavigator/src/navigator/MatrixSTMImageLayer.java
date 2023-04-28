@@ -79,8 +79,8 @@ public class MatrixSTMImageLayer extends ImageLayer
 	public double maximaExpectedDiameter = 1;
 	public GroupLayer replaceGroup = null;
 	
-	public double expectedLatticeSpacing = 0.385;
-	public double spacingUncertainty = 0.07;
+	public double expectedLatticeSpacing = 0.77;
+	public double spacingUncertainty = 0.2;
 	public GroupLayer replaceLattice = null;
 	
 	public MatrixSTMImageLayer()
@@ -1497,6 +1497,9 @@ public class MatrixSTMImageLayer extends ImageLayer
 		int N = (int)Math.pow(2, exp);
 		System.out.println("w: " + w + "    N: " + N);
 		
+		double scaleR = scale.getMxx();
+		double scaleN = scaleR*(double)(N-1)/(double)(w-1);
+		
 		float[][] mod = new float[N][N];
 		float[][] paddedData = new float[N][N];
 		for (int yIdx = 0; yIdx < N; yIdx ++)
@@ -1641,7 +1644,68 @@ public class MatrixSTMImageLayer extends ImageLayer
 			exc.printStackTrace();
 		}
 		
-		setImageTo(paddedData);
+		//setImageTo(paddedData);
+		
+		
+		
+		//find kx,ky coordinates of maximum
+		double maxK = scaleN/(expectedLatticeSpacing - spacingUncertainty);
+		double minK = scaleN/(expectedLatticeSpacing + spacingUncertainty);
+		double peak = 0;
+		double kXpeak = 0;
+		double kYpeak = 0;
+		
+		for (int kX = 0; kX < N; kX ++)
+		{
+			for (int kY = 0; kY < N; kY ++)
+			{
+				double x = (double)(N-1)/2 - (double)kX;
+				double y = (double)(N-1)/2 - (double)kY;
+				
+				double k = Math.sqrt( (double)x*x + (double)y*y );
+				if ((k < maxK) && (k > minK))
+				{
+					if (shiftMod[kX][kY] > peak)
+					{
+						peak = shiftMod[kX][kY];
+						kXpeak = x;
+						kYpeak = y;
+					}
+				}
+			}
+		}
+		
+		double kPeak = Math.sqrt((double)kXpeak*kXpeak + (double)kYpeak*kYpeak);
+		double lambda = scaleN/kPeak;
+		double theta = Math.atan2(kYpeak, kXpeak);
+		
+		System.out.println("lambda: " + lambda + "    theta: " + theta*180/Math.PI);
+		
+		
+		//put in the lattice
+		/*
+		if (replaceLattice == null)
+		{
+			latticeLayer = new GroupLayer();
+			latticeLayer.name= "latticeLayer";
+			latticeLayer.setOpacity(0.2);
+			SampleNavigator.selectedLayer.getChildren().add(latticeLayer);
+			replaceLattice = latticeLayer;
+		}
+		else
+		{
+			latticeLayer = replaceLattice;
+			latticeLayer.getChildren().removeAll(latticeLayer.getChildren());
+		}
+		SampleNavigator.addSegment(intervalF, angleF, latticeLayer, latticeStartingXF, latticeStartingYF);
+		if (angleF > 0)
+		{
+			SampleNavigator.addSegment(intervalF, angleF-(Math.PI/2), latticeLayer, latticeStartingXF, latticeStartingYF);
+		}*/
+		
+		NavigationLayer latticeLayer = getOrMakeGroup("latticeLayer");
+		latticeLayer.getChildren().clear();
+		SampleNavigator.addSegment(lambda/scaleR, theta, latticeLayer, 0, 0);
 	}
 	
 	public void locateLattice() 
