@@ -20,6 +20,8 @@ import javafx.scene.effect.DropShadow;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextAlignment;
 import javafx.scene.transform.Transform;
 import javafx.stage.FileChooser;
 import javafx.stage.FileChooser.ExtensionFilter;
@@ -52,6 +54,7 @@ public class ExampleLayer extends NavigationLayer
 	
 	public Color glowColor = new Color(0,1,1,.8);
 	public Color glowHightlight = new Color(1,1,0,0.8);
+	public Text textDisp = null;
 	
 	
 
@@ -80,17 +83,66 @@ public class ExampleLayer extends NavigationLayer
 		r.setId("example");
 				
 		main.getChildren().add(r);
+		
+		Group textGroup = new Group();
+		//textGroup.setScaleX(0.01);
+		//textGroup.setScaleY(0.01);
+		//textDisp.setX(-19.75);//no idea why these offsets are what they are... had to find them by trial and error !!!!
+		//textDisp.setY(10.6);
+		textGroup.setTranslateX(-0.5);
+		textGroup.setTranslateY(0.8);
+		
+		textDisp = new Text("");
+		textDisp.setId("exampleText");
+		textDisp.setFill(Color.WHITE);
+		//textDisp.setTextAlignment(TextAlignment.CENTER);
+		textGroup.getChildren().add(textDisp);
+		main.getChildren().add(textGroup);
+		//getChildren().add(textGroup);
 			
 		Node n = getParent().getParent();
 		if (n instanceof MatrixSTMImageLayer)
 			parentImage = (MatrixSTMImageLayer)n;
 		
 		//retrieve a 2D data array of the image data from the parentImage
+		boolean parentInvisible = false;
+		if (!parentImage.isVisible())
+		{
+			//System.out.println("image is invisible!");
+			parentInvisible = true;
+			//parentImage.setVisible(true);
+			parentImage.init(true);
+		}
 		data = parentImage.getRasterData();
 		width = data[0].length;
 		height = data.length;
 		
 		setFeaturesFromParent();
+		
+		//if (parentInvisible)
+		//	parentImage.setVisible(false);
+	}
+	
+	String currentTextToFeature = "none";
+	
+	public void setTextToFeature(String feat)
+	{
+		currentTextToFeature = feat;
+		
+		String val = null;
+		if (features != null)
+			val = features.get(feat);
+		
+		if (val == null)
+			textDisp.setText("");
+		else
+			textDisp.setText(val);
+	}
+	
+	public void fireFieldChanged(String field)
+	{
+		if (field.equals(currentTextToFeature))
+			setTextToFeature(currentTextToFeature);
 	}
 	
 	public void checkMLController()

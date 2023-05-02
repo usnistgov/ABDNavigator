@@ -21,6 +21,8 @@ public class MLControlLayer extends NavigationLayer
 	public HashSet<ExampleLayer> examples = new HashSet<ExampleLayer>();
 	public ExampleLayer currentExample = null;
 	
+	public String showFeature = "none";
+	
 	public MLControlLayer()
 	{
 		actions = new String[] {"saveExamples"};
@@ -31,6 +33,63 @@ public class MLControlLayer extends NavigationLayer
 		super.setFromXML(xml, deep);
 		
 		SampleNavigator.mlController = this;
+		
+		String s = xml.getAttribute("showFeature");
+		if (s != null)
+			showFeature = s;
+	}
+	
+	public Element getAsXML()
+	{
+		Element e = super.getAsXML();
+		e.setAttribute("showFeature", showFeature);
+		
+		return e;
+	}
+	
+	public void finalSetFromXML()
+	{
+		if ((mlSettings.length() == 0) || (examples.size() == 0))
+			return;
+		
+		Iterator<ExampleLayer> exIt = examples.iterator();
+		ExampleLayer ex = exIt.next();
+		
+		String[] featureNames = new String[ex.featureNames.size() + 1];
+		Iterator<String> nameIt = ex.featureNames.iterator();
+		int nameIdx = 0;
+		featureNames[nameIdx++] = "none";
+		while (nameIt.hasNext())
+			featureNames[nameIdx++] = nameIt.next();
+		
+		categories.put("showFeature", featureNames);
+		
+		ex.setTextToFeature(showFeature);
+		while (exIt.hasNext())
+		{
+			ex = exIt.next();
+			ex.setTextToFeature(showFeature);
+		}
+
+	}
+	
+	public void fireFieldChanged(String name)
+	{
+		switch (name)
+		{
+			case "showFeature":
+				if ((mlSettings.length() == 0) || (examples.size() == 0))
+					return;
+				
+				Iterator<ExampleLayer> exIt = examples.iterator();
+				while (exIt.hasNext())
+				{
+					exIt.next().setTextToFeature(showFeature);
+				}
+
+				
+				break;
+		}
 	}
 	
 	public void saveExamples()

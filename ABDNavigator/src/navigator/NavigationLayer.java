@@ -1607,6 +1607,30 @@ public class NavigationLayer extends Group
 	
 	public GroupLayer getOrMakeGroup(String groupName)
 	{
+		GroupLayer groupL = getGroup(groupName);
+		/*
+		Vector<NavigationLayer> children = getLayerChildren();
+		for (int i = 0; i < children.size(); i ++)
+		{
+			NavigationLayer child = children.get(i);
+			if ((child instanceof GroupLayer) && (child.getName().equals(groupName)))
+			{
+				groupL = (GroupLayer)child;
+			}
+		}
+		*/
+		if (groupL == null)
+		{
+			groupL = new GroupLayer();
+			groupL.name = groupName;
+			getChildren().add(groupL);
+		}
+		
+		return groupL;
+	}
+	
+	public GroupLayer getGroup(String groupName)
+	{
 		GroupLayer groupL = null;
 		
 		Vector<NavigationLayer> children = getLayerChildren();
@@ -1617,13 +1641,6 @@ public class NavigationLayer extends Group
 			{
 				groupL = (GroupLayer)child;
 			}
-		}
-		
-		if (groupL == null)
-		{
-			groupL = new GroupLayer();
-			groupL.name = groupName;
-			getChildren().add(groupL);
 		}
 		
 		return groupL;

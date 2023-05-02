@@ -133,6 +133,16 @@
 	/*-fx-effect: innershadow( gaussian, rgba(0,255,255,0.75), 3,0,0,0);*/
 }
 
+#exampleText
+{
+	-fx-font-size: 0.3px;
+	/*-fx-font-weight: bold;*/
+	
+	/*-fx-effect: dropshadow( gaussian, rgba(0,100,255,0.75), 6,.7,0,0 );*/ 
+	-fx-effect: dropshadow( gaussian, rgba(0,100,255,0.75), 0.075,.00875,0,0 );
+	/*-fx-effect: innershadow( gaussian, rgba(0,255,255,0.75), 3,0,0,0);*/
+}
+
 #lineText
 {
 	-fx-font-size: 24px;

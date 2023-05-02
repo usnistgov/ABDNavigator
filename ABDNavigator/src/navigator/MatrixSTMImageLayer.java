@@ -119,12 +119,22 @@ public class MatrixSTMImageLayer extends ImageLayer
 	
 	public void init()
 	{
+		init(false);
+	}
+	
+	public void init(boolean forceLoad)
+	{
 		listenToParentVisibility();
 		
-		if (!getAncestorVisibility())
+		if ((!getAncestorVisibility()) && (!forceLoad))
 		{
 			//System.out.println(imgName + " is not visible");
 			return;
+		}
+		
+		if (forceLoad)
+		{
+			System.out.println("force loading image");
 		}
 		
 		//System.out.println(imgName + " is visible");
@@ -2102,7 +2112,15 @@ public class MatrixSTMImageLayer extends ImageLayer
 		//<T> Vector<T> getChildrenOfType(Class<T> type)
 		Vector<ExampleLayer> examples = exampleGroup.getChildrenOfType(ExampleLayer.class);
 		for (ExampleLayer example: examples)
+		{
+			if (SampleNavigator.mlController != null)
+			{
+				SampleNavigator.mlController.examples.remove(example);
+				if (SampleNavigator.mlController.currentExample == example)
+					SampleNavigator.mlController.currentExample = null;
+			}
 			exampleGroup.getChildren().remove(example);
+		}
 		
 		SampleNavigator.refreshTreeEditor();
 	}

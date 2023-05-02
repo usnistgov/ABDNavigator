@@ -728,14 +728,29 @@ public class SampleNavigator extends Application
     			
     			if (k.getCode() == KeyCode.RIGHT)
     			{
+    				STMFolderLayer folderLayer = null;
+    				if (selectedLayer instanceof STMFolderLayer)
+    					folderLayer = (STMFolderLayer)selectedLayer;
+    				else if (selectedLayer.getParent() instanceof STMFolderLayer)
+    					folderLayer = (STMFolderLayer)selectedLayer.getParent();
     				
-    				if (selectedPresentation != null)
+    				if (folderLayer != null)
+    					folderLayer.nextImage();
+    				else if (selectedPresentation != null)
     					selectedPresentation.nextKeyFrame();
     			}
     			
     			if (k.getCode() == KeyCode.LEFT)
     			{
-    				if (selectedPresentation != null)
+    				STMFolderLayer folderLayer = null;
+    				if (selectedLayer instanceof STMFolderLayer)
+    					folderLayer = (STMFolderLayer)selectedLayer;
+    				else if (selectedLayer.getParent() instanceof STMFolderLayer)
+    					folderLayer = (STMFolderLayer)selectedLayer.getParent();
+    				
+    				if (folderLayer != null)
+    					folderLayer.prevImage();
+    				else if (selectedPresentation != null)
     					selectedPresentation.previousKeyFrame();
     			}
     			

@@ -15,11 +15,13 @@ import main.SampleNavigator;
 public class STMFolderLayer extends GroupLayer//NavigationLayer 
 {
 	private String sort = "time order";
+	private boolean onlyWithExamples = false;
 	
 	public STMFolderLayer()
 	{
 		appendActions(new String[] {"resetFolder"});
-		categories.put("sort", new String[] {"time order","size"});
+		categories.put("sort", new String[] {"time order","size","one by one"});
+		categories.put("onlyWithExamples", new String[] {"true", "false"});
 		uneditable.add("name");
 	}
 	//public String folderName = null;
@@ -106,6 +108,13 @@ public class STMFolderLayer extends GroupLayer//NavigationLayer
 		String s = xml.getAttribute("sort");
 		if (s.length() > 0)
 			sort = s;
+		
+		s = xml.getAttribute("onlyWithExamples");
+		System.out.println("onlyWithExamples set: " + s);
+		if (s.length() > 0)
+			onlyWithExamples = Boolean.parseBoolean(s);
+		
+		System.out.println("onlyWithExamples set2: " + Boolean.parseBoolean(s));
 	}
 	
 	public Element getAsXML()
@@ -113,6 +122,9 @@ public class STMFolderLayer extends GroupLayer//NavigationLayer
 		Element e = super.getAsXML();
 				
 		e.setAttribute("sort", sort);
+		e.setAttribute("onlyWithExamples", Boolean.toString(onlyWithExamples));
+		
+		System.out.println("onlyWithExamples get: " + onlyWithExamples);
 		return e;
 	}
 	
@@ -121,6 +133,10 @@ public class STMFolderLayer extends GroupLayer//NavigationLayer
 		switch (name)
 		{
 			case "sort":
+				resetImagePositions();
+				break;
+				
+			case "onlyWithExamples":
 				resetImagePositions();
 				break;
 		}
@@ -147,26 +163,16 @@ public class STMFolderLayer extends GroupLayer//NavigationLayer
 		}
 	}
 	
+	private Vector<MatrixSTMImageLayer> images = null;
+	private int currentImageIdx = 0;
+	
 	public void resetImagePositions()
 	{
-		Vector<MatrixSTMImageLayer> images = new Vector<MatrixSTMImageLayer>();
+		images = new Vector<MatrixSTMImageLayer>();
 		
 		System.out.println("sorting by: " + sort);
 		
-		/*
-		TreeSet<MatrixSTMImageLayer> images = null;
-		
-		switch (sort)
-		{
-			case "time order":
-				images = new TreeSet<MatrixSTMImageLayer>( new TimeComparator() );
-				break;
 				
-			case "size":
-				images = new TreeSet<MatrixSTMImageLayer>( new SizeComparator() );
-				break;
-		}*/
-		
 		Comparator<MatrixSTMImageLayer> comp = null;
 		switch (sort)
 		{
@@ -175,6 +181,10 @@ public class STMFolderLayer extends GroupLayer//NavigationLayer
 				break;
 				
 			case "size":
+				comp = new SizeComparator();
+				break;
+				
+			case "one by one":
 				comp = new SizeComparator();
 				break;
 		}
@@ -188,7 +198,15 @@ public class STMFolderLayer extends GroupLayer//NavigationLayer
 			NavigationLayer n = layerChildren.get(i);
 			System.out.print( (n instanceof MatrixSTMImageLayer) + "  " );
 			if (n instanceof MatrixSTMImageLayer)
-				images.add((MatrixSTMImageLayer)n);
+			{
+				GroupLayer gl = n.getGroup("examples");
+				System.out.println("** " + (!onlyWithExamples || ((gl != null) && (!gl.getLayerChildren().isEmpty()))));
+				
+				if (!onlyWithExamples || ((gl != null) && (!gl.getLayerChildren().isEmpty())))
+					images.add((MatrixSTMImageLayer)n);
+				else
+					n.setVisible(false);
+			}
 		}
 		System.out.println();
 		
@@ -200,6 +218,8 @@ public class STMFolderLayer extends GroupLayer//NavigationLayer
 		Iterator<MatrixSTMImageLayer> imageIt = images.iterator();
 		System.out.println();
 		System.out.print("order: ");
+		int idx = 0;
+		currentImageIdx = 0;
 		while (imageIt.hasNext())
 		{
 			MatrixSTMImageLayer l = imageIt.next();
@@ -207,15 +227,60 @@ public class STMFolderLayer extends GroupLayer//NavigationLayer
 			double width = l.scale.getMxx();
 			System.out.print(width + "  ");
 			xPos += width/2;
-		    l.setTranslateX(xPos);
+			if (sort.equals("one by one"))
+			{
+				l.setTranslateX(0);
+				if (idx > 0)
+					l.setVisible(false);
+			}
+			else
+			{
+				l.setTranslateX(xPos);
+				l.setVisible(true);
+			}
 		    l.setTranslateY(0);
 		    xPos += width/2;
+		    idx ++;
 		}
+		
 		System.out.println();
 	}
 	
 	public void resetFolder()
 	{
+		getChildren().clear();
 		SampleNavigator.setImageFolderData(this);
+	}
+	
+	public void nextImage()
+	{
+		if (images == null)
+			return;
+		
+		if (sort.equals("one by one"))
+		{
+			images.get(currentImageIdx).setVisible(false);
+			currentImageIdx = (currentImageIdx + 1)%images.size();
+			images.get(currentImageIdx).setVisible(true);
+			SampleNavigator.refreshTreeEditor();
+			SampleNavigator.setSelectedLayer(images.get(currentImageIdx));
+		}
+	}
+	
+	public void prevImage()
+	{
+		if (images == null)
+			return;
+		
+		if (sort.equals("one by one"))
+		{
+			images.get(currentImageIdx).setVisible(false);
+			currentImageIdx --;
+			if (currentImageIdx < 0)
+				currentImageIdx = images.size() - 1;
+			images.get(currentImageIdx).setVisible(true);
+			SampleNavigator.refreshTreeEditor();
+			SampleNavigator.setSelectedLayer(images.get(currentImageIdx));
+		}
 	}
 }
