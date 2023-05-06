@@ -89,9 +89,10 @@ public class NavigationLayer extends Group
 		}
 		
 		tabs.put("main", new String[] {});
-		tabs.put("appearance", new String[] {"clearTransforms","copyTransforms","pasteTransforms","generateKeyFrame","angle","scaleX","scaleY","transparency","visible","x","y"});
+		//tabs.put("appearance", new String[] {"clearTransforms","copyTransforms","pasteTransforms","generateKeyFrame","angle","scaleX","scaleY","transparency","visible","x","y"});
+		tabs.put("appearance", new String[] {"clearTransforms","copyTransforms","pasteTransforms","generateKeyFrame","transparency","visible"});
 		categories.put("visible", new String[] {"true","false"});
-		units.put("angle", "°");
+		units.put("angle", "deg");
 		units.put("scaleX", "nm");
 		units.put("scaleY", "nm");
 		units.put("x", "nm");
