@@ -43,15 +43,19 @@ As a sub-element of ```<WindowDescription>```, copy the following xml code into 
       </Layout>
       <Panel name="STMSSZ_Sampler_I_Panel" experimentElementInstanceName="Sampler_I" panelType="Sampler"/>
     </Window>
-    
+```
+
+In this file, order matters.  After all of the ```<Window>``` elements, there is a set of ```<WindowGroup``` elements.  At the end of this list, insert the following code:
+
+```
     <WindowGroup name="STMS_Window_Group_6" caption="Sampler Signals" icon="AtomManipulation%NOTOOLBAR">
       <WindowRef windowRef="STMSSZa_Sampler_Z"/>
       <WindowRef windowRef="STMSSZa_Sampler_I"/>
     </WindowGroup>
 ```
-Note that if you already have more or fewer than 5 window groups defined, you will need to adjust the name of the added ```<WindowGroup>``` to be one more than the existing number of window groups.
+Note that if you have more or fewer than 5 window groups defined, you will need to adjust the name of the added ```<WindowGroup>``` to be one more than the existing number of window groups.
 
-Finally, as a sub-element of ```<ExperimentStructure>```, copy the following xml code into the file _C:/Users/[your user name here]/AppData/Roaming/Scienta Omicron/MATRIX/default_V4_3_0/Experiments/STM_AtomManipulation.exps_:
+Next, as a sub-element of ```<ExperimentStructure>```, copy the following xml code into the file _C:/Users/[your user name here]/AppData/Roaming/Scienta Omicron/MATRIX/default_V4_3_0/Experiments/STM_AtomManipulation.exps_:
 
 ```
   <ExperimentElementInstance name="Sampler_I" elementType="Sampler" catalogue="SPMBasic">
@@ -66,6 +70,8 @@ Finally, as a sub-element of ```<ExperimentStructure>```, copy the following xml
     <DeploymentParameter name="Label" value="Z-Sampler"/>
   </ExperimentElementInstance>
 ```
+
+Finally, you will need to initialize the Samplers to sample their signals at some rate.  Start the Matrix software, and from the "Window" menu open up both Sampler windows, "Sampler_Z" and "Sampler_I".  In each window, right-click and select "Options".  Set "T-Update" to **10 ms**.
 
 ## 4. For developers (optional):
 **This concludes the standard installation for the ABDController.** For those who wish to do low-level development of the ABDController to Matrix interface, see the instructions in [ABDController_C_Code/INSTALL.md](../ABDController_C_Code/INSTALL.md).
