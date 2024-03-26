@@ -39,7 +39,7 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 		
 		//appendActions(new String[] {"save","toggleFlip"});
 		actions = new String[]{/*"moveScanRegion","refreshScanRegion",*/"startScan","stopScan","togglePlaneSubtract","toggleLineByLineFlatten","nextColorScheme"};
-		
+		units.put("tipSpeed", "nm/s");
 		
 		//generatesChildren();
 		
