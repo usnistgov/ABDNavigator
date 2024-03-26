@@ -24,7 +24,54 @@ C:\Program Files\Scienta Omicron\MATRIX\V4.3.0\SDK\RemoteAccess\
 
 Copy *RemoteAccess_API.dll* from its default location into the *ABDController* folder, e.g.: ```C:\Users\foo\git\ABDNavigator-master\ABDController\```
 
-## 3. For developers (optional):
+## 3. Add current and z samplers to the ScientaOmicron Matrix.
+In order to read the tip height, **z**, and tunnel current, **I_t**, signals, Samplers need to be set up.  A Sampler consists of a window in the Matrix software as well as an experiment element connecting the appropriate signal to the Sampler.  To create these, two Matrix xml files need to be edited.
+
+As a sub-element of ```<WindowDescription>```, copy the following xml code into the file _C:/Users/[your user name here]/AppData/Roaming/Scienta Omicron/MATRIX/default_V4_3_0/Experiments/STM_AtomManipulation.expd_:
+
+```
+    <Window name="STMSSZa_Sampler_Z" caption="Sampler_Z">
+      <Layout spacing="7">
+        <BoxSpecification/>
+      </Layout>
+      <Panel name="STMSSZa_Sampler_Z_Panel" experimentElementInstanceName="Sampler_Z" panelType="Sampler"/>
+    </Window>
+
+    <Window name="STMSSZa_Sampler_I" caption="Sampler_I">
+      <Layout spacing="7">
+        <BoxSpecification/>
+      </Layout>
+      <Panel name="STMSSZ_Sampler_I_Panel" experimentElementInstanceName="Sampler_I" panelType="Sampler"/>
+    </Window>
+```
+
+In this file, order matters.  After all of the ```<Window>``` elements, there is a set of ```<WindowGroup``` elements.  At the end of this list, insert the following code:
+
+```
+    <WindowGroup name="STMS_Window_Group_6" caption="Sampler Signals" icon="AtomManipulation%NOTOOLBAR">
+      <WindowRef windowRef="STMSSZa_Sampler_Z"/>
+      <WindowRef windowRef="STMSSZa_Sampler_I"/>
+    </WindowGroup>
+```
+Note that if you have more or fewer than 5 window groups defined, you will need to adjust the name of the added ```<WindowGroup>``` to be one more than the existing number of window groups.
+
+Finally, as a sub-element of ```<ExperimentStructure>```, copy the following xml code into the file _C:/Users/[your user name here]/AppData/Roaming/Scienta Omicron/MATRIX/default_V4_3_0/Experiments/STM_AtomManipulation.exps_:
+
+```
+  <ExperimentElementInstance name="Sampler_I" elementType="Sampler" catalogue="SPMBasic">
+    <DeploymentParameter name="Device" value="Default:1:IT_Image"/>
+    <DeploymentParameter name="Device_Calibration_Name" value="Regulator::Setpoint_I"/>
+    <DeploymentParameter name="Label" value="I-Sampler"/>
+  </ExperimentElementInstance>
+  
+  <ExperimentElementInstance name="Sampler_Z" elementType="Sampler" catalogue="SPMBasic">
+    <DeploymentParameter name="Device" value="Default:1:Z_In"/>
+    <DeploymentParameter name="Device_Calibration_Name" value="Common::Z_Out"/>
+    <DeploymentParameter name="Label" value="Z-Sampler"/>
+  </ExperimentElementInstance>
+```
+
+## 4. For developers (optional):
 **This concludes the standard installation for the ABDController.** For those who wish to do low-level development of the ABDController to Matrix interface, see the instructions in [ABDController_C_Code/INSTALL.md](../ABDController_C_Code/INSTALL.md).
 
 
