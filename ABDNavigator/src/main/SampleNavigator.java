@@ -182,6 +182,7 @@ public class SampleNavigator extends Application
 	public void start(Stage stage0) throws Exception 
 	{
 		//System.out.println( ABDClient.command("this is a test") );
+		ABDPythonAPIServer.startServer();
 		
 		stage = stage0;
 		stage.setTitle("Sample Navigator");
@@ -2518,5 +2519,6 @@ public class SampleNavigator extends Application
 	{
 	    System.out.println("SampleNavigator is closing...");
 	    ABDReverseServer.stopServer();
+	    ABDPythonAPIServer.stopServer();
 	}
 }
