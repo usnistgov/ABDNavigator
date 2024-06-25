@@ -53,7 +53,8 @@ op = {"WAIT": 0,
       "VPULSE": 16,
       "SETFL": 17,
       "SETDZ": 18,
-      "CRESOLUTION": 19}
+      "CRESOLUTION": 19,
+      "FREETIP": 20}
 
 # query types
 qry = {"WINSIZE": 0,
@@ -67,7 +68,8 @@ qry = {"WINSIZE": 0,
        "GDSNAME": 8,
        "ANGLE": 9,
        "WORLDPOS": 10,
-       "RESOLUTION": 11}
+       "RESOLUTION": 11,
+       "TIPSPEED": 12}
 
 # default ip address and port number
 def_host : str = 'localhost'
@@ -122,7 +124,7 @@ def wait_ms(t: int):
     _json = {"type": pkg["ACTION"], "seq": seq, "op": op["WAIT"], "data": _data}
     seq += 1
     send_json_to_server(_json)
-    print(f"    Waiting for {t}ms...")
+    #print(f"    Waiting for {t}ms...")
 
 
 # movetip (nm, nm)
@@ -144,7 +146,7 @@ def setvGap(v: float):
 
 # Change ISET (nA)
 def setiSet(i: float):
-    pfloat(i)
+    pfloat(values=i)
     global seq
     _data = {"iset": i}
     _json = {"type": pkg["ACTION"], "seq": seq, "op": op["CISET"], "data": _data}
@@ -158,7 +160,7 @@ def startScan():
     seq += 1
     send_json_to_server(_json)
 
-# start scanning
+# stop scanning (todo: find way to detect tip settle)
 def stopScan():
     global seq
     _json = {"type": pkg["ACTION"], "seq": seq, "op": op["STOPSCAN"]}
@@ -265,6 +267,13 @@ def setResolution(res: tuple):
     seq += 1
     send_json_to_server(_json)
 
+
+# disable tip return & execution
+def disableTipReturn():
+    global seq
+    _json = {"type": pkg["ACTION"], "seq": seq, "op": op["FREETIP"]}
+    seq += 1
+    send_json_to_server(_json)
 ####################################################################################################################
 
 # get scan window size
@@ -283,8 +292,8 @@ def getWindowPosition() -> np.ndarray:
     result = json.loads(send_json_to_server(_json).decode('utf-8'))
     return np.array([result['x'], result['y']])
 
-# get tip position
-def getTipPosition() -> np.ndarray:
+# get tip position in the sample space coordinates
+def getRawTipPosition() -> np.ndarray:
     global seq
     _json = {"type": pkg["QUERY"], "seq": seq, "ob": qry["TIPPOS"]}
     seq += 1    
@@ -306,6 +315,14 @@ def getiSet() -> float:
     seq += 1
     result = json.loads(send_json_to_server(_json).decode('utf-8'))
     return result['iset']
+
+# get tipspeed
+def getTipSpeed() -> float:
+    global seq
+    _json = {"type": pkg["QUERY"], "seq": seq, "ob": qry["TIPSPEED"]}
+    seq += 1
+    result = json.loads(send_json_to_server(_json).decode('utf-8'))
+    return result['tipspeed']
 
 # get image buffer
 def getCurrentScanImage() -> list:
@@ -367,10 +384,6 @@ def getResolution() -> np.ndarray:
     result = json.loads(send_json_to_server(_json).decode('utf-8'))
     return np.array([result['points'], result['lines']])
 
-
-# get all information of scan window
-def getWindowInfo() -> tuple:
-    return getScanAngle(), getWindowSize(), getWindowPosition(), getWorldPosition()
 
 if __name__ == "__main__":
     # make up data
