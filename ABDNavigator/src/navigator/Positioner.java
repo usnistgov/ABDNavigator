@@ -17,8 +17,10 @@ import main.SampleNavigator;
 public class Positioner extends NavigationLayer
 {
 	
-	PathNode node;
+	public PathNode node;
 	boolean outsideRange = false;
+	
+	
 	
 	public Positioner()
 	{

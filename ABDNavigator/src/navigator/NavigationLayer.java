@@ -1609,17 +1609,7 @@ public class NavigationLayer extends Group
 	public GroupLayer getOrMakeGroup(String groupName)
 	{
 		GroupLayer groupL = getGroup(groupName);
-		/*
-		Vector<NavigationLayer> children = getLayerChildren();
-		for (int i = 0; i < children.size(); i ++)
-		{
-			NavigationLayer child = children.get(i);
-			if ((child instanceof GroupLayer) && (child.getName().equals(groupName)))
-			{
-				groupL = (GroupLayer)child;
-			}
-		}
-		*/
+		
 		if (groupL == null)
 		{
 			groupL = new GroupLayer();

@@ -27,7 +27,13 @@ public class ABDServer
 		
 		try
 		{
-			server = new ServerSocket(port);
+			InetAddress host = InetAddress.getByName("localhost");
+			InetSocketAddress endPoint = new InetSocketAddress(host, port);
+			
+			server = new ServerSocket();//port);
+			server.bind(endPoint);
+			
+			//server = new ServerSocket(port);
 		
 			serverThread = new Thread()
 			{

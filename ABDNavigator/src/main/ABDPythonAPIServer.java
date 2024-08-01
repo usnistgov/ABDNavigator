@@ -100,27 +100,24 @@ public class ABDPythonAPIServer
 			s = jObj.get("seq");
 			int seq = ((Long)s).intValue();
 			
+			System.out.println(jObj);
+			
 			//System.out.println("op: " + op);
 			//System.out.println("type: " + type);
 			//System.out.println("seq: " + seq);
 			
-			switch (op)
-			{
-				case 4:
-					System.out.println("start scan");
-					SampleNavigator.scanner.scan.startScan();
-					break;
-			}
+			
 			
 			switch (type)
 			{
-				case 1:
-					jObj = new JSONObject();
-
-					//jObj.put("x", 0);
-					//jObj.put("y", 0);
-					
-					//out = jObj.toString();
+				case 1: // perform an action
+					switch (op)
+					{
+						case 4: //start scan
+							System.out.println("start scan");
+							SampleNavigator.scanner.scan.startScan();
+							break;
+					}
 					
 					break;
 			}

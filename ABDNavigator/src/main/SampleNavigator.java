@@ -1316,6 +1316,24 @@ public class SampleNavigator extends Application
 		SampleNavigator.refreshTreeEditor();
 	}
 	
+	public static void addDetection(NavigationLayer parent, double x, double y, double scaleX, double scaleY, double prediction, double predictionThreshold)
+	{
+		GroupLayer detectionGroup = parent.getOrMakeGroup("detections");
+		
+		DetectionLayer l = new DetectionLayer();
+		detectionGroup.getChildren().add(l);
+		
+		l.predictionThreshold = predictionThreshold;
+		l.prediction = prediction;
+		l.scale.setX(scaleX);
+		l.scale.setY(scaleY);
+		l.init();
+		l.setTranslateX(x);
+		l.setTranslateY(y);
+		
+		SampleNavigator.refreshTreeEditor();
+	}
+	
 	public static void addPositioner()
 	{
 		Positioner l = new Positioner();

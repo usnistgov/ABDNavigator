@@ -11,6 +11,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.net.MalformedURLException;
 import java.nio.ByteBuffer;
 import java.nio.DoubleBuffer;
 import java.nio.ByteOrder;
@@ -24,6 +25,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.Vector;
 import java.util.Hashtable;
+import java.util.Iterator;
 
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
@@ -41,8 +43,15 @@ import javafx.application.Platform;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.Node;
 import javafx.scene.image.Image;
+import main.ABDPythonAPIClient;
 import main.SampleNavigator;
 import util.FFT2D;
+
+import org.json.simple.JSONObject;
+import org.json.simple.JSONArray;
+import org.json.simple.parser.ParseException;
+import org.json.simple.parser.JSONParser;
+
 
 public class MatrixSTMImageLayer extends ImageLayer
 {
@@ -83,14 +92,23 @@ public class MatrixSTMImageLayer extends ImageLayer
 	public double spacingUncertainty = 0.2;
 	public GroupLayer replaceLattice = null;
 	
+	public double latticeAngle = 0;
+	public double detectionContrast = 0.6;
+	public double predictionThreshold = 0.5;
+	
+	
 	public MatrixSTMImageLayer()
 	{
 		super();
 		//appendActions( new String[]{"imageLeftRight","imageUpDown","togglePlaneSubtract","toggleLineByLineFlatten","nextColorScheme","locateMaxima","locateLattice","addExample"} );
-		appendActions( new String[]{"locateMaxima","locateLattice","altLocateLattice","addExample","clearExamples"} );
-		tabs.put("maxima", new String[] {"locateMaxima","maximaExpectedDiameter","maximaPrecision","maximaThreshold"});
-		tabs.put("lattice", new String[] {"locateLattice","altLocateLattice","latticeExpectedSpacing","latticeSpacingUncertainty"});
-		tabs.put("machine learning", new String[] {"addExample","clearExamples"});
+		//appendActions( new String[]{"locateMaxima","locateLattice","altLocateLattice","addExample","clearExamples","checkTipQuality"} );
+		appendActions( new String[]{"altLocateLattice","addExample","clearExamples","checkTipQuality"} );
+		//tabs.put("maxima", new String[] {"locateMaxima","maximaExpectedDiameter","maximaPrecision","maximaThreshold"});
+		//tabs.put("lattice", new String[] {"locateLattice","altLocateLattice","latticeExpectedSpacing","latticeSpacingUncertainty"});
+		tabs.put("detection", new String[] {"checkTipQuality","latticeAngle", "detectionContrast", "predictionThreshold"});
+		tabs.put("lattice", new String[] {"altLocateLattice","latticeExpectedSpacing","latticeSpacingUncertainty"});
+		//tabs.put("machine learning", new String[] {"addExample","clearExamples"});
+		tabs.put("training", new String[] {"addExample","clearExamples"});
 		tabs.put("settings", new String[] {"sampleBias","current"});
 		categories.put("colorSchemeIndex", new String[] {"0","1","2","3"});
 		categories.put("imageDirection", new String[] {"upForward","upBackward","downForward","downBackward"});
@@ -98,7 +116,8 @@ public class MatrixSTMImageLayer extends ImageLayer
 		categories.put("planeSubtract", new String[] {"true","false"});
 		units.put("latticeExpectedSpacing", "nm");
 		units.put("latticeSpacingUncertainty", "nm");
-		units.put("maximaExpectedDiameter", "nm");
+		units.put("latticeAngle", "deg");
+		//units.put("maximaExpectedDiameter", "nm");
 		units.put("sampleBias", "V");
 		units.put("current", "nA");
 	}
@@ -284,6 +303,9 @@ public class MatrixSTMImageLayer extends ImageLayer
 				}
 				
 				currentImageData = upTraceForwardData;
+				//nmFromZ = (1E9)*(max - min)/zFactor/255.0;
+				nmFromZ = 1.0E9/zFactor;
+				nmFromIdx = scaleX0/(double)width;
 				
 				float[][] fData = new float[width][height];
 				for (int xIdx = 0; xIdx < width; xIdx ++)
@@ -293,9 +315,10 @@ public class MatrixSTMImageLayer extends ImageLayer
 						fData[xIdx][yIdx] = (upTraceForwardData[xIdx][yIdx] - min)/(max-min);
 					}
 				}
+				
 				bImg = new BufferedSTMImage(fData);
 				bImg.colorSchemeIdx = colorSchemeIdx;
-				
+								
 				bImg.draw();
 				
 			}
@@ -316,7 +339,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 		}
 	}
 	
-	private double zFactor = 1;
+	public double zFactor = 1;
 	private double zOffset = 0;
 	private int xPixels = 1;
 	private int yPixels = 1;
@@ -1054,6 +1077,36 @@ public class MatrixSTMImageLayer extends ImageLayer
 			dzdxAve /= ((pixWidth-1)*(capturedLinesEnd-capturedLinesStart));
 			dzdyAve /= ((pixWidth-1)*(capturedLinesEnd-capturedLinesStart-1));
 			
+			if ((dzdx != 0) || (dzdy != 0))
+			{
+				//dzdxAve = dzdx;
+				//dzdyAve = dzdy;
+				/*
+				float min = fData[0][capturedLinesStart];
+				float max = fData[0][capturedLinesStart];
+				
+				for (int xIdx = 0; xIdx < pixWidth-1; xIdx ++)
+				{
+					for (int yIdx = capturedLinesStart; yIdx < capturedLinesEnd; yIdx ++)
+					{
+						if (min > fData[xIdx][yIdx])
+							min = fData[xIdx][yIdx];
+						if (max < fData[xIdx][yIdx])
+							max = fData[xIdx][yIdx];
+					}
+				}
+				System.out.println("min max: " + min + "  " + max);
+				//double f = (max - min)/pixWidth;
+				double f = (max - min)*(nmFromIdx)/256.0/nmFromZ;
+				*/
+				double f = nmFromIdx/nmFromZ;
+				
+				System.out.println("prev dzdx,dzdy: " + dzdxAve + "," + dzdyAve);
+				dzdxAve = f*dzdx;
+				dzdyAve = f*dzdy;
+				System.out.println("new dzdx,dzdy: " + dzdxAve + "," + dzdyAve);
+			}
+			
 			//System.out.println("slopes: " + dzdxAve + "   " + dzdyAve);
 			
 			for (int yIdx = 0; yIdx < pixHeight; yIdx ++)
@@ -1310,7 +1363,8 @@ public class MatrixSTMImageLayer extends ImageLayer
 		s = xml.getAttribute("colorSchemeIndex");
 		if (s.length() > 0)
 			colorSchemeIdx = Integer.parseInt(s);
-			
+		
+		/*  This may be put back in later
 		s = xml.getAttribute("maximaThreshold");
 		if (s.length() > 0)
 			maximaThreshold = Integer.parseInt(s);
@@ -1322,6 +1376,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 		s = xml.getAttribute("maximaExpectedDiameter");
 		if (s.length() > 0)
 			maximaExpectedDiameter = Double.parseDouble(s);
+		*/
 		
 		s = xml.getAttribute("latticeExpectedSpacing");
 		if (s.length() > 0)
@@ -1330,6 +1385,18 @@ public class MatrixSTMImageLayer extends ImageLayer
 		s = xml.getAttribute("latticeSpacingUncertainty");
 		if (s.length() > 0)
 			spacingUncertainty = Double.parseDouble(s);
+		
+		s = xml.getAttribute("latticeAngle");
+		if (s.length() > 0)
+			latticeAngle = Double.parseDouble(s);
+		
+		s = xml.getAttribute("detectionContrast");
+		if (s.length() > 0)
+			detectionContrast = Double.parseDouble(s);
+		
+		s = xml.getAttribute("predictionThreshold");
+		if (s.length() > 0)
+			predictionThreshold = Double.parseDouble(s);
 		
 		/*
 		s = xml.getAttribute("sampleBias");
@@ -1361,11 +1428,14 @@ public class MatrixSTMImageLayer extends ImageLayer
 		e.setAttribute("lineByLineFlatten", Boolean.toString(lineByLineFlatten));
 		e.setAttribute("imageDirection", imageDirection);
 		e.setAttribute("colorSchemeIndex", Integer.toString(colorSchemeIdx));
-		e.setAttribute("maximaThreshold", Integer.toString(maximaThreshold));
-		e.setAttribute("maximaPrecision", Integer.toString(maximaPrecision));
-		e.setAttribute("maximaExpectedDiameter", Double.toString(maximaExpectedDiameter));
+		//e.setAttribute("maximaThreshold", Integer.toString(maximaThreshold));
+		//e.setAttribute("maximaPrecision", Integer.toString(maximaPrecision));
+		//e.setAttribute("maximaExpectedDiameter", Double.toString(maximaExpectedDiameter));
 		e.setAttribute("latticeExpectedSpacing", Double.toString(expectedLatticeSpacing));
 		e.setAttribute("latticeSpacingUncertainty", Double.toString(spacingUncertainty));
+		e.setAttribute("latticeAngle", Double.toString(latticeAngle));
+		e.setAttribute("detectionContrast", Double.toString(detectionContrast));
+		e.setAttribute("predictionThreshold", Double.toString(predictionThreshold));
 		e.setAttribute("sampleBias", Double.toString(bias));
 		e.setAttribute("current", Double.toString(current));
 		return e;
@@ -2123,5 +2193,124 @@ public class MatrixSTMImageLayer extends ImageLayer
 		}
 		
 		SampleNavigator.refreshTreeEditor();
+	}
+	
+	public void deleteExample(ExampleLayer example)
+	{
+		if (SampleNavigator.mlController != null)
+		{
+			SampleNavigator.mlController.examples.remove(example);
+			if (SampleNavigator.mlController.currentExample == example)
+				SampleNavigator.mlController.currentExample = null;
+		}
+		
+		//GroupLayer exampleGroup = getOrMakeGroup("examples");
+		GroupLayer exampleGroup = (GroupLayer)example.getParent();
+		exampleGroup.getChildren().remove(example);
+		
+		SampleNavigator.refreshTreeEditor();
+	}
+	
+	public void checkTipQuality()
+	{
+		//send the image to python to analyze it
+		String imgNameString = new String(imgName);
+		imgNameString = imgNameString.replaceFirst("file:", "file:" + SampleNavigator.relativeDirectory);
+		String fullFileName = imgNameString.replaceFirst("file:","");
+		File f = new File(fullFileName);
+		String pathToImage = f.getAbsolutePath();		
+		
+		JSONObject jObj = new JSONObject();
+				
+		jObj.put("scan_path", pathToImage);
+		
+		JSONObject options = new JSONObject();
+		options.put("contrast", Double.valueOf(detectionContrast));
+		options.put("rotation", Double.valueOf(latticeAngle));
+		jObj.put("detector_options", options);
+		
+		
+		options = new JSONObject();
+		options.put("direction", Integer.valueOf(0));
+		
+		JSONArray slopes = new JSONArray();
+		slopes.add( Double.valueOf(dzdx) );
+		slopes.add( Double.valueOf(dzdy) );
+		options.put("plane_slopes", slopes);
+		jObj.put("matrix_options", options);
+		
+		//System.out.println(jObj);
+		String result = ABDPythonAPIClient.command(jObj.toString());
+		//System.out.println("tip check result: " + result);
+		
+		//read the result
+		try
+		{
+			JSONParser parser = new JSONParser();
+			Object obj = parser.parse(result);
+			JSONObject rObj = (JSONObject)obj;
+			
+			Object s = rObj.get("sharp");
+			if (s == null)
+				return;
+			int sharp = ((Long)s).intValue();
+			
+			s = rObj.get("dull");
+			int dull = ((Long)s).intValue();
+			
+			s = rObj.get("total");
+			int total = ((Long)s).intValue();
+			
+			JSONObject roi = (JSONObject)rObj.get("roi_data");
+			
+			JSONObject constants = (JSONObject)roi.get("constants");
+			s = constants.get("nm_size");
+			double nmSize = ((Double)s).doubleValue();
+			
+			s = constants.get("pixel_size");
+			int pxSize = ((Long)s).intValue();
+			
+			double imgPxSize = (double)getRasterData().length;
+			double origin = imgPxSize/2;
+			double scaleSize = (double)pxSize/imgPxSize;
+			
+			JSONArray locations = (JSONArray)roi.get("locations");
+			
+			GroupLayer detectionGroup = getOrMakeGroup("detections");
+			detectionGroup.getChildren().clear();
+			detectionGroup.rotation.setAngle(latticeAngle);
+			
+			for (int i = 0; i < locations.size(); i ++)
+			{
+				//System.out.println( locations.get(i).getClass() );
+				JSONObject loc = (JSONObject)locations.get(i);
+				
+				double x = (double)((Long)loc.get("x")).intValue();
+				double y = (double)((Long)loc.get("y")).intValue();
+				double prediction = ((Double)loc.get("prediction")).doubleValue();
+				
+				double xScaled = (x-origin)/imgPxSize + scaleSize/2;
+				double yScaled = (y-origin)/imgPxSize + scaleSize/2;
+				
+				System.out.println(x + "  " + y + "    " + prediction);
+				SampleNavigator.addDetection(this, xScaled, yScaled, scaleSize, scaleSize, prediction, predictionThreshold);
+			}
+			
+		}
+		catch (Exception ex)
+		{
+			ex.printStackTrace();
+		}
+	}
+	
+	public double[][] getRawImageData()
+	{
+		//return getRasterData();
+		double[][] data = new double[currentImageData.length][currentImageData[0].length];
+		for (int i = 0; i < data.length; i ++)
+			for (int j = 0; j < data[0].length; j ++)
+				data[i][j] = (double)currentImageData[i][j];
+		
+		return data;
 	}
 }

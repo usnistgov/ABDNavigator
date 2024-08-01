@@ -34,7 +34,7 @@ public class ExampleLayer extends NavigationLayer
 	public ExampleLayer()
 	{
 		super();
-		appendActions( new String[] {"chooseMLSettings","defaultSettings"} );
+		appendActions( new String[] {"chooseMLSettings","defaultSettings","delete"} );
 		//actions = new String[]{/*"autoRotate",*/"update",/*"addScalePoint",*/"addLine","addPerpendicular"};
 		tabs.put("settings", new String[] {"chooseMLSettings","defaultSettings", "ML_settings"});
 		
@@ -56,7 +56,7 @@ public class ExampleLayer extends NavigationLayer
 	public Color glowHightlight = new Color(1,1,0,0.8);
 	public Text textDisp = null;
 	
-	
+	public String objectType = "example";
 
 	public void init()
 	{
@@ -79,8 +79,8 @@ public class ExampleLayer extends NavigationLayer
 		r.setStrokeWidth(.02);
 		r.setEffect(ds);
 		
-		
-		r.setId("example");
+		System.out.println(objectType);
+		r.setId(objectType);
 				
 		main.getChildren().add(r);
 		
@@ -207,7 +207,7 @@ public class ExampleLayer extends NavigationLayer
 		toParent = getParent().getLocalToParentTransform().createConcatenation(t);
 		
 		double widthFraction = Math.min( scale.getMxx(), scale.getMyy() );
-		int numLinePts = (int)Math.ceil( (double)Math.max(data.length, data[0].length)*2.0*widthFraction );
+		int numLinePts = (int)Math.ceil( (double)Math.max(data.length, data[0].length)*1.0*widthFraction );
 				
 		//generate array of data for the cropped image
 		float[][] croppedData = new float[numLinePts][numLinePts];
@@ -334,7 +334,7 @@ public class ExampleLayer extends NavigationLayer
 		}
 	}
 	
-	private String[] stmFeatures = new String[] {"current","sampleBias"};
+	private String[] stmFeatures = new String[] {"current","sampleBias","img"};
 	public void setFeaturesFromParent()
 	{
 		if (parentImage == null)
@@ -554,5 +554,10 @@ public class ExampleLayer extends NavigationLayer
 		}
 		
 		return correctedFeatures;
+	}
+	
+	public void delete()
+	{
+		parentImage.deleteExample(this);
 	}
 }

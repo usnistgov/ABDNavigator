@@ -183,3 +183,13 @@
 {
 	-fx-fill: rgba(70,200,255,0.2)
 }
+
+#detection
+{
+	-fx-fill: transparent;
+}
+
+#detection:hover
+{
+	-fx-fill: rgba(70,200,255,0.2)
+}

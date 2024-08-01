@@ -6,9 +6,11 @@ import java.net.*;
 import javafx.scene.shape.Circle;
 
 
-public class ABDClient
+
+
+public class ABDPythonAPIClient
 {
-	public static int port = 6889;
+	public static int port = 5050;
 	
 	public static DataOutputStream outStream;
 	public static BufferedReader serverReader;
@@ -27,10 +29,10 @@ public class ABDClient
 	
 	public static synchronized String command(String out)
 	{
-		if (!ABDReverseServer.serverRunning)
+		if (!ABDPythonAPIServer.serverRunning)
 		{
-			//try restarting the reverse server
-			ABDReverseServer.startServer();
+			//try restarting the PythonAPI server
+			ABDPythonAPIServer.startServer();
 			try
 			{
 				Thread.sleep(100);
@@ -40,11 +42,11 @@ public class ABDClient
 				ex.printStackTrace();
 			}
 			
-			if (!ABDReverseServer.serverRunning)
+			if (!ABDPythonAPIServer.serverRunning)
 				return "";
 		}
 		
-		String line = null;
+		StringBuffer line = null;
 		try
 		{
 			Socket clientSocket = new Socket("localhost", port);
@@ -52,21 +54,28 @@ public class ABDClient
 			serverReader = new BufferedReader( new InputStreamReader(clientSocket.getInputStream()) );
 			
 			outStream.writeBytes(out + '\n');
-			line = serverReader.readLine();
-			
+			String readLine = null;
+			line = new StringBuffer( serverReader.readLine() );
+						
 			clientSocket.close();
 		}
 		catch (Exception ex)
 		{
 			ex.printStackTrace();
-			ABDReverseServer.stopServer();
+			ABDPythonAPIServer.stopServer();
 		}
 		
-		return line;
+		if (line == null)
+			return null;
+		
+		return line.toString();
 	}
-	
+	/*
 	public static synchronized void waitForTip()
-	{		
+	{
+		//if (true)
+		//	return;
+		
 		try
 		{
 			if (SampleNavigator.scanner != null)
@@ -85,6 +94,7 @@ public class ABDClient
 					String[] pos = position.split(",");
 					double x = Double.parseDouble(pos[0])*1E9;
 					double y = -Double.parseDouble(pos[1])*1E9;
+					//System.out.println(x + "," + y + "          ");
 					
 					SampleNavigator.scanner.setTipPosition(x, y);
 				}
@@ -100,6 +110,7 @@ public class ABDClient
 			ex.printStackTrace();
 		}
 	}
+	*/
 	
 	public static boolean lock = false;
 	public static Object lockObject = null;

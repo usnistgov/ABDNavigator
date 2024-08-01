@@ -16,6 +16,7 @@ public class BufferedSTMImage extends BufferedImage
 	public float[][] data = null;
 	public float maxZFraction = 1;
 	public float minZFraction = 0;
+	//public double nmFromZ = 1; //conversion from data[][] z-value to nanometers
 	
 	public String fileName = "";
 	
@@ -83,6 +84,10 @@ public class BufferedSTMImage extends BufferedImage
 	
 	public int cropYStart = 0;
 	public int cropYEnd = -1;
+	
+	//public double dzdx = 0;
+	//public double dzdy = 0;
+	
 	
 	public int bounds(int val, int buffBottom, int buffTop)
 	{
@@ -178,6 +183,12 @@ public class BufferedSTMImage extends BufferedImage
 						
 			dzdxAve /= ((pixWidth-1)*(capturedLinesEnd-capturedLinesStart));
 			dzdyAve /= ((pixWidth-1)*(capturedLinesEnd-capturedLinesStart-1));
+			
+			/* if ((dzdx != 0) || (dzdy != 0))
+			{
+				dzdxAve = dzdx;
+				dzdyAve = 
+			}*/
 			
 			for (int yIdx = capturedLinesStart; yIdx < capturedLinesEnd; yIdx ++)//used to start at 0
 			{
@@ -440,4 +451,6 @@ public class BufferedSTMImage extends BufferedImage
 		
 		return mb;
 	}
+	
+	
 }

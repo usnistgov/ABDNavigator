@@ -9,6 +9,7 @@ import org.w3c.dom.*;
 import Jama.Matrix;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.geometry.Point2D;
+import javafx.geometry.Point3D;
 import javafx.scene.Group;
 import javafx.scene.effect.DisplacementMap;
 import javafx.scene.effect.FloatMap;
@@ -57,10 +58,21 @@ public class ImageLayer extends NavigationLayer
 	public Group viewGroup;
 	public Group viewScaleGroup;
 	
+	public double nmFromZ = 1; //conversion from data[][] z-value to nanometers
+	public double nmFromIdx = 1; //conversion from pixel index to nanometers
+	
+	//plane fit parameters for this image
+	public double dzdx = 0;
+	public double dzdy = 0;
 	
 	public ImageLayer()
 	{
-		appendActions( new String[]{"addScalePoint","toggleScalePoints","clearScalePoints","addRegionSelection"} );
+		appendActions( new String[]{"addScalePoint","toggleScalePoints","clearScalePoints","addRegionSelection","initPlaneFit","calculatePlane"} );
+	}
+	
+	public double[][] getRawImageData()
+	{
+		return getRasterData();
 	}
 	
 	public double[][] getRasterData()
@@ -497,6 +509,20 @@ public class ImageLayer extends NavigationLayer
 		l.init();
 		SampleNavigator.refreshTreeEditor();
 	}
+	/*
+	public void postSetFromXML()
+	{
+		GroupLayer fitG = getGroup("planeFit");
+		if (fitG == null)
+			return;
+		
+		Vector<CircleSelectionLayer> circles = fitG.getChildrenOfType(CircleSelectionLayer.class);
+		for (int i = 0; i < circles.size(); i ++)
+		{
+			CircleSelectionLayer c = circles.get(i);
+			c.init();
+		}
+	}*/
 	
 	public void finalSetFromXML()
 	{
@@ -761,6 +787,8 @@ public class ImageLayer extends NavigationLayer
 	public void initFromImage(Image img0)
 	{
 		img = new WritableImage( img0.getPixelReader(), (int)img0.getWidth(), (int)img0.getHeight() );
+		
+		
 		
 		view = new ImageView(img);
 		
@@ -1296,4 +1324,90 @@ public class ImageLayer extends NavigationLayer
 		
 		return corners;
 	}*/
+	
+	public void initPlaneFit()
+	{
+		GroupLayer g = getOrMakeGroup("planeFit");
+		g.getChildren().clear();
+		
+		for (int i = 0; i < 3; i ++)
+		{
+			//ScalePoint sp = new ScalePoint();
+			//sp.glowColor = new javafx.scene.paint.Color(1,1,0,.8);
+			//sp.nodeColor = new javafx.scene.paint.Color(1,.5,0,.8);
+			//g.getChildren().add(sp);
+			//sp.init();
+			
+			//Positioner p = new Positioner();
+			//p.node.circleColor = new javafx.scene.paint.Color(0.9,0.2,0.0,.8);
+			//g.getChildren().add(p);
+			//p.postSetFromXML();
+			
+			CircleSelectionLayer c = new CircleSelectionLayer();
+			g.getChildren().add(c);
+			c.scale.setX(0.05);
+			c.scale.setY(0.05);
+			
+			c.init();
+		}
+		
+		
+		SampleNavigator.refreshTreeEditor();
+	}
+	
+	public void calculatePlane()
+	{	
+		//get the 3 points that determine the plane from the CircleSelectionLayers in the planeFit GroupLayer
+		GroupLayer fitG = getGroup("planeFit");
+		
+		if (fitG == null)
+		{
+			System.out.println("planeFit group is not defined!");
+			return;
+		}
+		
+		Vector<CircleSelectionLayer> circles = fitG.getChildrenOfType(CircleSelectionLayer.class);
+		if (circles.size() < 3)
+		{
+			System.out.println("fewer than 3 circles specified!");
+			return;
+		}
+		
+		//if the image layer has already had a plane subtracted from its raw data, toggle back to the raw data before calculating a plane fit
+		MatrixSTMImageLayer mLayer = null;
+		if (this instanceof MatrixSTMImageLayer)
+		{
+			mLayer = (MatrixSTMImageLayer)this;
+			if (mLayer.planeSubtract)
+				mLayer.togglePlaneSubtract();
+			else
+				mLayer = null;
+		}
+		
+		Point3D[] p = new Point3D[3];
+		for (int i = 0; i < 3; i ++)
+		{
+			CircleSelectionLayer c = circles.get(i);
+			c.update();
+			p[i] = new Point3D( c.center[0], c.center[1], c.heightAverage );
+		}
+		
+		
+		
+		//the cross product of 2 vectors pointing from 1 vertex to the other 2 verticies of the triangle defines a normal (not unit-length) to the plane
+		Point3D v1 = p[1].subtract(p[0]);
+		Point3D v2 = p[2].subtract(p[0]);
+		Point3D n = v1.crossProduct(v2);
+		
+		System.out.println("plane normal: " + n);
+		
+		//the plane should be all points for which a dot product with the normal vector is 0 which can be expressed as 2 slopes
+		//with respect to the x and y directions given here as dz/dx and dz/dy:
+		dzdx = -n.getX()/n.getZ();
+		dzdy = -n.getY()/n.getZ();
+		
+		System.out.println("calculated plane (dz/dx, dz/dy): " + dzdx + ", " + dzdy);
+		if (mLayer != null)
+			mLayer.togglePlaneSubtract();
+	}
 }
