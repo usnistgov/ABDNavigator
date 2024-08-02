@@ -1,0 +1,14 @@
+{
+    "ROI_NM_SIZE": 2,
+    "SQUARE_PIXEL_SIZE": 38,
+    "DETECTOR_CROSS_SIZE": 1,
+    "DETECTOR_SCAN_DEBUG": false,
+    "DETECTOR_ROI_DEBUG": false,
+    "SCANS": [
+        "full_scan_examples/20230131-180445_20211029 W31 P14--STM_AtomManipulation--128_2.Z_mtrx",
+        "full_scan_examples/full_scan_example2_45nmx45nm.png",
+        "full_scan_examples/default_2017Jul21-230336_STM-STM_AtomManipulation--19_9.___10nmx10nm___.png",
+        "full_scan_examples/default_2017Jun20-143916_STM-STM_AtomManipulation--4_1.___20nmx20nm___.png",
+        "full_scan_examples/default_2017Jul21-230336_STM-STM_AtomManipulation--19_44.Z_flat_10nmx10nm.png"
+    ]
+}

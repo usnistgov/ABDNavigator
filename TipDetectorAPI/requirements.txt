@@ -1,0 +1,5 @@
+numpy
+tensorflow
+opencv-python
+tqdm
+access2thematrix
