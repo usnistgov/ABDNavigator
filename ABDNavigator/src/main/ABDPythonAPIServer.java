@@ -3,6 +3,8 @@ package main;
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.InputStreamReader;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -29,7 +31,12 @@ public class ABDPythonAPIServer
 		
 		try
 		{
-			server = new ServerSocket(port);
+			//server = new ServerSocket(port);
+			InetAddress host = InetAddress.getByName("localhost");
+			InetSocketAddress endPoint = new InetSocketAddress(host, port);
+			
+			server = new ServerSocket();//port);
+			server.bind(endPoint);
 			serverRunning = true;
 			
 			serverThread = new Thread()
@@ -82,13 +89,14 @@ public class ABDPythonAPIServer
 	
 	private static String handleRequest(BufferedReader in)
 	{
-		String out = (new JSONObject()).toString();
+		JSONObject outObj = new JSONObject();
+		
 		
 		try
 		{
 			JSONParser parser = new JSONParser();
 			Object obj = parser.parse(in.readLine());
-			System.out.println(obj);
+			System.out.println("JSON String" + obj);
 			JSONObject jObj = (JSONObject)obj;
 			Object s = jObj.get("op");
 			if (s == null)
@@ -100,16 +108,33 @@ public class ABDPythonAPIServer
 			s = jObj.get("seq");
 			int seq = ((Long)s).intValue();
 			
-			System.out.println(jObj);
+			System.out.println("json object: " + jObj);
 			
 			//System.out.println("op: " + op);
 			//System.out.println("type: " + type);
 			//System.out.println("seq: " + seq);
 			
 			
+			System.out.println("type: " + type);
 			
 			switch (type)
 			{
+				case 0: // query from python
+					System.out.println("op: " + op);
+					switch (op)
+					{
+						case 11: //get resolution
+							System.out.println("get resolution");
+							
+							//hardcode resolution for testing
+							outObj.put("points", Integer.valueOf(200));
+							outObj.put("lines", Integer.valueOf(200));
+							
+							break;
+					}
+					
+					break;
+					
 				case 1: // perform an action
 					switch (op)
 					{
@@ -128,7 +153,8 @@ public class ABDPythonAPIServer
 		}
 		
 		
-		
+		String out = new String( outObj.toString() + "\n");
+		//out = "{\"lines\":200,\"points\":200}\n";
 		return out;
 	}
 	

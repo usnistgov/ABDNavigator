@@ -1,7 +1,8 @@
 import socket
 import json
 import numpy as np
-
+import time
+import select
 
 from typing import Tuple
 from pydantic import (
@@ -90,6 +91,38 @@ def connect_to_Monitor() -> socket:
         print(f"An error occurred: {e}")
         return None
 
+def send_and_receive_json(j: dict, timeout=5) -> dict:
+	data = ""
+	start_time = time.time()
+    
+    # connect to the server first
+	s = connect_to_Monitor()
+    # assemble bytestring and send to server
+	try:    
+		json_data = json.dumps(j)
+		# Send the JSON data followed by a newline character
+		s.sendall(json_data.encode('utf-8') + b'\n')
+        
+		while True:
+			ready = select.select([s], [], [], timeout)
+			if ready[0]:
+				chunk = s.recv(1024).decode("utf-8")
+				if not chunk:
+					raise ConnectionError("Connection closed by client")
+				data += chunk
+				#print(data)
+				try:
+					return json.loads(data)
+				except json.JSONDecodeError:
+					if time.time() - start_time > timeout:
+						raise TimeoutError("Timeout while waiting for complete JSON")
+					continue
+			else:
+				raise TimeoutError("Timeout while waiting for data")
+	            
+	except Exception as e:
+		print(f"An error occurred: {e}")
+            
 # send all steps as json to Monitor
 def send_json_to_server(j: dict, chunk: bool = False):
     # connect to the server first
@@ -107,6 +140,7 @@ def send_json_to_server(j: dict, chunk: bool = False):
         else:
             response = b""
             while True:
+                #segment = s.recv(4096)
                 segment = s.recv(4096)
                 if not segment:
                     break
@@ -279,7 +313,7 @@ def disableTipReturn():
 # get scan window size
 def getWindowSize() -> np.ndarray:
     global seq
-    _json = {"type": pkg["QUERY"], "seq": seq, "ob": qry["WINSIZE"]}
+    _json = {"type": pkg["QUERY"], "seq": seq, "op": qry["WINSIZE"]}
     seq += 1
     result = json.loads(send_json_to_server(_json).decode('utf-8'))
     return np.array([result['w'], result['h']])
@@ -287,7 +321,7 @@ def getWindowSize() -> np.ndarray:
 # get scan window position
 def getWindowPosition() -> np.ndarray:
     global seq
-    _json = {"type": pkg["QUERY"], "seq": seq, "ob": qry["WINPOS"]}
+    _json = {"type": pkg["QUERY"], "seq": seq, "op": qry["WINPOS"]}
     seq += 1
     result = json.loads(send_json_to_server(_json).decode('utf-8'))
     return np.array([result['x'], result['y']])
@@ -295,7 +329,7 @@ def getWindowPosition() -> np.ndarray:
 # get tip position in the sample space coordinates
 def getRawTipPosition() -> np.ndarray:
     global seq
-    _json = {"type": pkg["QUERY"], "seq": seq, "ob": qry["TIPPOS"]}
+    _json = {"type": pkg["QUERY"], "seq": seq, "op": qry["TIPPOS"]}
     seq += 1    
     result = json.loads(send_json_to_server(_json).decode('utf-8'))
     return np.array([result['x'], result['y']])
@@ -303,7 +337,7 @@ def getRawTipPosition() -> np.ndarray:
 # get vGap
 def getvGap() -> float:
     global seq
-    _json = {"type": pkg["QUERY"], "seq": seq, "ob": qry["VGAP"]}
+    _json = {"type": pkg["QUERY"], "seq": seq, "op": qry["VGAP"]}
     seq += 1
     result = json.loads(send_json_to_server(_json).decode('utf-8'))
     return result['vgap']
@@ -311,7 +345,7 @@ def getvGap() -> float:
 # get iSet
 def getiSet() -> float:
     global seq
-    _json = {"type": pkg["QUERY"], "seq": seq, "ob": qry["ISET"]}
+    _json = {"type": pkg["QUERY"], "seq": seq, "op": qry["ISET"]}
     seq += 1
     result = json.loads(send_json_to_server(_json).decode('utf-8'))
     return result['iset']
@@ -319,7 +353,7 @@ def getiSet() -> float:
 # get tipspeed
 def getTipSpeed() -> float:
     global seq
-    _json = {"type": pkg["QUERY"], "seq": seq, "ob": qry["TIPSPEED"]}
+    _json = {"type": pkg["QUERY"], "seq": seq, "op": qry["TIPSPEED"]}
     seq += 1
     result = json.loads(send_json_to_server(_json).decode('utf-8'))
     return result['tipspeed']
@@ -327,7 +361,7 @@ def getTipSpeed() -> float:
 # get image buffer
 def getCurrentScanImage() -> list:
     global seq
-    _json = {"type": pkg["QUERY"], "seq": seq, "ob": qry["IMAGE"]}
+    _json = {"type": pkg["QUERY"], "seq": seq, "op": qry["IMAGE"]}
     seq += 1
     result = json.loads(send_json_to_server(_json, chunk=True).decode('utf-8'))
     return result['img']
@@ -336,7 +370,7 @@ def getCurrentScanImage() -> list:
 def getLineProfile(r0: np.ndarray, r1: np.ndarray, pts:int = 11) -> tuple:
     global seq
     _data = {"xi": r0[0], "yi": r0[1], "xf": r1[0], "yf": r1[1], "pts": pts}
-    _json = {"type": pkg["QUERY"], "seq": seq, "ob": qry["MEASLINE"], "data": _data}
+    _json = {"type": pkg["QUERY"], "seq": seq, "op": qry["MEASLINE"], "data": _data}
     seq += 1
     print("    Waiting for line scan ...")
     result = json.loads(send_json_to_server(_json, chunk=True).decode('utf-8'))
@@ -346,7 +380,7 @@ def getLineProfile(r0: np.ndarray, r1: np.ndarray, pts:int = 11) -> tuple:
 def getNewScanImage(startline: int, endline: int) -> list:
     global seq
     _data = {"li": startline, "lf": endline}
-    _json = {"type": pkg["QUERY"], "seq": seq, "ob": qry["NEWIMAGE"], "data":_data}
+    _json = {"type": pkg["QUERY"], "seq": seq, "op": qry["NEWIMAGE"], "data":_data}
     seq += 1
     print("    Waiting for new scan image ...")
     result = json.loads(send_json_to_server(_json, chunk=True).decode('utf-8'))
@@ -355,7 +389,7 @@ def getNewScanImage(startline: int, endline: int) -> list:
  # get GDS name
 def getGDSName() -> str:
     global seq
-    _json = {"type": pkg["QUERY"], "seq": seq, "ob": qry["GDSNAME"]}
+    _json = {"type": pkg["QUERY"], "seq": seq, "op": qry["GDSNAME"]}
     seq += 1
     result = json.loads(send_json_to_server(_json).decode('utf-8'))
     return result['GDS']
@@ -363,7 +397,7 @@ def getGDSName() -> str:
  # get scan angle
 def getScanAngle() -> int:
     global seq
-    _json = {"type": pkg["QUERY"], "seq": seq, "ob": qry["ANGLE"]}
+    _json = {"type": pkg["QUERY"], "seq": seq, "op": qry["ANGLE"]}
     seq += 1
     result = json.loads(send_json_to_server(_json).decode('utf-8'))
     return result['theta']
@@ -371,7 +405,7 @@ def getScanAngle() -> int:
  # get scan window position in world coordinate
 def getWorldPosition() -> np.ndarray:
     global seq
-    _json = {"type": pkg["QUERY"], "seq": seq, "ob": qry["WORLDPOS"]}
+    _json = {"type": pkg["QUERY"], "seq": seq, "op": qry["WORLDPOS"]}
     seq += 1
     result = json.loads(send_json_to_server(_json).decode('utf-8'))
     return np.array([result['x'], result['y']])
@@ -379,9 +413,18 @@ def getWorldPosition() -> np.ndarray:
 # get scan resolution:
 def getResolution() -> np.ndarray:
     global seq
-    _json = {"type": pkg["QUERY"], "seq": seq, "ob": qry["RESOLUTION"]}
+    _json = {"type": pkg["QUERY"], "seq": seq, "op": qry["RESOLUTION"]}
+    
     seq += 1
-    result = json.loads(send_json_to_server(_json).decode('utf-8'))
+    
+    result = send_and_receive_json(_json)
+    
+    #returnVal = send_json_to_server(_json, True)
+    #print( returnVal.decode('utf-8') )
+    
+    #result = {"points":201,"lines":201}
+    
+    #result = json.loads( returnVal.decode('utf-8') )
     return np.array([result['points'], result['lines']])
 
 

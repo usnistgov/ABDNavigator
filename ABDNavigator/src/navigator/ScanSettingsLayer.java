@@ -1,5 +1,7 @@
 package navigator;
 
+import org.w3c.dom.Element;
+
 import javafx.application.Platform;
 import javafx.scene.Node;
 import javafx.scene.paint.Color;
@@ -9,13 +11,15 @@ import main.SampleNavigator;
 public class ScanSettingsLayer extends ScanRegionLayer
 {
 	public LithoRasterLayer lithoRaster = null;
-	
+	public String action = "lithography";
 	
 	
 	public ScanSettingsLayer()
 	{
 		super();
-		actions = new String[]{"apply","fclCondition"};
+		actions = new String[]{"apply"};
+		
+		categories.put("action", new String[] {"lithography","tipConditioning"});
 		
 		generatesChildren();
 		
@@ -47,14 +51,31 @@ public class ScanSettingsLayer extends ScanRegionLayer
 		view.setVisible(false);
 		
 		
-		System.out.println("*********** lithoRaster" );
-		lithoRaster = new LithoRasterLayer();
-		lithoRaster.scanSettings = this;
-		getChildren().add(lithoRaster);
-		lithoRaster.init();
-		
+		updateAction();
+			
 		
 		copySupressedChildren();
+	}
+	
+	private void updateAction()
+	{
+		getChildren().clear();
+		
+		switch (action)
+		{
+			case "lithography":
+				System.out.println("*********** lithoRaster" );
+				if (lithoRaster == null)
+					lithoRaster = new LithoRasterLayer();
+				lithoRaster.scanSettings = this;
+				getChildren().add(lithoRaster);
+				lithoRaster.init();
+				break;
+				
+			case "tipConditioning":
+				System.out.println("************ tipConditioning");
+				break;
+		}
 	}
 	
 	public void applyNoThread()
@@ -224,6 +245,13 @@ public class ScanSettingsLayer extends ScanRegionLayer
 	
 	public void fireFieldChanged(String name)
 	{
+		switch (name)
+		{
+			case "action":
+				updateAction();
+				SampleNavigator.refreshTreeEditor();
+				break;
+		}
 	}
 	
 	public void moveScanRegion()
@@ -233,5 +261,21 @@ public class ScanSettingsLayer extends ScanRegionLayer
 	public String getName()
 	{
 		return "ScanSettings";
+	}
+	
+	public void setFromXML(Element xml, boolean deep)
+	{
+		String s = xml.getAttribute("action");
+		if (s.length() > 0)
+			action = new String(s);
+		
+		super.setFromXML(xml, deep);	
+	}
+	
+	public Element getAsXML()
+	{
+		Element e = super.getAsXML();
+		e.setAttribute("action", action );
+		return e;
 	}
 }
