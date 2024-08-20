@@ -383,7 +383,8 @@ def getNewScanImage(startline: int, endline: int) -> list:
     _json = {"type": pkg["QUERY"], "seq": seq, "op": qry["NEWIMAGE"], "data":_data}
     seq += 1
     print("    Waiting for new scan image ...")
-    result = json.loads(send_json_to_server(_json, chunk=True).decode('utf-8'))
+    #result = json.loads(send_json_to_server(_json, chunk=True).decode('utf-8'))
+    result = send_and_receive_json(_json)
     return result['img']
 
  # get GDS name
@@ -414,17 +415,8 @@ def getWorldPosition() -> np.ndarray:
 def getResolution() -> np.ndarray:
     global seq
     _json = {"type": pkg["QUERY"], "seq": seq, "op": qry["RESOLUTION"]}
-    
     seq += 1
-    
     result = send_and_receive_json(_json)
-    
-    #returnVal = send_json_to_server(_json, True)
-    #print( returnVal.decode('utf-8') )
-    
-    #result = {"points":201,"lines":201}
-    
-    #result = json.loads( returnVal.decode('utf-8') )
     return np.array([result['points'], result['lines']])
 
 

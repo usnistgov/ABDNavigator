@@ -123,6 +123,10 @@ public class ABDPythonAPIServer
 					System.out.println("op: " + op);
 					switch (op)
 					{
+						case 7: //get new scan image
+							System.out.println("get new scan");
+							break;
+						
 						case 11: //get resolution
 							System.out.println("get resolution");
 							
@@ -142,6 +146,8 @@ public class ABDPythonAPIServer
 							System.out.println("start scan");
 							SampleNavigator.scanner.scan.startScan();
 							break;
+							
+						
 					}
 					
 					break;
