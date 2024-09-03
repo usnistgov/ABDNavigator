@@ -45,11 +45,12 @@ public class CircleSelectionLayer extends NavigationLayer
 		circ.setOpacity(0.2);
 				
 		main.getChildren().add(circ);
-		
+
+		/*
 		Node n = getParent().getParent();
 		if (n instanceof ImageLayer)
 			parentImage = (ImageLayer)n;
-		
+		*/
 		
 		
 		update();
@@ -221,6 +222,12 @@ public class CircleSelectionLayer extends NavigationLayer
 	
 	public void update()
 	{
+		if (parentImage == null) {
+			Node n = getParent().getParent();
+			if (n instanceof ImageLayer)
+				parentImage = (ImageLayer) n;
+		}
+
 		//retrieve a 2D data array of the image data from the parentImage
 		data = parentImage.getRawImageData();
 		width = data.length;

@@ -6,6 +6,7 @@ import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.embed.swing.SwingFXUtils;
@@ -1351,15 +1352,59 @@ public class SampleNavigator extends Application
 	
 	public static void addPositioner(double x, double y)
 	{
+		addPositioner(x, y, selectedLayer);
+	}
+	
+	public static void addPositioner(double x, double y, NavigationLayer layer)
+	{
 		Positioner l = new Positioner();
 		//l.init();
-		selectedLayer.getChildren().add(l);
+		layer.getChildren().add(l);
 		
 		l.setTranslateX(x);
 		l.setTranslateY(y);
 		
 		l.postSetFromXML();
 		refreshTreeEditor();
+	}
+	
+	private static boolean addingPositioner = false;
+	public static synchronized Positioner addPositionerLater(double x, double y, String name, NavigationLayer layer)
+	{
+		addingPositioner = true;
+		final Positioner l = new Positioner();
+		
+		Platform.runLater(new Runnable() 
+		{
+	        public void run() 
+	        {
+	    		layer.getChildren().add(l);
+	    		
+	    		l.name = new String(name);
+	    		
+	    		l.setTranslateX(x);
+	    		l.setTranslateY(y);
+	    		
+	    		l.postSetFromXML();
+	    		
+	        	SampleNavigator.refreshTreeEditor();
+	        	addingPositioner = false;
+	        }
+	    });
+		
+		while (addingPositioner)
+		{
+			try
+			{
+				Thread.sleep(5);
+			}
+			catch (Exception ex)
+			{
+				ex.printStackTrace();
+			}
+		}
+		
+		return l;
 	}
 	
 	public static void openCommentEditor(String text)
@@ -1612,6 +1657,41 @@ public class SampleNavigator extends Application
 		
 		attributeEditor.init( selectedLayer.editTarget );
 		//attributeEditor.updatePosition();
+	}
+	
+	public static void refreshTreeEditorLater()
+	{
+		Platform.runLater(new Runnable() 
+		{
+	        public void run() 
+	        {
+	        	SampleNavigator.refreshTreeEditor();
+	        }
+	    });
+	}
+	
+	private static boolean editorUpdated = false;
+	public static synchronized void refreshAttributeEditorLater()
+	{
+		editorUpdated = false;
+		Platform.runLater(new Runnable() 
+		{
+	        public void run() 
+	        {
+	        	SampleNavigator.refreshAttributeEditor();
+	        	editorUpdated = true;
+	        }
+	    });
+		
+		try
+		{
+			while (!editorUpdated)
+				Thread.sleep(5);
+		}
+		catch (Exception ex)
+		{
+			ex.printStackTrace();
+		}
 	}
 	
 	public static void refreshAttributeEditor()
@@ -2531,6 +2611,16 @@ public class SampleNavigator extends Application
 		{
 			//e.printStackTrace();
 		}
+	}
+
+	public static double dzdx = 0;
+	public static double dzdy = 0;
+	public static boolean planeParametersSet = false;
+	public static void setPlaneParameters(double dzdx, double dzdy)
+	{
+		SampleNavigator.dzdx = dzdx;
+		SampleNavigator.dzdy = dzdy;
+		SampleNavigator.planeParametersSet = true;
 	}
 	
 	public void stop()

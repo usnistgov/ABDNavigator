@@ -233,6 +233,11 @@ public class MatrixController implements ABDControllerInterface
 			rc = matrix.callVoidFunction("STM_AtomManipulation::STM_AtomManipulation.resume");
 			rc = matrix.callVoidFunction("STM_AtomManipulation::XYScanner.resume");
 		}
+		else
+		{
+			rc = matrix.callVoidFunction("STM_AtomManipulation::STM_AtomManipulation.stop");
+			scanning = false;
+		}
 	}
 	
 	synchronized public void stopScan()

@@ -311,7 +311,8 @@ public class LithoRasterLayer extends NavigationLayer
 		
 		segmentsInside = new Vector<Boolean>();
 		
-		Transform t = getLocalToParentTransform().createConcatenation(scanSettings.getLocalToParentTransform());
+		//Transform t = getLocalToParentTransform().createConcatenation(scanSettings.getLocalToParentTransform());
+		Transform t = scanSettings.getLocalToParentTransform().createConcatenation(getLocalToParentTransform());
 		
 		//l.yBuffer = yBuffer;
 		Point2D yDir = t.transform(0,yBuffer/height);

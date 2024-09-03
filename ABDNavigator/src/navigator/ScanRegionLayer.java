@@ -3,6 +3,8 @@ package navigator;
 import main.ABDClient;
 import main.SampleNavigator;
 
+import java.util.Vector;
+
 import org.w3c.dom.Element;
 
 import javafx.embed.swing.SwingFXUtils;
@@ -52,11 +54,30 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 		{
 			((ScannerLayer)getParent()).moveToFront();
 		}
+		ABDClient.command("setContinuousScanEnabled true");
 		ABDClient.command("startUpScan");
 	}
 	public void stopScan()
 	{
 		ABDClient.command("stopScan");
+	}
+	
+	public void startSingleScan()
+	{
+		//String s = ABDClient.command("isContinuousScanEnabled");
+				
+		ABDClient.command("setContinuousScanEnabled false");
+		if (getParent() instanceof ScannerLayer)
+		{
+			((ScannerLayer)getParent()).moveToFront();
+		}
+		ABDClient.command("startUpScan");
+	}
+	
+	public boolean isScanning()
+	{
+		String s = ABDClient.command("isScanning");
+		return Boolean.parseBoolean(s);
 	}
 	
 	public void moveScanRegion()
@@ -106,6 +127,16 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 		{
 			ex.printStackTrace();
 		}
+	}
+	
+	public double getScanWidth()
+	{
+		return scale.getMxx();
+	}
+	
+	public double getScanHeight()
+	{
+		return scale.getMyy();
 	}
 	
 	public void refreshScanRegion()
@@ -168,24 +199,11 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 	public Color ncHScan = new Color(1,0.3,0,0.8);
 	
 	public LineSegment[] lines = null;
-	
-	public void init()
+
+	public void drawBounds()
 	{
-		resetScanRepresentation();
-		bImg = new BufferedSTMImage(scanImage);
-		//bImg.minZFraction = this.minZFraction;
-		//bImg.maxZFraction = this.maxZFraction;
-		bImg.colorSchemeIdx = colorSchemeIdx;
-		bImg.draw();
-		initFromImage( SwingFXUtils.toFXImage(bImg, null) );
-		
-			
-			
-		//scalesChildren();
-		//listenToParentScaleChanges();
-		
 		lines = new LineSegment[5];
-		
+
 		for (int i = 0; i < 5; i ++)
 		{
 			LineSegment l = new LineSegment();
@@ -193,7 +211,7 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 			l.editTarget = this;
 			l.visibleInTree = false;
 			l.circlesVisible = false;
-			
+
 			if (i == 3)
 			{
 				l.glowColor = gcBottom;
@@ -209,27 +227,28 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 				l.glowColor = gc;
 				l.nodeColor = nc;
 			}
-			
+
 			l.setTranslateX(0);
 			l.setTranslateY(0);
 			n0[i] = (GenericPathDisplayNode)l.getLayerChildren().get(0);
 			n1[i] = (GenericPathDisplayNode)l.getLayerChildren().get(1);
 			n0[i].selectable = false;
 			n1[i].selectable = false;
-			
+
 			n0[i].node.selectable = false;
 			n1[i].node.selectable = false;
-			
+
 			/*n0.setTranslateX(-scanRangeWidth/2);
 			n0.setTranslateY(-scanRangeHeight/2);
 			n1.setTranslateX(-scanRangeWidth/2);
 			n1.setTranslateY(scanRangeHeight/2);*/
-			
+
+			System.out.println("adding line to ScanRegionLayer");
 			getChildren().add(l);
 			l.init();
 			lines[i] = l;
 		}
-		
+
 		ds = new DropShadow();
 		ds.setBlurType(BlurType.GAUSSIAN);
 		ds.setColor(gcScan);
@@ -237,13 +256,13 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 		ds.setOffsetY(0);
 		ds.setRadius(10);
 		ds.setSpread(.2);
-		
-			
+
+
 		arrow = new Polygon();
 		arrow.getPoints().addAll( new Double[]{
-			-8.,0.,
-			-17.,5.,
-			-17.,-5.
+				-8.,0.,
+				-17.,5.,
+				-17.,-5.
 		} );
 		//arrow.setVisible(true);
 		arrow.setStroke(Color.WHITE);
@@ -252,17 +271,35 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 		arrow.getTransforms().add(arrowTranslate);
 		arrow.getTransforms().add(arrowScale);
 		arrow.getTransforms().add(arrowRotate);
-		
+
 		Translate tr = new Translate();
 		tr.setX(17.);
 		arrow.getTransforms().add(tr);
-		
+
 		arrowScale.setX(.01);
 		arrowScale.setY(.01);
-		
+
 		getChildren().add(arrow);
-		
+
 		handleScaleChange();
+	}
+
+	public void init()
+	{
+		resetScanRepresentation();
+		bImg = new BufferedSTMImage(scanImage);
+		//bImg.minZFraction = this.minZFraction;
+		//bImg.maxZFraction = this.maxZFraction;
+		bImg.colorSchemeIdx = colorSchemeIdx;
+		bImg.draw();
+		initFromImage( SwingFXUtils.toFXImage(bImg, null) );
+		
+			
+			
+		//scalesChildren();
+		//listenToParentScaleChanges();
+		drawBounds();
+
 	}
 	
 	public void handleScaleChange()
@@ -417,6 +454,11 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 	public ScanSettingsLayer currentSettings = null;
 	
 	public boolean imageReset = true;
+	
+	public float[][] getScanImage()
+	{
+		return scanImage;
+	}
 	
 	public void resetScanRepresentation()
 	{
@@ -673,5 +715,16 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 		
 		//setImageTo(currentImageData);
 		updateImage();
+	}
+	
+	public Positioner getPositioner(String name)
+	{
+		Positioner p = null;
+		Vector<Positioner> positioners = getChildrenOfType(Positioner.class);
+		for (int i = 0; i < positioners.size(); i ++)
+			if (positioners.get(i).name.equals(name))
+				p = positioners.get(i);
+		
+		return p;
 	}
 }

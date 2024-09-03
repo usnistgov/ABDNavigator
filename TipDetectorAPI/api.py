@@ -5,6 +5,9 @@ import socket
 import sys
 import time
 
+sys.path.append('../PythonInterface')
+from AutoTipCondition import condition_tip
+
 # Disable OneDNN optimizations and CPU instructions messages
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
@@ -34,6 +37,9 @@ with open("config.json") as f:
 # Load the model
 model = load_model("model.h5")
 
+
+def get_model_and_config():
+    return model, config
 
 def convert_to_serializable(obj):
     """Recursively converts numpy types to native Python types for serialization.
@@ -141,7 +147,16 @@ def handle_client(client_socket: socket.socket) -> None:
         input_data = receive_json(client_socket)
 
         # Process the image
-        result = process_image(input_data)
+        if "command" not in input_data:
+            raise ValueError("Command is required")
+            
+        command = input_data["command"]
+        print(command)
+        match command:
+            case "checkTipQuality":
+                result = process_image(input_data)
+            case "conditionTip":
+                condition_tip(input_data, model, config)
 
         # Send the result back to the client
         client_socket.send(json.dumps(result).encode("utf-8") + b"\n")

@@ -177,6 +177,16 @@ public class ABDServer
 			double[] pos = ABDController.controller.getTipPosition();
 			out = new String( Double.toString(pos[0]) + "," + Double.toString(pos[1]) );
 		}
+		else if (in.equals("isContinuousScanEnabled"))
+		{
+			boolean b = ABDController.controller.isContinuousScanEnabled();
+			out = new String( Boolean.toString(b) );
+		}
+		else if (in.equals("isScanning"))
+		{
+			boolean b = ABDController.controller.isScanning();
+			out = new String( Boolean.toString(b) );
+		}
 		
 		else if (in.startsWith("setScanX"))
 		{
@@ -239,6 +249,11 @@ public class ABDServer
 			String s = getValueFrom(in);
 			//ABDController.controller.setBias( Double.parseDouble(s) );
 			ABDController.biasSignal.ramp(Double.parseDouble(s));
+		}
+		else if (in.startsWith("setContinuousScanEnabled"))
+		{
+			String s = getValueFrom(in);
+			ABDController.controller.setContinuousScanEnabled(Boolean.parseBoolean(s));
 		}
 		else if (in.startsWith("reportScanLines"))
 		{

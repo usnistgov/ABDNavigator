@@ -35,6 +35,8 @@ public class ScannerLayer extends NavigationLayer
 	
 	public ScanRegionLayer scan = null;
 	
+	public boolean tipIsMoving = false;
+	
 	public ScannerLayer()
 	{
 		super();

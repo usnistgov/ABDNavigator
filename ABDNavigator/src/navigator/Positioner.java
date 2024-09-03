@@ -43,6 +43,13 @@ public class Positioner extends NavigationLayer
 		init();
 	}
 	
+	public String name = "Positioner";
+	
+	public String getName()
+	{
+		return name;
+	}
+	
 	public void handleScaleChange()
 	{
 		super.handleScaleChange();
@@ -142,7 +149,10 @@ public class Positioner extends NavigationLayer
 			*/
 		}
 		else
+		{
+			ABDClient.waitForTip();
 			ABDClient.command("moveTo " + x0 + "," + y0);
+		}
 		
 		ABDClient.waitForTip();
 	}
@@ -354,6 +364,13 @@ public class Positioner extends NavigationLayer
 		SampleNavigator.attributeEditor.init(this);
 	}
 	
+	public void zRampNoThread()
+	{
+		moveTipNoThread();
+		ABDClient.waitForTip();
+		ABDClient.command("zRamp");
+	}
+	
 	public void zRamp()
 	{
 		try
@@ -362,13 +379,10 @@ public class Positioner extends NavigationLayer
 			{
 				public void run()
 				{
-					moveTipNoThread();
-					
-					//ABDClient.setLock(this, true);
-					
-					ABDClient.waitForTip();
-		
-					ABDClient.command("zRamp");
+					//moveTipNoThread();
+					//ABDClient.waitForTip();
+					//ABDClient.command("zRamp");
+					zRampNoThread();
 		
 					//ABDClient.setLock(this, false);
 					if (outsideRange)

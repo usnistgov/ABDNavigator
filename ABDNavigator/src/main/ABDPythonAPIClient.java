@@ -26,6 +26,23 @@ public class ABDPythonAPIClient
 			ex.printStackTrace();
 		}
 	}
+
+	public static String result = "";
+	public static boolean runningCommand = false;
+	public static synchronized void threadedCommand(String out)
+	{
+		Thread commandThread = new Thread()
+		{
+			public void run()
+			{
+				runningCommand = true;
+				result = command(out);
+				runningCommand = false;
+			}
+		};
+
+		commandThread.start();
+	}
 	
 	public static synchronized String command(String out)
 	{

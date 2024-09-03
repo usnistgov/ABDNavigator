@@ -72,6 +72,7 @@ public class ABDClient
 			if (SampleNavigator.scanner != null)
 			{
 				SampleNavigator.scanner.tip.setVisible(true);
+				SampleNavigator.scanner.tipIsMoving = true;
 			}
 			
 			while (Boolean.parseBoolean(command("tipIsMoving"))) 
@@ -93,6 +94,8 @@ public class ABDClient
 			if (SampleNavigator.scanner != null)
 			{
 				SampleNavigator.scanner.tip.setVisible(false);
+				
+				SampleNavigator.scanner.tipIsMoving = false;
 			}
 		}
 		catch (Exception ex)

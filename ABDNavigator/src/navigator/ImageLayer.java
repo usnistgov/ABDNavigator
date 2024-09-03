@@ -773,6 +773,17 @@ public class ImageLayer extends NavigationLayer
 		Image img0 = new Image( imgNameString );
 		System.out.println("loading image: " + fullFileName);
 		initFromImage(img0);
+
+		planeFitOnInit();
+	}
+
+	public void planeFitOnInit()
+	{
+		GroupLayer fitG = getGroup("planeFit");
+		if (fitG != null)
+		{
+			calculatePlane();
+		}
 	}
 	
 	public void setImage(Image img0)
@@ -1377,6 +1388,7 @@ public class ImageLayer extends NavigationLayer
 		MatrixSTMImageLayer mLayer = null;
 		if (this instanceof MatrixSTMImageLayer)
 		{
+			System.out.println("instance of MatrixSTMImageLayer");
 			mLayer = (MatrixSTMImageLayer)this;
 			if (mLayer.planeSubtract)
 				mLayer.togglePlaneSubtract();
@@ -1405,6 +1417,8 @@ public class ImageLayer extends NavigationLayer
 		//with respect to the x and y directions given here as dz/dx and dz/dy:
 		dzdx = -n.getX()/n.getZ();
 		dzdy = -n.getY()/n.getZ();
+
+		SampleNavigator.setPlaneParameters(dzdx, dzdy);
 		
 		System.out.println("calculated plane (dz/dx, dz/dy): " + dzdx + ", " + dzdy);
 		if (mLayer != null)

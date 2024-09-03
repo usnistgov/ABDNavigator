@@ -91,7 +91,7 @@ def connect_to_Monitor() -> socket:
         print(f"An error occurred: {e}")
         return None
 
-def send_and_receive_json(j: dict, timeout=5) -> dict:
+def send_and_receive_json(j: dict, timeout=None) -> dict:
 	data = ""
 	start_time = time.time()
     
@@ -114,8 +114,9 @@ def send_and_receive_json(j: dict, timeout=5) -> dict:
 				try:
 					return json.loads(data)
 				except json.JSONDecodeError:
-					if time.time() - start_time > timeout:
-						raise TimeoutError("Timeout while waiting for complete JSON")
+					if timeout != None:
+						if time.time() - start_time > timeout:
+							raise TimeoutError("Timeout while waiting for complete JSON")
 					continue
 			else:
 				raise TimeoutError("Timeout while waiting for data")
@@ -384,7 +385,8 @@ def getNewScanImage(startline: int, endline: int) -> list:
     seq += 1
     print("    Waiting for new scan image ...")
     #result = json.loads(send_json_to_server(_json, chunk=True).decode('utf-8'))
-    result = send_and_receive_json(_json)
+    result = send_and_receive_json(_json, timeout=None)
+	
     return result['img']
 
  # get GDS name
@@ -413,11 +415,16 @@ def getWorldPosition() -> np.ndarray:
 
 # get scan resolution:
 def getResolution() -> np.ndarray:
-    global seq
-    _json = {"type": pkg["QUERY"], "seq": seq, "op": qry["RESOLUTION"]}
-    seq += 1
-    result = send_and_receive_json(_json)
-    return np.array([result['points'], result['lines']])
+	global seq
+	_json = {"type": pkg["QUERY"], "seq": seq, "op": qry["RESOLUTION"]}
+	seq += 1
+	result = send_and_receive_json(_json)
+	#result = json.loads(send_json_to_server(_json).decode('utf-8'))
+	#result1 = send_json_to_server(_json,chunk=True).decode('utf-8')
+	#print("***" + result1 + "***")
+	#result = json.loads(result1)
+	print(result)
+	return np.array([result['points'], result['lines']])
 
 
 if __name__ == "__main__":

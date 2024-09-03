@@ -12,6 +12,7 @@ public class ScanSettingsLayer extends ScanRegionLayer
 {
 	public LithoRasterLayer lithoRaster = null;
 	public String action = "lithography";
+	public TipConditionLayer conditionScanner = null;
 	
 	
 	public ScanSettingsLayer()
@@ -59,14 +60,20 @@ public class ScanSettingsLayer extends ScanRegionLayer
 	
 	private void updateAction()
 	{
-		getChildren().clear();
+		//getChildren().clear();
+		//drawBounds();
 		
 		switch (action)
 		{
 			case "lithography":
 				System.out.println("*********** lithoRaster" );
+
+				if (conditionScanner != null)
+					getChildren().remove(conditionScanner);
+
 				if (lithoRaster == null)
 					lithoRaster = new LithoRasterLayer();
+
 				lithoRaster.scanSettings = this;
 				getChildren().add(lithoRaster);
 				lithoRaster.init();
@@ -74,6 +81,24 @@ public class ScanSettingsLayer extends ScanRegionLayer
 				
 			case "tipConditioning":
 				System.out.println("************ tipConditioning");
+				if (lithoRaster != null)
+				{
+					getChildren().remove(lithoRaster);
+				}
+
+				if (conditionScanner == null)
+				{
+					conditionScanner = new TipConditionLayer();
+
+					conditionScanner.scale.setX(1);
+					conditionScanner.scale.setY(1);
+				}
+
+				getChildren().add(conditionScanner);
+				conditionScanner.init();
+
+
+
 				break;
 		}
 	}

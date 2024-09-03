@@ -331,7 +331,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 			initFromImage(SwingFXUtils.toFXImage(bImg, null));
 			
 			setImageDirection(imageDirection);
-			
+			planeFitOnInit();
 		}
 		catch (Exception ex)
 		{
@@ -2221,6 +2221,8 @@ public class MatrixSTMImageLayer extends ImageLayer
 		String pathToImage = f.getAbsolutePath();		
 		
 		JSONObject jObj = new JSONObject();
+
+		jObj.put("command", "checkTipQuality");
 				
 		jObj.put("scan_path", pathToImage);
 		
@@ -2238,8 +2240,8 @@ public class MatrixSTMImageLayer extends ImageLayer
 		slopes.add( Double.valueOf(dzdy) );
 		options.put("plane_slopes", slopes);
 		jObj.put("matrix_options", options);
-		
-		//System.out.println(jObj);
+
+		System.out.println(jObj);
 		String result = ABDPythonAPIClient.command(jObj.toString());
 		//System.out.println("tip check result: " + result);
 		
