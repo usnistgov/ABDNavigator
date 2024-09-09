@@ -230,6 +230,9 @@ public class CircleSelectionLayer extends NavigationLayer
 
 		//retrieve a 2D data array of the image data from the parentImage
 		data = parentImage.getRawImageData();
+		if (data == null)
+			return;
+		
 		width = data.length;
 		height = data[0].length;
 				

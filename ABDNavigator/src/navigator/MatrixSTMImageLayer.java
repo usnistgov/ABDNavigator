@@ -2308,6 +2308,12 @@ public class MatrixSTMImageLayer extends ImageLayer
 	public double[][] getRawImageData()
 	{
 		//return getRasterData();
+		if (currentImageData == null)
+		{
+			System.out.println("no current image yet");
+			return null;
+		}
+		
 		double[][] data = new double[currentImageData.length][currentImageData[0].length];
 		for (int i = 0; i < data.length; i ++)
 			for (int j = 0; j < data[0].length; j ++)
