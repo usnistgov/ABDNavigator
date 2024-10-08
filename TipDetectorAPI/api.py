@@ -5,8 +5,12 @@ import socket
 import sys
 import time
 
+import threading
+from tensorflow.python.ops.gen_control_flow_ops import abort
+
 sys.path.append('../PythonInterface')
 from AutoTipCondition import condition_tip
+from AutoTipCondition import set_abort
 
 # Disable OneDNN optimizations and CPU instructions messages
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
@@ -22,6 +26,7 @@ from detector_functions.matrix_helpers import get_nm_from_matrix, matrix_to_img_
 # Handle arguments
 host = "localhost"
 port = 5050
+interrupt_port = 5052
 if len(sys.argv) > 1:
     if "--host" in sys.argv:
         host_index = sys.argv.index("--host")
@@ -178,6 +183,37 @@ def handle_client(client_socket: socket.socket) -> None:
         # Close the connection
         client_socket.close()
 
+def handle_interrupt(client_socket: socket.socket) -> None:
+    #global abort
+    
+    try:
+        # Receive data from the client
+        input_data = receive_json(client_socket)
+        print(input_data)
+        
+        interrupt = input_data["interrupt"]
+        #print(command)
+        match interrupt:
+            case "abort":
+                #abort = True
+                set_abort(True)
+        
+    #except json.JSONDecodeError as e:
+    #    error_message = f"Invalid JSON data: {str(e)}"
+    #    client_socket.send(json.dumps({"error": error_message}).encode("utf-8") + b"\n")
+    #except TimeoutError as e:
+    #    error_message = f"Timeout error: {str(e)}"
+    #    client_socket.send(json.dumps({"error": error_message}).encode("utf-8") + b"\n")
+    #except ConnectionError as e:
+    #    error_message = f"Connection error: {str(e)}"
+    #    print(error_message)  # Log to server console
+    #except Exception as e:
+    #    error_message = f"Unexpected error: {str(e)}"
+    #    client_socket.send(json.dumps({"error": error_message}).encode("utf-8") + b"\n")
+
+    finally:
+        # Close the connection
+        client_socket.close()
 
 def start_server():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -190,6 +226,20 @@ def start_server():
         print(f"Accepted connection from {addr}")
         handle_client(client_socket)
 
+def start_interrupt_server():
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind((host, interrupt_port))
+    server_socket.listen(5)
+    print(f"Interrupt Server listening on {host}:{interrupt_port}")
+    
+    while True:
+        client_socket, addr = server_socket.accept()
+        print(f"Accepted connection from {addr}")
+        handle_interrupt(client_socket)
+
 
 if __name__ == "__main__":
+    i_thread = threading.Thread(target=start_interrupt_server)
+    i_thread.start()
+    
     start_server()

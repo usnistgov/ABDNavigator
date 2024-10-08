@@ -11,6 +11,7 @@ import javafx.scene.shape.Circle;
 public class ABDPythonAPIClient
 {
 	public static int port = 5050;
+	public static int interrupt_port = 5052;
 	
 	public static DataOutputStream outStream;
 	public static BufferedReader serverReader;
@@ -25,6 +26,58 @@ public class ABDPythonAPIClient
 		{
 			ex.printStackTrace();
 		}
+	}
+	
+	public static synchronized void interrupt(String out)
+	{
+		if (!ABDPythonAPIServer.serverRunning)
+		{
+			//try restarting the PythonAPI server
+			ABDPythonAPIServer.startServer();
+			try
+			{
+				Thread.sleep(100);
+			}
+			catch (Exception ex)
+			{
+				ex.printStackTrace();
+			}
+			
+			//if (!ABDPythonAPIServer.serverRunning)
+			//	return;
+		}
+		
+		//StringBuffer line = null;
+		try
+		{
+			Socket clientSocket = new Socket("localhost", interrupt_port);
+			outStream = new DataOutputStream(clientSocket.getOutputStream());
+			//serverReader = new BufferedReader( new InputStreamReader(clientSocket.getInputStream()) );
+			
+			outStream.writeBytes(out + '\n');
+			//String readLine = null;
+			//line = new StringBuffer( serverReader.readLine() );
+						
+			clientSocket.close();
+		}
+		catch (Exception ex)
+		{
+			ex.printStackTrace();
+			ABDPythonAPIServer.stopServer();
+		}
+	}
+	
+	public static synchronized void threadedInterrupt(String out)
+	{
+		Thread interruptThread = new Thread()
+		{
+			public void run()
+			{
+				ABDPythonAPIClient.interrupt(out);
+			}
+		};
+		
+		interruptThread.start();
 	}
 
 	public static String result = "";

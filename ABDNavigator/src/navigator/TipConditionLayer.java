@@ -22,7 +22,7 @@ public class TipConditionLayer extends NavigationLayer
 {
     public TipConditionLayer()
     {
-        actions = new String[]{"condition"};
+        actions = new String[]{"condition","abort"};
         displayRootScale = true;
     }
 
@@ -128,5 +128,14 @@ public class TipConditionLayer extends NavigationLayer
 
         System.out.println(jObj);
         ABDPythonAPIClient.threadedCommand(jObj.toString());
+    }
+    
+    public void abort()
+    {
+    	JSONObject jObj = new JSONObject();
+    	jObj.put("interrupt","abort");
+    	
+    	System.out.println(jObj);
+    	ABDPythonAPIClient.threadedInterrupt(jObj.toString());
     }
 }

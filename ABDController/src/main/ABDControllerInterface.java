@@ -83,4 +83,5 @@ public interface ABDControllerInterface
 	
 	//specialized conditions
 	public void setLithoConditions(boolean b);
+	public void setZRampParameters(double dz, double bias);
 }

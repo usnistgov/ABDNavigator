@@ -9,11 +9,20 @@ import time
 import cv2
 
 import sys
+
+
 sys.path.append('../TipDetectorAPI')
 from detector_functions.main_functions import detect_tip
-#from api import convert_to_serializable, get_model_and_config
+from json_utils import convert_to_serializable
 
+abort = False
 
+def set_abort(val):
+    global abort
+    abort = val
+    if abort == True:
+        print("aborting")
+    
 def subtract_bg_plane(img, width_nm, height_nm, dzdx = 0, dzdy = 0):
     nm_px_x = width_nm/(len(img[0])-1)
     nm_px_y = height_nm/(len(img)-1)
@@ -112,6 +121,9 @@ def condition_tip(data: dict, model, config):
     for y_idx in range(start_y,num_y+1):
         for x_idx in range(start_x,num_x+1):
         
+            if abort == True:
+                return 
+            
             x = window_width*x_idx/num_x - window_width/2
             y = window_height*y_idx/num_y - window_height/2
             
@@ -121,8 +133,12 @@ def condition_tip(data: dict, model, config):
             
             #perform tip conditioning
             stm.setWindowPosition( (condition_x,condition_y) )
+            if abort == True:
+                return
             time.sleep(20)
             stm.moveTip( (0.0,0.0) )
+            if abort == True:
+                return
             print("settling...")
             time.sleep(20)
             print("continuing")
@@ -133,10 +149,22 @@ def condition_tip(data: dict, model, config):
             
             #image to check tip condition
             stm.setWindowPosition( (scan_x,scan_y) )
+            
+            if abort == True:
+                return
+            
             time.sleep(20)
+            
+            if abort == True:
+                return
+            
             stm.moveTip( (0.0,height/2.0) )
             print("settling...")
             time.sleep(20)
+            
+            if abort == True:
+                return
+            
             print("continuing")
             imgInfo = util.getNewImage()
             #npImg = imgInfo[1]
@@ -165,6 +193,8 @@ def condition_tip(data: dict, model, config):
             
             num_sharp = tip_data['sharp']
             num_total = tip_data['total']
+            
+            stm.reportTipQuality( convert_to_serializable(tip_data) )
             
             if num_sharp/num_total > majority_threshold:
                 print('done conditioning tip')

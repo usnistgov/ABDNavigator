@@ -810,16 +810,20 @@ public class MatrixController implements ABDControllerInterface
 		System.out.println("done moving tip steps");
 	}
 	
+	synchronized public void setZRampParameters(double dz, double bias)
+	{
+		double val = dz*1E-9;  //convert from nm to m
+		matrix.setDoubleProperty("STM_AtomManipulation::Regulator.Z_Ramp", -1, val);
+		matrix.setDoubleProperty("STM_AtomManipulation::GapVoltageControl.Tip_Cond_Pulse_Voltage", -1, bias);
+	}
+	
 	synchronized public void zRamp()
 	{
 		
 		matrix.setStringProperty("STM_AtomManipulation::XYScanner.Execute_Port_Colour", -1, "ZRamp");
 		matrix.callVoidFunction("STM_AtomManipulation::XYScanner.execute");
 		//matrix.setStringProperty("STM_AtomManipulation::XYScanner.Execute_Port_Colour", -1, "");
-		
-		
-			
-		
+	
 	}
 	
 	synchronized public void vPulse()

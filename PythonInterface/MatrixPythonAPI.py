@@ -10,6 +10,7 @@ from pydantic import (
     PositiveInt,
     PositiveFloat,
 )
+from test.test_contains import seq
 
 class float2(BaseModel):
     values: Tuple[float, float]
@@ -55,7 +56,8 @@ op = {"WAIT": 0,
       "SETFL": 17,
       "SETDZ": 18,
       "CRESOLUTION": 19,
-      "FREETIP": 20}
+      "FREETIP": 20,
+      "TIPQUALITY": 21}
 
 # query types
 qry = {"WINSIZE": 0,
@@ -309,6 +311,15 @@ def disableTipReturn():
     _json = {"type": pkg["ACTION"], "seq": seq, "op": op["FREETIP"]}
     seq += 1
     send_json_to_server(_json)
+    
+
+#report results from tip quality detection
+def reportTipQuality(report):
+    global seq
+    _json = {"type": pkg["ACTION"], "seq": seq, "op": op["TIPQUALITY"], "data": report}
+    seq += 1
+    send_json_to_server(_json)
+
 ####################################################################################################################
 
 # get scan window size

@@ -42,6 +42,9 @@ public class ABDPythonAPIServer
 			InetAddress host = InetAddress.getByName("localhost");
 			InetSocketAddress endPoint = new InetSocketAddress(host, port);
 			
+			if (server != null)
+				server.close();
+			
 			server = new ServerSocket();//port);
 			server.bind(endPoint);
 			serverRunning = true;
@@ -300,7 +303,7 @@ public class ABDPythonAPIServer
 		if (!serverRunning)
 			return;
 		
-		serverRunning = false;
+		
 		/*
 		try
 		{
@@ -317,6 +320,17 @@ public class ABDPythonAPIServer
 			Socket clientSocket = new Socket("localhost", port);
 			(new DataOutputStream(clientSocket.getOutputStream())).writeBytes( (new JSONObject()).clone().toString() );
 			clientSocket.close();
+		}
+		catch (Exception ex)
+		{
+			ex.printStackTrace();
+		}
+		
+		try
+		{
+			Thread.sleep(10);
+			server.close();
+			serverRunning = false;
 		}
 		catch (Exception ex)
 		{
