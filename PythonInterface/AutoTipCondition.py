@@ -36,7 +36,8 @@ def subtract_bg_plane(img, width_nm, height_nm, dzdx = 0, dzdy = 0):
             img_sub[y_idx][x_idx] = img[y_idx][x_idx] - dz
     
     img = img_sub
-    img = (img - np.min(img)) / (np.max(img) - np.min(img)) * 255
+    z_range = np.max(img) - np.min(img)
+    img = (img - np.min(img)) / z_range * 255
     img = np.flipud(img)
 
     # Convert the image into a cv2 image
@@ -45,7 +46,7 @@ def subtract_bg_plane(img, width_nm, height_nm, dzdx = 0, dzdy = 0):
     # Convert the image to a 3 channel image
     img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
     
-    return img
+    return img, z_range
     
 
 def condition_tip(data: dict, model, config):
@@ -168,7 +169,7 @@ def condition_tip(data: dict, model, config):
             print("continuing")
             imgInfo = util.getNewImage()
             #npImg = imgInfo[1]
-            npImg = subtract_bg_plane(imgInfo[1], width, height, dzdx=dzdx, dzdy=dzdy)
+            npImg,z_range = subtract_bg_plane(imgInfo[1], width, height, dzdx=dzdx, dzdy=dzdy)
             
             #plt.imshow(npImg)
             #plt.gray()
@@ -187,7 +188,8 @@ def condition_tip(data: dict, model, config):
                 contrast=detection_contrast,
                 rotation=lattice_angle,
                 scan_debug=False,
-                roi_debug=False )
+                roi_debug=False,
+                z_range=z_range )
 
             print(tip_data)
             

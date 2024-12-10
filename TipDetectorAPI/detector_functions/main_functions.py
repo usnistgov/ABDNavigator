@@ -40,6 +40,7 @@ def detect_tip(
     rotation=45,
     scan_debug=False,
     roi_debug=False,
+    z_range=1
 ) -> dict:
     """Detects the tip in the given image.
 
