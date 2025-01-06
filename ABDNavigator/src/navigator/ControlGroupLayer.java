@@ -6,10 +6,13 @@ import main.SampleNavigator;
 
 public class ControlGroupLayer extends GroupLayer
 {
+	public boolean isLive = true;
 	public ControlGroupLayer()
 	{
 		super();
 		actions = new String[]{"addScanSettings","saveControlGroup","openControlGroup"};
+		categories.put("live", new String[] {"true","false"});
+		
 		name = "ControlGroup";
 		
 		//supressAngle = true;
@@ -18,6 +21,8 @@ public class ControlGroupLayer extends GroupLayer
 		//supressBaseAttributes = true;
 		//isImobile = true;
 	}
+	
+	
 	
 	public void addScanSettings()
 	{
@@ -50,5 +55,25 @@ public class ControlGroupLayer extends GroupLayer
 		SampleNavigator.refreshAttributeEditor();
 		
 		
+	}
+	
+	public void setFromXML(Element xml, boolean deep)
+	{
+		String s = xml.getAttribute("live");
+		if (s != null)
+			isLive = Boolean.parseBoolean(s);
+		
+		super.setFromXML(xml, deep);
+		
+		
+		
+	}
+	
+	public Element getAsXML()
+	{
+		Element e = super.getAsXML();
+		e.setAttribute( "live", Boolean.toString(isLive) );
+		
+		return e;
 	}
 }

@@ -9,6 +9,8 @@ import javafx.scene.Node;
 import main.AttributeEditor;
 import main.SampleNavigator;
 
+import java.util.Vector;
+
 import org.w3c.dom.Element;
 
 public class PathDisplayNode extends GenericPathDisplayNode
@@ -35,7 +37,7 @@ public class PathDisplayNode extends GenericPathDisplayNode
 		translateXProperty().addListener(nodeXListener);
 		translateYProperty().addListener(nodeYListener);
 		*/
-		appendActions(new String[] {"grabScanner","walkHere"});
+		appendActions(new String[] {"grabScanner","grabControlGroup","walkHere"});
 	}
 	
 	public void walkHere()
@@ -49,6 +51,7 @@ public class PathDisplayNode extends GenericPathDisplayNode
 		SampleNavigator.scanner.performWalk(this);
 		
 		grabScanner();
+		grabControlGroup();
 	}
 	
 	public void grabScanner()
@@ -78,6 +81,34 @@ public class PathDisplayNode extends GenericPathDisplayNode
 		//SampleNavigator.scanner.handleScaleChange();
 		SampleNavigator.refreshTreeEditor();
 		SampleNavigator.setSelectedLayer(SampleNavigator.scanner);
+	}
+	
+	public void grabControlGroup()
+	{
+		System.out.println("grabbing control group");
+		PathLayer path = getParentPath();
+		
+		Vector<GenericPathDisplayNode> pathNodes = path.getPathDisplayNodes();
+		
+		//previous node:
+		int i = pathNodes.indexOf(this)-1;
+		if (i >= 0)
+		{
+			GenericPathDisplayNode n = pathNodes.get(i);
+			
+			ControlGroupLayer groupL = (ControlGroupLayer)n.getGroup("ControlGroup");
+			if ((groupL != null) && (groupL.isLive))
+			{
+				groupL.remove();
+				GroupLayer currentG = getGroup("ControlGroup");
+				if (currentG != null)
+					currentG.remove();
+				getChildren().add(groupL);
+				SampleNavigator.refreshTreeEditor();
+			}
+		}
+			
+		
 	}
 	
 	public void setWalkData(CalibrationLayer c)

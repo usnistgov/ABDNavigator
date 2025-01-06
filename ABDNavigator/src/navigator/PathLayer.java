@@ -59,6 +59,7 @@ public class PathLayer extends GenericPathLayer
 		
 		//init();
 		appendActions(new String[] {"togglePathVisibility"});
+		categories.put("pathVisible", new String[] {"true","false"});
 	}
 	
 	public GenericPathDisplayNode newPathDisplayNodeInstance()
@@ -178,14 +179,18 @@ public class PathLayer extends GenericPathLayer
 	
 	public void setFromXML(Element xml, boolean deep)
 	{
+		String s = xml.getAttribute("pathVisible");
+		if (s != null)
+			pathVisible = Boolean.parseBoolean(s);
+		
 		super.setFromXML(xml, deep);
-		//init();
+		
 	}
 	
 	public Element getAsXML()
 	{
 		Element e = super.getAsXML();
-		
+		e.setAttribute( "pathVisible", Boolean.toString(pathVisible) );
 				
 		return e;
 	}
@@ -205,7 +210,13 @@ public class PathLayer extends GenericPathLayer
 				System.out.println("setting calibration");
 			}
 		}
+		
+		//updatePathVisibility();
 	}
+	
+	
+	
+	
 	
 	/*
 	public void init()
@@ -317,8 +328,22 @@ public class PathLayer extends GenericPathLayer
 	
 	public void togglePathVisibility()
 	{
-		Vector<GenericPathDisplayNode> path = getPathDisplayNodes();
+		//Vector<GenericPathDisplayNode> path = getPathDisplayNodes();
 		pathVisible = !pathVisible;
+		/*for (int i = 0; i < path.size(); i ++)
+		{
+			GenericPathDisplayNode dN = path.get(i);
+			dN.node.arrow.setVisible(pathVisible);
+			dN.node.segment.setVisible(pathVisible);
+			dN.node.c.setVisible(pathVisible);
+		}*/
+		updatePathVisibility();
+	}
+	
+	public void updatePathVisibility()
+	{
+		Vector<GenericPathDisplayNode> path = getPathDisplayNodes();
+		
 		for (int i = 0; i < path.size(); i ++)
 		{
 			GenericPathDisplayNode dN = path.get(i);
@@ -327,4 +352,27 @@ public class PathLayer extends GenericPathLayer
 			dN.node.c.setVisible(pathVisible);
 		}
 	}
+	
+	public void fireFieldChanged(String name)
+	{
+		if (name.equals("pathVisible"))
+			updatePathVisibility();
+	}
+	/*
+	//have to swap the order of when the final set happens for this to display properly, so overriding the default behavior from NavigationLayer
+	public void finalSet()
+	{
+		Vector<NavigationLayer> layerChildren = getLayerChildren();
+		for (int i = 0; i < layerChildren.size(); i ++)
+		{
+			layerChildren.get(i).finalSet();
+		}
+		
+		finalSetFromXML();
+	}*/
+		
+	//public void finalSetFromXML()
+	//{
+	//	updatePathVisibility();
+	//}
 }
