@@ -474,4 +474,16 @@ public class SCALAController implements ABDControllerInterface
 		// TODO Auto-generated method stub
 		return false;
 	}
+
+	public void pointManip(double dz, double V)
+	{
+		// TODO Auto-generated method stub
+		
+	}
+
+	public void setZRampParameters(double dz, double bias)
+	{
+		// TODO Auto-generated method stub
+		
+	}
 }

@@ -45,10 +45,7 @@ public class Positioner extends NavigationLayer
 	
 	public String name = "Positioner";
 	
-	public String getName()
-	{
-		return name;
-	}
+	
 	
 	public void handleScaleChange()
 	{
@@ -99,6 +96,7 @@ public class Positioner extends NavigationLayer
 		return coords;
 	}
 	
+	Point2D prevScanPosition = null;
 	public void moveTipNoThread()
 	{
 		/*
@@ -118,7 +116,7 @@ public class Positioner extends NavigationLayer
 		if ((x0 < -0.5*s) || (x0 > 0.5*s) || (y0 < -0.5*s) || (y0 > 0.5*s))
 		{
 			//do nothing
-			/*
+			
 			//figure out where the position in the full scanner coordinates
 			Node n = getParent().getParent();
 			if (n instanceof ScannerLayer)
@@ -126,11 +124,37 @@ public class Positioner extends NavigationLayer
 				outsideRange = true;
 				
 				ScannerLayer l = (ScannerLayer)n;
-				Point2D p = localToScene( new Point2D(0,0) );
-				p = l.sceneToLocal(p);
-				p = new Point2D(p.getX(),-p.getY()); //invert y to switch to physics handedness (from graphics handedness)
-				System.out.println(p);
+				Point2D r = localToScene( new Point2D(0,0) );//0,0 is the origin of this Positioner
+				r = l.sceneToLocal(r);
+				//r = new Point2D(r.getX(),-r.getY()); //invert y to switch to physics handedness (from graphics handedness) -there is no reason to do this, so commented out...
+				System.out.println("new scan region location: " + r);
 				
+				prevScanPosition = new Point2D( l.scan.getTranslateX(), l.scan.getTranslateY() );
+				System.out.println("current scan region location: " + prevScanPosition);
+				
+				
+				
+				
+				
+				
+				//ABDClient.command("setScanX " + Double.toString( r.getX() ));
+				//ABDClient.command("setScanY " + Double.toString( r.getY() ));
+				//move ScanRegionLayer and set this Positioner to be at the center
+				l.scan.setTranslateX( r.getX() );
+				l.scan.setTranslateY( r.getY() );
+				setTranslateX(0);
+				setTranslateY(0);
+				l.scan.moveScanRegion();
+				l.waitForTip();
+						
+				ABDClient.command("moveTo 0,0");
+				l.waitForTip();
+				
+				
+				actions = new String[]{"moveTip","manip","inc","reset","moveBack"};
+				SampleNavigator.refreshAttributeEditorLater();
+				
+				/*
 				ABDClient.command("moveTo 0,0");
 				ABDClient.waitForTip();
 				
@@ -142,11 +166,12 @@ public class Positioner extends NavigationLayer
 				ABDClient.command("moveTo 0.2,0");
 				ABDClient.waitForTip();
 				
-				ABDClient.command("setScanX " + Double.toString( p.getX() ));
-				ABDClient.command("setScanY " + Double.toString( p.getY() ));
+				ABDClient.command("setScanX " + Double.toString( r.getX() ));
+				ABDClient.command("setScanY " + Double.toString( r.getY() ));
 				ABDClient.command("moveTo 0,0");
+				*/
 			}
-			*/
+			
 		}
 		else
 		{
@@ -155,6 +180,82 @@ public class Positioner extends NavigationLayer
 		}
 		
 		ABDClient.waitForTip();
+	}
+	
+	public void moveBack()
+	{
+		try
+		{
+			Thread t = new Thread()
+			{
+				public void run()
+				{
+					moveBackNoThread();
+				}
+			};
+			t.start();
+		}
+		catch (Exception exc)
+		{
+			exc.printStackTrace();
+		}
+	}
+	
+	public void moveBackNoThread()
+	{
+		actions = new String[]{"moveTip","manip","inc","reset"};
+		SampleNavigator.refreshAttributeEditorLater();
+		
+		if (prevScanPosition == null)
+			return;
+		
+		//location of this Positioner on the scanner
+		Point2D r = localToScene( new Point2D(0,0) );//0,0 is the origin of this Positioner
+		//r = SampleNavigator.scanner.sceneToLocal(r);
+		
+		SampleNavigator.scanner.scan.setTranslateX(prevScanPosition.getX());
+		SampleNavigator.scanner.scan.setTranslateY(prevScanPosition.getY());
+		SampleNavigator.scanner.scan.moveScanRegion();
+		SampleNavigator.scanner.waitForTip();
+		
+		//location of this positioner in the new coordinate system of the ScanRegion
+		r = SampleNavigator.scanner.scan.sceneToLocal(r);
+		System.out.println("new location for Positioner: " + r);
+		setTranslateX(r.getX());
+		setTranslateY(r.getY());
+		
+		ABDClient.command("moveTo 0,0");
+		
+		SampleNavigator.scanner.waitForTip();
+		
+		
+		
+		/*
+		ScannerLayer l = (ScannerLayer)n;
+		Point2D r = localToScene( new Point2D(0,0) );//0,0 is the origin of this Positioner
+		r = l.sceneToLocal(r);
+		System.out.println("new scan region location: " + r);
+		
+		prevScanPosition = new Point2D( l.scan.getTranslateX(), l.scan.getTranslateY() );
+		System.out.println("current scan region location: " + prevScanPosition);
+		
+		actions = new String[]{"moveTip","manip","inc","reset","moveBack"};
+		
+		
+		
+		
+		//ABDClient.command("setScanX " + Double.toString( r.getX() ));
+		//ABDClient.command("setScanY " + Double.toString( r.getY() ));
+		//move ScanRegionLayer and set this Positioner to be at the center
+		l.scan.setTranslateX( r.getX() );
+		l.scan.setTranslateY( r.getY() );
+		setTranslateX(0);
+		setTranslateY(0);
+		l.scan.moveScanRegion();
+		l.waitForTip();
+				
+		ABDClient.command("moveTo 0,0");
+		*/
 	}
 	
 	public void moveTip()
@@ -472,20 +573,102 @@ public class Positioner extends NavigationLayer
 		System.out.println( "positioner parent: " + n.getClass() );
 		if ((n instanceof ScanRegionLayer) && (selectable))
 		{
-			actions = new String[]{"moveTip","fcl","fcp","zRamp","vPulse"};
+			//actions = new String[]{"moveTip","fcl","fcp","zRamp","vPulse"};
+			actions = new String[]{"moveTip","manip","inc","reset"};
+			units.put("x", "");
+			units.put("y", "");
+			units.put("pokeDZ","nm");
+			units.put("pokeDZinc","nm");
+			units.put("pulseV","V");
+			units.put("pulseVinc","V");
+			
 			scannerChild = true;
 		}
 	}
-	/*
-	public void setFromXML(Element xml, boolean deep)
+	
+	public String getName()
 	{
-		super.setFromXML(xml, deep);
+		Node n = getParent();
+		if ((n instanceof ScanRegionLayer) && (selectable))
+		{
+			if ((pokeDZ == 0) && (pulseV == 0))
+				return new String("Position: " +  Double.toString(getTranslateX()) + "," +  Double.toString(getTranslateY()));
+			
+			return new String("Poke: " + Double.toString(pokeDZ) + "  Pulse: " + Double.toString(pulseV) );
+		}
 		
-				
-		if (deep)
-			init();
+		return name;
 	}
-	*/
+	
+	public void manipNoThread()
+	{
+		moveTipNoThread();
+		ABDClient.waitForTip();
+		
+		ABDClient.command("pointManip " + Double.toString(pokeDZ) + "," + Double.toString(pulseV));
+	}
+	
+	public void manip()
+	{
+		
+		try
+		{
+			Thread t = new Thread()
+			{
+				public void run()
+				{
+					manipNoThread();
+					
+					try
+					{
+						Thread.sleep(500);
+					}
+					catch (Exception ex2)
+					{
+						ex2.printStackTrace();
+					}
+					
+				}
+			};
+			t.start();
+		}
+		catch (Exception ex)
+		{
+			ex.printStackTrace();
+		}
+	}
+	
+	public void inc()
+	{
+		if ((pokeDZ0 == 0) && (pulseV0 == 0))
+		{
+			pokeDZ0 = pokeDZ;
+			pulseV0 = pulseV;
+		}
+		
+		pokeDZ += pokeDZinc;
+		pulseV += pulseVinc;
+		
+		SampleNavigator.refreshAttributeEditor();
+	}
+	
+	public void reset()
+	{
+		pokeDZ = pokeDZ0;
+		pulseV = pulseV0;
+		pokeDZ0 = 0;
+		pulseV0 = 0;
+		
+		SampleNavigator.refreshAttributeEditor();
+	}
+	
+	double pokeDZ0 = 0;
+	double pulseV0 = 0;
+	double pokeDZ = 0;
+	double pokeDZinc = 0;
+	double pulseV = 0;
+	double pulseVinc = 0;
+	
 	public void setFromXML(Element xml, boolean deep)
 	{
 		
@@ -494,10 +677,27 @@ public class Positioner extends NavigationLayer
 		
 		if (scannerChild)
 		{
-			String s = xml.getAttribute("numPulses");
-			if (s.length() > 0)
-				numPulses = Integer.parseInt(s);
+			//String s = xml.getAttribute("numPulses");
+			//if (s.length() > 0)
+			//	numPulses = Integer.parseInt(s);
 			
+			String s = xml.getAttribute("pokeDZ");
+			if (s.length() > 0)
+				pokeDZ = Double.parseDouble(s);
+			
+			s = xml.getAttribute("pokeDZinc");
+			if (s.length() > 0)
+				pokeDZinc = Double.parseDouble(s);
+			
+			s = xml.getAttribute("pulseV");
+			if (s.length() > 0)
+				pulseV = Double.parseDouble(s);
+			
+			s = xml.getAttribute("pulseVinc");
+			if (s.length() > 0)
+				pulseVinc = Double.parseDouble(s);
+			
+			SampleNavigator.refreshTreeEditor();
 		}
 	}
 	
@@ -507,10 +707,15 @@ public class Positioner extends NavigationLayer
 		
 		if (scannerChild)
 		{
-			e.setAttribute("numPulses", Integer.toString(numPulses) );
+			//e.setAttribute("numPulses", Integer.toString(numPulses) );
 			
+			e.setAttribute("pokeDZ", Double.toString(pokeDZ) );
+			e.setAttribute("pokeDZinc", Double.toString(pokeDZinc) );
+			e.setAttribute("pulseV", Double.toString(pulseV) );
+			e.setAttribute("pulseVinc", Double.toString(pulseVinc) );
 		}
 		return e;
 	}
 	
+
 }

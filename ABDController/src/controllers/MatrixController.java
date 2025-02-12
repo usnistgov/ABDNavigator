@@ -837,24 +837,49 @@ public class MatrixController implements ABDControllerInterface
 	
 
 	
-	public void setAllowPreampRangeChange(boolean b) 
+	synchronized public void setAllowPreampRangeChange(boolean b) 
 	{
 		allowPreampRangeChange = b;
 	}
 
 	
-	public boolean getAllowPreampRangeChange()
+	synchronized public boolean getAllowPreampRangeChange()
 	{
 		return allowPreampRangeChange;
 	}
 	
-	public void setLithoModulation(boolean b)
+	synchronized public void setLithoModulation(boolean b)
 	{
 		lithoModulation = b;
 	}
 	
-	public boolean getLithoModulation()
+	synchronized public boolean getLithoModulation()
 	{
 		return lithoModulation;
+	}
+
+	synchronized public void pointManip(double dz, double V)
+	{
+		//set pulse voltage
+		matrix.setDoubleProperty("STM_AtomManipulation::GapVoltageControl.Tip_Cond_Pulse_Voltage", -1, V);
+		
+		if (dz != 0)
+		{
+			double val = dz*1E-9;  //convert from nm to m
+			matrix.setDoubleProperty("STM_AtomManipulation::Regulator.Z_Ramp", -1, val);
+			
+			//enable voltage pulse during z ramp
+			matrix.setBooleanProperty("STM_AtomManipulation::Regulator.Enable_Z_Ramp_Gap_Voltage", -1, true);
+			
+			//perform z ramp
+			matrix.setStringProperty("STM_AtomManipulation::XYScanner.Execute_Port_Colour", -1, "ZRamp");
+			matrix.callVoidFunction("STM_AtomManipulation::XYScanner.execute");
+		}
+		else
+		{
+			//perform voltage pulse
+			matrix.setStringProperty("STM_AtomManipulation::XYScanner.Execute_Port_Colour", -1, "VPulse");
+			matrix.callVoidFunction("STM_AtomManipulation::XYScanner.execute");
+		}
 	}
 }

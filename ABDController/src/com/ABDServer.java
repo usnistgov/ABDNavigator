@@ -277,6 +277,13 @@ public class ABDServer
 			//set the number of steps
 			ABDController.controller.setCoarseSteps(steps);
 		}
+		else if (in.startsWith("pointManip "))
+		{
+			String s = getValueFrom(in);
+			String[] settings = s.split(",");
+			
+			pointManip(Double.parseDouble(settings[0]),Double.parseDouble(settings[1]));//dz,V
+		}
 		else if (in.startsWith("litho "))
 		{
 			String s = getValueFrom(in);
@@ -450,6 +457,11 @@ public class ABDServer
 		{
 			ABDController.controller.moveYPlus();
 		}
+	}
+	
+	public static void pointManip(double dz, double V)
+	{
+		ABDController.controller.pointManip(dz, V);
 	}
 	
 	public static void moveTip(double x, double y)

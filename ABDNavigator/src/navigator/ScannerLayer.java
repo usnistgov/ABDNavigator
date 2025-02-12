@@ -36,6 +36,7 @@ public class ScannerLayer extends NavigationLayer
 	public ScanRegionLayer scan = null;
 	
 	public boolean tipIsMoving = false;
+	public boolean scanRegionIsMoving = false;
 	
 	public ScannerLayer()
 	{
@@ -57,6 +58,23 @@ public class ScannerLayer extends NavigationLayer
 		if (!ABDReverseServer.serverRunning)
 			ABDReverseServer.startServer();
 		ABDClient.command("reportScanLines");
+	}
+	
+	public void waitForTip()
+	{
+		while ((tipIsMoving) || (scanRegionIsMoving))
+		{
+			//do nothing
+			try
+			{
+				Thread.sleep(100);
+				
+			}
+			catch (Exception ex)
+			{
+				ex.printStackTrace();
+			}
+		}
 	}
 	
 	public void startServer()

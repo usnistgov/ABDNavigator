@@ -82,6 +82,8 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 	
 	public void moveScanRegion()
 	{
+		SampleNavigator.scanner.scanRegionIsMoving = true;
+		
 		try
 		{
 			Thread t = new Thread()
@@ -119,6 +121,8 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 					
 					//currentSettings = null;
 					resetScanRepresentation();
+					
+					SampleNavigator.scanner.scanRegionIsMoving = false;
 				}
 			};
 			t.start();
@@ -126,6 +130,7 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 		catch (Exception ex)
 		{
 			ex.printStackTrace();
+			SampleNavigator.scanner.scanRegionIsMoving = false;
 		}
 	}
 	

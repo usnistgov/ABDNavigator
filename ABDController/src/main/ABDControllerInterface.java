@@ -80,6 +80,7 @@ public interface ABDControllerInterface
 	//actions
 	public void zRamp();
 	public void vPulse();
+	public void pointManip(double dz, double V);
 	
 	//specialized conditions
 	public void setLithoConditions(boolean b);
