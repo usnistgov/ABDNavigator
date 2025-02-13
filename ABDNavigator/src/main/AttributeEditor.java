@@ -236,7 +236,7 @@ public class AttributeEditor extends GridPane
 				String name = n.getNodeName();
 				String val = conditionValue(name, n.getNodeValue());
 				
-				if ((actionsAndAttributes.contains(name)) || (tabName.equals("main") && !allActionsAndAttributes.contains(name)))
+				if (((actionsAndAttributes.contains(name)) || (tabName.equals("main") && !allActionsAndAttributes.contains(name))) && !(layer.hidden.contains(name)))
 				{
 					Label l = new Label(name);
 			    	attributePane.add(l, 0, row);

@@ -48,6 +48,8 @@ public class NavigationLayer extends Group
 	public Hashtable<String,String[]> categories = new Hashtable<String,String[]>();
 	public Hashtable<String,String> units = new Hashtable<String,String>();
 	public HashSet<String> uneditable = new HashSet<String>();
+	public HashSet<String> hidden = new HashSet<String>();
+	public static HashSet<NavigationLayer> finalInitList = new HashSet<NavigationLayer>();
 	
 	public Rotate rotation = null;
 	public Scale scale = null;
@@ -97,6 +99,8 @@ public class NavigationLayer extends Group
 		units.put("scaleY", "nm");
 		units.put("x", "nm");
 		units.put("y", "nm");
+		
+		hidden.add("expanded");
 		
 		pickNode = this;
 		editTarget = this;
@@ -305,7 +309,13 @@ public class NavigationLayer extends Group
 				int val = Integer.parseInt(s);
 				setID(val);
 			} catch (Exception ex) {};
-			
+		}
+		
+		s = xml.getAttribute("expanded");
+		if (s.length() > 0)
+		{
+			expanded = Boolean.parseBoolean(s);
+			expandedSet = true;
 		}
 		
 		if (!supressBaseAttributes)
@@ -435,6 +445,11 @@ public class NavigationLayer extends Group
 		
 	}
 	
+	public void finalInit()
+	{
+		
+	}
+	
 	public void finalSet()
 	{
 		finalSetFromXML();
@@ -476,6 +491,14 @@ public class NavigationLayer extends Group
 		
 		double t = 1 - getOpacity();
 		e.setAttribute("transparency", Double.toString(t));
+		
+		//if (SampleNavigator.saving)
+		//{
+		if (thisItem != null)
+		{
+			e.setAttribute("expanded", Boolean.toString( thisItem.isExpanded() ));
+		}
+		//}
 		
 		
 		for (int i = 0; i < getChildren().size(); i ++)
@@ -866,12 +889,15 @@ public class NavigationLayer extends Group
 	public TreeItem<String> thisItem = null;
 	
 	public boolean visibleInTree = true;
+	public boolean expanded = true;
+	public boolean expandedSet = false;
 	public TreeItem<String> getAsTreeItem()
 	{
 		if (!visibleInTree)
 			return null;
 		
-		boolean expanded = defaultExpanded();
+		if (!expandedSet)
+			expanded = defaultExpanded();
 		boolean itemIsNew = true;
 		if (thisItem != null)
 		{

@@ -60,6 +60,8 @@ public class PathLayer extends GenericPathLayer
 		//init();
 		appendActions(new String[] {"togglePathVisibility"});
 		categories.put("pathVisible", new String[] {"true","false"});
+		
+		NavigationLayer.finalInitList.add(this);
 	}
 	
 	public GenericPathDisplayNode newPathDisplayNodeInstance()
@@ -214,8 +216,28 @@ public class PathLayer extends GenericPathLayer
 		//updatePathVisibility();
 	}
 	
+	public void finalInit()
+	{
+		System.out.println("final init!");
+		updatePathVisibility();
+	}
 	
+	/*
+	public void finalSet()
+	{
+		Vector<NavigationLayer> layerChildren = getLayerChildren();
+		for (int i = 0; i < layerChildren.size(); i ++)
+		{
+			layerChildren.get(i).finalSet();
+		}
+		
+		finalSetFromXML();
+	}
 	
+	public void finalSetFromXML()
+	{
+		updatePathVisibility();
+	}*/
 	
 	
 	/*

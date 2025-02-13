@@ -1096,6 +1096,12 @@ public class SampleNavigator extends Application
     	} );
     	
     	stage.show();
+    	
+    	//for (String tabName: tabKeys)
+    	for (NavigationLayer nav: NavigationLayer.finalInitList)
+    	{
+    		nav.finalInit();
+    	}
 
 	}
 	
@@ -1817,8 +1823,11 @@ public class SampleNavigator extends Application
 		return b.toString();
 	}
 	
+	public static boolean saving = false;
 	public static void saveMainFile()
 	{
+		saving = true;
+		
 		StringBuffer b = new StringBuffer( "<?xml version=\"1.0\"?>\n" );
 		b.append( xmlToString(rootLayer.getAsXML()).replaceAll("&", "&amp;") );
 		//System.out.println("saving: \n" + b.toString());
@@ -1835,6 +1844,8 @@ public class SampleNavigator extends Application
 		}
 		if (out != null)
 			out.close();
+		
+		saving = false;
 	}
 	
 	public static void saveXML(Element e)

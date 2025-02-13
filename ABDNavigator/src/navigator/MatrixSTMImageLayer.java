@@ -1177,6 +1177,12 @@ public class MatrixSTMImageLayer extends ImageLayer
 		bImg.minZFraction = this.minZFraction;
 		bImg.maxZFraction = this.maxZFraction;
 		bImg.processData = false;
+		
+		bImg.capturedLinesStart = capturedLinesStart;
+		bImg.capturedLinesEnd = capturedLinesEnd;
+		bImg.cropYStart = capturedLinesStart;
+		bImg.cropYEnd = capturedLinesEnd;
+		
 		bImg.draw();
 		
 		setImage( SwingFXUtils.toFXImage(bImg, null) );
