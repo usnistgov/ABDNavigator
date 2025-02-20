@@ -290,6 +290,29 @@ public class AttributeEditor extends GridPane
 				    				    	
 				    	attributePane.add(t, 1, row);
 			    	}
+			    	else if ((options.length == 2) && (options[0].equals("true") && (options[1].equals("false"))))
+			    	{
+			    		final CheckBox c = new CheckBox();
+			    		c.setIndeterminate(false);
+			    		c.setUserData(name);
+			    		if (val.equals("true"))
+			    			c.setSelected(true);
+			    		else
+			    			c.setSelected(false);
+			    		if (!layer.uneditable.contains(name))
+			    		{
+			    			c.setOnAction( new EventHandler<ActionEvent>()
+			    			{
+			    				public void handle(ActionEvent e)
+			    				{
+			    					fieldChanged(e.getSource());
+			    				}
+			    			} );
+			    		}
+			    		
+			    		attributePane.add(c, 1, row);
+			    		
+			    	}
 			    	else
 			    	{
 			    		final ComboBox<String> c = new ComboBox<String>(FXCollections.observableArrayList(options));
@@ -370,6 +393,12 @@ public class AttributeEditor extends GridPane
 			ComboBox<String> field = (ComboBox<String>)source;
 			if ((field.getUserData() != null) && (field.getUserData() instanceof String))
 				fieldChanged((String)field.getUserData(), field.getValue());
+		}
+		else if (source instanceof CheckBox)
+		{
+			CheckBox field = (CheckBox)source;
+			if ((field.getUserData() != null) && (field.getUserData() instanceof String))
+				fieldChanged((String)field.getUserData(), Boolean.toString(field.isSelected()));
 		}
 	}
 	private void fieldChanged(String name, String value)

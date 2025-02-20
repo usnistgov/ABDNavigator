@@ -218,7 +218,7 @@ public class PathLayer extends GenericPathLayer
 	
 	public void finalInit()
 	{
-		System.out.println("final init!");
+		//System.out.println("final init!");
 		updatePathVisibility();
 	}
 	

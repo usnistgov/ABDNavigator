@@ -285,7 +285,8 @@ public class ScanSettingsLayer extends ScanRegionLayer
 	
 	public String getName()
 	{
-		return "ScanSettings";
+		//return "ScanSettings";
+		return new String("Scan: " + getScanWidth() + "x" + getScanHeight() );
 	}
 	
 	public void setFromXML(Element xml, boolean deep)

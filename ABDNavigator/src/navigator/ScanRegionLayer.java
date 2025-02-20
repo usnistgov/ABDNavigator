@@ -8,6 +8,7 @@ import java.util.Vector;
 import org.w3c.dom.Element;
 
 import javafx.embed.swing.SwingFXUtils;
+import javafx.scene.Node;
 import javafx.scene.effect.BlurType;
 import javafx.scene.effect.DropShadow;
 import javafx.scene.paint.Color;
@@ -561,11 +562,14 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 		arrowTranslate.setY(yVal);
 	}
 	
+	
 	public String getName()
 	{
 		//return new String(imgName);
 		return "ScanRegion";
+		//return new String("Scan: " + getScanWidth() + "x" + getScanHeight() );
 	}
+	
 	
 	private int colorSchemeIdx = 0;
 	

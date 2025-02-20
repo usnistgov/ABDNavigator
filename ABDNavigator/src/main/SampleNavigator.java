@@ -2324,6 +2324,9 @@ public class SampleNavigator extends Application
 	    	{
 	    		lAdd = (NavigationLayer)SampleNavigator.scanner.getParent();
 	    	}
+    		
+			if (fc.getSelectedExtensionFilter() == filter0)
+				lAdd = (NavigationLayer)SampleNavigator.scanner.getParent();
     	}
     	
     	NavigationLayer lParent = lAdd;
@@ -2491,6 +2494,17 @@ public class SampleNavigator extends Application
     		
     		if (SampleNavigator.scanner != null)
     			SampleNavigator.scanner.moveToFront();
+    		
+    		if (imagesGroup)
+    		{
+    			GroupLayer measure = lAdd.getGroup("measure");
+    			if (measure != null)
+    				measure.moveToFront();
+    			
+    			GroupLayer notes = lAdd.getGroup("notes");
+    			if (notes != null)
+    				notes.moveToFront();
+    		}
     	}
 	}
 	

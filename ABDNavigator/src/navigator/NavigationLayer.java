@@ -79,6 +79,8 @@ public class NavigationLayer extends Group
 	
 	public Vector<Point2D> snapPoints = new Vector<Point2D>();
 	
+	public String nickname = "";
+	
 	public NavigationLayer()
 	{
 		super();
@@ -359,6 +361,9 @@ public class NavigationLayer extends Group
 			
 		}
 		setOpacity(1.0-t);
+		
+		nickname = xml.getAttribute("nickname");
+		
 
 		if (deep)
 		{		
@@ -407,7 +412,10 @@ public class NavigationLayer extends Group
 			{
 				postSetFromXML();
 			}
-		}	
+		}
+		
+		if (nickname.length() > 0)
+			SampleNavigator.refreshTreeEditor();
 	}
 	
 	public String[] matchAttributes = {};
@@ -499,6 +507,8 @@ public class NavigationLayer extends Group
 			e.setAttribute("expanded", Boolean.toString( thisItem.isExpanded() ));
 		}
 		//}
+		
+		e.setAttribute("nickname", nickname);
 		
 		
 		for (int i = 0; i < getChildren().size(); i ++)
@@ -907,7 +917,13 @@ public class NavigationLayer extends Group
 		else
 			itemIsNew = true;
 		
-		thisItem = new TreeItem<String>(getName(), this.treeDisplayNode);
+		StringBuffer fullName = new StringBuffer( getName() );
+		if (nickname.length() > 0)
+		{
+			fullName.append("\n" + nickname);
+			this.treeDisplayNode.setTranslateY(-10);
+		}
+		thisItem = new TreeItem<String>(fullName.toString(), this.treeDisplayNode);
 		
 		Vector<NavigationLayer> layers = getLayerChildren();
 		for (int i = 0; i < layers.size(); i ++)
