@@ -97,6 +97,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 	public double predictionThreshold = 0.5;
 	
 	public int stepBlur = 2;
+	public boolean zoomedIn = false;
 	
 	
 	public MatrixSTMImageLayer()
@@ -107,7 +108,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 		appendActions( new String[]{"altLocateLattice","addExample","clearExamples","checkTipQuality","detectStepEdges"} );
 		//tabs.put("maxima", new String[] {"locateMaxima","maximaExpectedDiameter","maximaPrecision","maximaThreshold"});
 		//tabs.put("lattice", new String[] {"locateLattice","altLocateLattice","latticeExpectedSpacing","latticeSpacingUncertainty"});
-		tabs.put("steps", new String[] {"detectStepEdges","stepBlur"});
+		tabs.put("steps", new String[] {"detectStepEdges","stepBlur","zoomedIn"});
 		tabs.put("detection", new String[] {"checkTipQuality","latticeAngle", "detectionContrast", "predictionThreshold"});
 		tabs.put("lattice", new String[] {"altLocateLattice","latticeExpectedSpacing","latticeSpacingUncertainty"});
 		//tabs.put("machine learning", new String[] {"addExample","clearExamples"});
@@ -1411,6 +1412,10 @@ public class MatrixSTMImageLayer extends ImageLayer
 		if (s.length() > 0)
 			stepBlur = Integer.parseInt(s);
 		
+		s = xml.getAttribute("zoomedIn");
+		if (s.length() > 0)
+			zoomedIn = Boolean.parseBoolean(s);
+		
 		/*
 		s = xml.getAttribute("sampleBias");
 		if (s.length() > 0)
@@ -1452,6 +1457,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 		e.setAttribute("sampleBias", Double.toString(bias));
 		e.setAttribute("current", Double.toString(current));
 		e.setAttribute("stepBlur", Integer.toString(stepBlur));
+		e.setAttribute("zoomedIn", Boolean.toString(zoomedIn));
 		return e;
 	}
 	
@@ -2235,6 +2241,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 		
 		
 		jObj.put("blur", Integer.valueOf(stepBlur));
+		jObj.put("zoomedIn", Boolean.valueOf(zoomedIn));
 		jObj.put("img_height", imgData[0].length);
 		jObj.put("img_width", imgData.length);
 		
