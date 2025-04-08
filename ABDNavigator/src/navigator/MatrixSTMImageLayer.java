@@ -96,15 +96,18 @@ public class MatrixSTMImageLayer extends ImageLayer
 	public double detectionContrast = 0.6;
 	public double predictionThreshold = 0.5;
 	
+	public int stepBlur = 2;
+	
 	
 	public MatrixSTMImageLayer()
 	{
 		super();
 		//appendActions( new String[]{"imageLeftRight","imageUpDown","togglePlaneSubtract","toggleLineByLineFlatten","nextColorScheme","locateMaxima","locateLattice","addExample"} );
 		//appendActions( new String[]{"locateMaxima","locateLattice","altLocateLattice","addExample","clearExamples","checkTipQuality"} );
-		appendActions( new String[]{"altLocateLattice","addExample","clearExamples","checkTipQuality"} );
+		appendActions( new String[]{"altLocateLattice","addExample","clearExamples","checkTipQuality","detectStepEdges"} );
 		//tabs.put("maxima", new String[] {"locateMaxima","maximaExpectedDiameter","maximaPrecision","maximaThreshold"});
 		//tabs.put("lattice", new String[] {"locateLattice","altLocateLattice","latticeExpectedSpacing","latticeSpacingUncertainty"});
+		tabs.put("steps", new String[] {"detectStepEdges","stepBlur"});
 		tabs.put("detection", new String[] {"checkTipQuality","latticeAngle", "detectionContrast", "predictionThreshold"});
 		tabs.put("lattice", new String[] {"altLocateLattice","latticeExpectedSpacing","latticeSpacingUncertainty"});
 		//tabs.put("machine learning", new String[] {"addExample","clearExamples"});
@@ -1404,6 +1407,10 @@ public class MatrixSTMImageLayer extends ImageLayer
 		if (s.length() > 0)
 			predictionThreshold = Double.parseDouble(s);
 		
+		s = xml.getAttribute("stepBlur");
+		if (s.length() > 0)
+			stepBlur = Integer.parseInt(s);
+		
 		/*
 		s = xml.getAttribute("sampleBias");
 		if (s.length() > 0)
@@ -1444,6 +1451,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 		e.setAttribute("predictionThreshold", Double.toString(predictionThreshold));
 		e.setAttribute("sampleBias", Double.toString(bias));
 		e.setAttribute("current", Double.toString(current));
+		e.setAttribute("stepBlur", Integer.toString(stepBlur));
 		return e;
 	}
 	
@@ -2215,6 +2223,36 @@ public class MatrixSTMImageLayer extends ImageLayer
 		exampleGroup.getChildren().remove(example);
 		
 		SampleNavigator.refreshTreeEditor();
+	}
+	
+	public void detectStepEdges()
+	{
+		setImageTo(currentImageData);
+		float[][] imgData = bImg.data;
+		
+		JSONObject jObj = new JSONObject();
+		jObj.put("command", "detectStepEdges");
+		
+		
+		jObj.put("blur", Integer.valueOf(stepBlur));
+		jObj.put("img_height", imgData[0].length);
+		jObj.put("img_width", imgData.length);
+		
+        /*
+		jObj.put("latticeAngle", Double.valueOf(latticeAngle));
+        jObj.put("predictionThreshold", Double.valueOf(predictionThreshold));
+        jObj.put("majorityThreshold", Double.valueOf(majorityThreshold));
+		*/
+		
+		
+		JSONArray img = new JSONArray();
+		for (int j = 0; j < imgData[0].length; j ++)
+			for (int i = 0; i < imgData.length; i ++)
+				img.add( Float.valueOf(imgData[imgData.length-i-1][j]) );
+		jObj.put("img", img); 
+		 
+		
+		String result = ABDPythonAPIClient.command(jObj.toString());
 	}
 	
 	public void checkTipQuality()

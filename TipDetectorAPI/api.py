@@ -9,8 +9,12 @@ import threading
 from tensorflow.python.ops.gen_control_flow_ops import abort
 
 sys.path.append('../PythonInterface')
+sys.path.append('../StepEdgeDetector')
+
 from AutoTipCondition import condition_tip
 from AutoTipCondition import set_abort
+
+from helpers.main_functions import detect_steps
 
 # Disable OneDNN optimizations and CPU instructions messages
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
@@ -126,7 +130,7 @@ def process_image(data: dict) -> dict:
     return serializable_data
 
 
-def receive_json(client_socket: socket.socket, timeout=5) -> dict:
+def receive_json(client_socket: socket.socket, timeout=500) -> dict:
     data = ""
     start_time = time.time()
     while True:
@@ -162,6 +166,21 @@ def handle_client(client_socket: socket.socket) -> None:
                 result = process_image(input_data)
             case "conditionTip":
                 condition_tip(input_data, model, config)
+            case "detectStepEdges":
+                print(input_data["blur"])
+                print(np.array(input_data["img"]))
+                print(input_data["img_width"])
+                detect_steps(
+                    np.array(input_data["img"]), 
+					img_width=int(input_data["img_width"]),
+                    img_height=int(input_data["img_height"]),
+                    show_plots=True,
+                    show_each_mask=False, 
+                    show_output=True, 
+                    blur=int(input_data["blur"]), 
+                    postprocessing=True, 
+                    max_pxl=5)
+                print('all done')
 
         # Send the result back to the client
         client_socket.send(json.dumps(result).encode("utf-8") + b"\n")
