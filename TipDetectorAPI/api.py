@@ -170,6 +170,7 @@ def handle_client(client_socket: socket.socket) -> None:
                 print(input_data["blur"])
                 print(np.array(input_data["img"]))
                 print(input_data["img_width"])
+                print(input_data["zoomedIn"])
                 detect_steps(
                     np.array(input_data["img"]), 
 					img_width=int(input_data["img_width"]),
@@ -179,7 +180,7 @@ def handle_client(client_socket: socket.socket) -> None:
                     show_output=True, 
                     blur=int(input_data["blur"]), 
                     postprocessing=True, 
-                    max_pxl=5)
+                    max_pxl=500)
                 print('all done')
 
         # Send the result back to the client
