@@ -293,7 +293,7 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 	public void init()
 	{
 		resetScanRepresentation();
-		bImg = new BufferedSTMImage(scanImage);
+		bImg = new BufferedSTMImage(scanImage, 1);
 		//bImg.minZFraction = this.minZFraction;
 		//bImg.maxZFraction = this.maxZFraction;
 		bImg.colorSchemeIdx = colorSchemeIdx;
@@ -595,7 +595,7 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 			cropYEnd = line;
 		
 		//float[][] fData = new float[xPixels][yPixels];
-		bImg = new BufferedSTMImage(scanImage);
+		bImg = new BufferedSTMImage(scanImage, 1);
 		bImg.cropYStart = cropYStart;
 		bImg.cropYEnd = cropYEnd;
 		bImg.planeSubtract = planeSubtract;

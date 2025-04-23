@@ -253,7 +253,7 @@ public class ExampleLayer extends NavigationLayer
 		
 		//System.out.println("minmax: " + min +"  " + max);
 		
-		BufferedSTMImage img = new BufferedSTMImage(croppedData);
+		BufferedSTMImage img = new BufferedSTMImage(croppedData, 1);
 		img.draw();
 			
 		

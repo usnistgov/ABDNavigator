@@ -128,7 +128,7 @@ public class OmicronSTMChannelLayer extends NavigationLayer
 					}
 					
 					
-					img = new BufferedSTMImage(fData);
+					img = new BufferedSTMImage(fData, 1);
 					img.fileName = this.imgName;
 					img.maxZFraction = maxZFraction;
 					img.minZFraction = minZFraction;

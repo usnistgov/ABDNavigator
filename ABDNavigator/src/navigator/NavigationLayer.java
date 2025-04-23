@@ -32,8 +32,6 @@ import java.io.*;
 import java.net.URI;
 import java.nio.file.Files;
 import java.text.DecimalFormat;
-import java.util.Arrays;
-import java.util.Vector;
 import java.util.*;
 
 
@@ -50,6 +48,11 @@ public class NavigationLayer extends Group
 	public HashSet<String> uneditable = new HashSet<String>();
 	public HashSet<String> hidden = new HashSet<String>();
 	public static HashSet<NavigationLayer> finalInitList = new HashSet<NavigationLayer>();
+	
+	private int controlID = 0;
+	private static int controlIDcounter = 0;
+	public static Hashtable<Integer,NavigationLayer> registry = new Hashtable<Integer,NavigationLayer>();
+	
 	
 	public Rotate rotation = null;
 	public Scale scale = null;
@@ -80,6 +83,9 @@ public class NavigationLayer extends Group
 	public Vector<Point2D> snapPoints = new Vector<Point2D>();
 	
 	public String nickname = "";
+	
+	
+	
 	
 	public NavigationLayer()
 	{
@@ -313,11 +319,23 @@ public class NavigationLayer extends Group
 			} catch (Exception ex) {};
 		}
 		
+		s = xml.getAttribute("controlID");
+		if (s.length() > 0)
+		{
+			controlID = Integer.parseInt(s);
+			if (controlID > controlIDcounter)
+				controlIDcounter = controlID;
+			
+			registry.put(controlID, this);
+		}
+		
 		s = xml.getAttribute("expanded");
 		if (s.length() > 0)
 		{
 			expanded = Boolean.parseBoolean(s);
 			expandedSet = true;
+			if (SampleNavigator.loading)
+				System.out.println(getClass().toString() + "  isExpanded: " + expanded);
 		}
 		
 		if (!supressBaseAttributes)
@@ -506,6 +524,13 @@ public class NavigationLayer extends Group
 		{
 			e.setAttribute("expanded", Boolean.toString( thisItem.isExpanded() ));
 		}
+		else if (SampleNavigator.saving)
+		{
+			if (!expandedSet)
+				expanded = defaultExpanded();
+			
+			e.setAttribute("expanded", Boolean.toString( expanded ));
+		}
 		//}
 		
 		e.setAttribute("nickname", nickname);
@@ -525,6 +550,9 @@ public class NavigationLayer extends Group
 		{
 			e.setAttribute("ID", Integer.toString(ID));
 		}
+		
+		if (SampleNavigator.saving)
+			e.setAttribute("controlID", Integer.toString(getControlID()));
 		
 		return e;
 	}
@@ -908,14 +936,14 @@ public class NavigationLayer extends Group
 		
 		if (!expandedSet)
 			expanded = defaultExpanded();
-		boolean itemIsNew = true;
+		//boolean itemIsNew = true;
 		if (thisItem != null)
 		{
-			itemIsNew = false;
+			//itemIsNew = false;
 			expanded = thisItem.isExpanded();
 		}
-		else
-			itemIsNew = true;
+		//else
+			//itemIsNew = true;
 		
 		StringBuffer fullName = new StringBuffer( getName() );
 		if (nickname.length() > 0)
@@ -1677,5 +1705,19 @@ public class NavigationLayer extends Group
 		}
 		
 		return groupL;
+	}
+	
+	public int getControlID()
+	{
+		if (controlID > 0)
+			return controlID;
+		
+		controlIDcounter ++;
+		controlID = controlIDcounter;
+		return controlID;
+	}
+	
+	public void setLink(int val, NavigationLayer l)
+	{
 	}
 }

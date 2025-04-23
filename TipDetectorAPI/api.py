@@ -14,7 +14,7 @@ sys.path.append('../StepEdgeDetector')
 from AutoTipCondition import condition_tip
 from AutoTipCondition import set_abort
 
-from helpers.main_functions import detect_steps
+from helpers.main_functions import detect_steps_alt
 
 # Disable OneDNN optimizations and CPU instructions messages
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
@@ -167,11 +167,32 @@ def handle_client(client_socket: socket.socket) -> None:
             case "conditionTip":
                 condition_tip(input_data, model, config)
             case "detectStepEdges":
+                print()
                 print(input_data["blur"])
                 print(np.array(input_data["img"]))
+                print('height and width in pixels:')
                 print(input_data["img_width"])
+                print(input_data["img_height"])
+                print('zoomed in?:')
                 print(input_data["zoomedIn"])
-                detect_steps(
+                print('image size in nm:')
+                print(input_data["img_scale_x"])
+                print(input_data["img_scale_y"])
+                print('image size in nm after possible user rescaling:')
+                print(input_data["img_rescale_x"])
+                print(input_data["img_rescale_y"])
+                print('captured lines start and end:')
+                print(input_data["captured_lines_start"])
+                print(input_data["captured_lines_end"])
+                print('nm from z:')
+                print(input_data["nm_from_z"])
+                print('scan settings x,y and scale_x, scale_y (nm):')
+                print(input_data["scan_settings_x"])
+                print(input_data["scan_settings_y"])
+                print(input_data["scan_settings_scale_x"])
+                print(input_data["scan_settings_scale_y"])
+                print()
+                detect_steps_alt(
                     np.array(input_data["img"]), 
 					img_width=int(input_data["img_width"]),
                     img_height=int(input_data["img_height"]),
@@ -180,7 +201,9 @@ def handle_client(client_socket: socket.socket) -> None:
                     show_output=True, 
                     blur=int(input_data["blur"]), 
                     postprocessing=True, 
-                    max_pxl=500)
+                    max_pxl=500,
+                    nm_from_z=float(input_data["nm_from_z"])
+                    )
                 print('all done')
 
         # Send the result back to the client

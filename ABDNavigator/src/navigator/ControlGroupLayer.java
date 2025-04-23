@@ -1,5 +1,7 @@
 package navigator;
 
+import java.util.Hashtable;
+
 import org.w3c.dom.Element;
 
 import main.SampleNavigator;
@@ -7,6 +9,7 @@ import main.SampleNavigator;
 public class ControlGroupLayer extends GroupLayer
 {
 	public boolean isLive = true;
+	
 	public ControlGroupLayer()
 	{
 		super();
@@ -63,16 +66,18 @@ public class ControlGroupLayer extends GroupLayer
 		if (s != null)
 			isLive = Boolean.parseBoolean(s);
 		
+		
+		
 		super.setFromXML(xml, deep);
-		
-		
-		
 	}
+	
+	
 	
 	public Element getAsXML()
 	{
 		Element e = super.getAsXML();
 		e.setAttribute( "live", Boolean.toString(isLive) );
+		
 		
 		return e;
 	}

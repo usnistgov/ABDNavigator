@@ -99,13 +99,15 @@ public class MatrixSTMImageLayer extends ImageLayer
 	public int stepBlur = 2;
 	public boolean zoomedIn = false;
 	
+	private int scanSettingsRef = 0;
+	
 	
 	public MatrixSTMImageLayer()
 	{
 		super();
 		//appendActions( new String[]{"imageLeftRight","imageUpDown","togglePlaneSubtract","toggleLineByLineFlatten","nextColorScheme","locateMaxima","locateLattice","addExample"} );
 		//appendActions( new String[]{"locateMaxima","locateLattice","altLocateLattice","addExample","clearExamples","checkTipQuality"} );
-		appendActions( new String[]{"altLocateLattice","addExample","clearExamples","checkTipQuality","detectStepEdges"} );
+		appendActions( new String[]{"altLocateLattice","addExample","clearExamples","checkTipQuality","detectStepEdges","linkScanSettingsRef"} );
 		//tabs.put("maxima", new String[] {"locateMaxima","maximaExpectedDiameter","maximaPrecision","maximaThreshold"});
 		//tabs.put("lattice", new String[] {"locateLattice","altLocateLattice","latticeExpectedSpacing","latticeSpacingUncertainty"});
 		tabs.put("steps", new String[] {"detectStepEdges","stepBlur","zoomedIn"});
@@ -309,6 +311,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 				currentImageData = upTraceForwardData;
 				//nmFromZ = (1E9)*(max - min)/zFactor/255.0;
 				nmFromZ = 1.0E9/zFactor;
+				
 				nmFromIdx = scaleX0/(double)width;
 				
 				float[][] fData = new float[width][height];
@@ -320,7 +323,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 					}
 				}
 				
-				bImg = new BufferedSTMImage(fData);
+				bImg = new BufferedSTMImage(fData, nmFromZ);
 				bImg.colorSchemeIdx = colorSchemeIdx;
 								
 				bImg.draw();
@@ -1176,7 +1179,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 		
 		
 		
-		bImg = new BufferedSTMImage(fData);
+		bImg = new BufferedSTMImage(fData, nmFromZ);
 		bImg.colorSchemeIdx = this.colorSchemeIdx;
 		bImg.minZFraction = this.minZFraction;
 		bImg.maxZFraction = this.maxZFraction;
@@ -1416,6 +1419,10 @@ public class MatrixSTMImageLayer extends ImageLayer
 		if (s.length() > 0)
 			zoomedIn = Boolean.parseBoolean(s);
 		
+		s = xml.getAttribute("scanSettingsRef");
+		if (s.length() > 0)
+			scanSettingsRef = Integer.parseInt(s);
+		
 		/*
 		s = xml.getAttribute("sampleBias");
 		if (s.length() > 0)
@@ -1458,6 +1465,9 @@ public class MatrixSTMImageLayer extends ImageLayer
 		e.setAttribute("current", Double.toString(current));
 		e.setAttribute("stepBlur", Integer.toString(stepBlur));
 		e.setAttribute("zoomedIn", Boolean.toString(zoomedIn));
+		
+		if (scanSettingsRef > 0)
+			e.setAttribute("scanSettingsRef", Integer.toString(scanSettingsRef));
 		return e;
 	}
 	
@@ -1727,7 +1737,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 		
 		//setImageTo(shiftMod);
 		
-		BufferedSTMImage bImg = new BufferedSTMImage(shiftMod);
+		BufferedSTMImage bImg = new BufferedSTMImage(shiftMod, nmFromZ);
 		bImg.colorSchemeIdx = this.colorSchemeIdx;
 		bImg.minZFraction = this.minZFraction;
 		bImg.maxZFraction = this.maxZFraction;
@@ -2234,7 +2244,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 	public void detectStepEdges()
 	{
 		setImageTo(currentImageData);
-		float[][] imgData = bImg.data;
+		float[][] imgData = bImg.data;//currentImageData;//
 		
 		JSONObject jObj = new JSONObject();
 		jObj.put("command", "detectStepEdges");
@@ -2244,6 +2254,35 @@ public class MatrixSTMImageLayer extends ImageLayer
 		jObj.put("zoomedIn", Boolean.valueOf(zoomedIn));
 		jObj.put("img_height", imgData[0].length);
 		jObj.put("img_width", imgData.length);
+		
+		jObj.put("img_scale_x", scaleX0);
+		jObj.put("img_scale_y", scaleY0);
+		
+		jObj.put("img_rescale_x", scale.getMxx());
+		jObj.put("img_rescale_y", scale.getMyy());
+		//pass x,y 
+		//gds file path
+		jObj.put("captured_lines_start",capturedLinesStart);
+		jObj.put("captured_lines_end",capturedLinesEnd);
+		jObj.put("nm_from_z",bImg.nmFromZ);
+		
+		if (scanSettingsRef > 0)
+		{
+			//public static Hashtable<Integer,NavigationLayer> registry = new Hashtable<Integer,NavigationLayer>();
+			//Double.toString(getTranslateX())
+			NavigationLayer l = registry.get(scanSettingsRef);
+			if (l instanceof ScanSettingsLayer)
+			{
+				ScanSettingsLayer settings = (ScanSettingsLayer)l;
+				jObj.put("scan_settings_x", settings.getTranslateX());
+				jObj.put("scan_settings_y", settings.getTranslateY());
+				jObj.put("scan_settings_scale_x", settings.scale.getMxx());
+				jObj.put("scan_settings_scale_y", settings.scale.getMyy());
+			}
+		}
+		
+		System.out.println("nm from z: " + bImg.nmFromZ);
+		System.out.println("z factor: " + zFactor);
 		
         /*
 		jObj.put("latticeAngle", Double.valueOf(latticeAngle));
@@ -2371,5 +2410,20 @@ public class MatrixSTMImageLayer extends ImageLayer
 				data[i][j] = (double)currentImageData[i][j];
 		
 		return data;
+	}
+	
+	public void linkScanSettingsRef()
+	{
+		SampleNavigator.requestLink(this);
+	}
+	
+	public void setLink(int val, NavigationLayer l)
+	{
+		super.setLink(val, l);
+		
+		if (l instanceof ScanSettingsLayer)
+		{
+			scanSettingsRef = val;
+		}
 	}
 }

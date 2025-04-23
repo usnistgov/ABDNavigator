@@ -117,6 +117,8 @@ public class SampleNavigator extends Application
 	public static ScannerLayer scanner = null;
 	public static MLControlLayer mlController = null;
 	
+	
+	
 	public static class UndoObject
 	{
 		public Element xml;
@@ -179,6 +181,8 @@ public class SampleNavigator extends Application
 	public static String workingDirectory = "";
 	public static String relativeDirectory = "";
 	public static String openingDirectory = "";
+	
+	public static boolean loading = false;
 	
 	public void start(Stage stage0) throws Exception 
 	{
@@ -255,7 +259,9 @@ public class SampleNavigator extends Application
     		
     		doc.getDocumentElement().normalize();
     		rootElement = doc.getDocumentElement();
-    		rootLayer.setFromXML(rootElement);   		
+    		loading = true;
+    		rootLayer.setFromXML(rootElement);
+    		loading = false;
     	} 
     	catch (Exception e)
     	{
@@ -1461,6 +1467,23 @@ public class SampleNavigator extends Application
 	
 	public static void setSelectedLayer(NavigationLayer l)
 	{
+		/*
+		 public static int link = 0;
+	public static boolean selectLink = false;
+	public static NavigationLayer linkRequestor = null;
+	public static void requestLink(NavigationLayer requestor)
+	{
+		selectLink = true;
+		linkRequestor = requestor; 
+		 */
+		if (selectLink)
+		{
+			selectLink = false;
+			link = l.editTarget.getControlID();
+			linkRequestor.setLink(link, l.editTarget);
+			return;
+		}
+		
 		selectedLayer.notifyUnselected();
 		selectedLayer = l.editTarget;
 		System.out.println("selected layer: " + l);
@@ -1523,6 +1546,7 @@ public class SampleNavigator extends Application
 				
 			});
 		}	
+		
 		
 		
 		if (attributeEditorGroup.isVisible())
@@ -2646,6 +2670,15 @@ public class SampleNavigator extends Application
 		SampleNavigator.dzdx = dzdx;
 		SampleNavigator.dzdy = dzdy;
 		SampleNavigator.planeParametersSet = true;
+	}
+	
+	public static int link = 0;
+	public static boolean selectLink = false;
+	public static NavigationLayer linkRequestor = null;
+	public static void requestLink(NavigationLayer requestor)
+	{
+		selectLink = true;
+		linkRequestor = requestor;
 	}
 	
 	public void stop()

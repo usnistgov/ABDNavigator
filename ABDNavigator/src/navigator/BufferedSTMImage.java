@@ -16,15 +16,18 @@ public class BufferedSTMImage extends BufferedImage
 	public float[][] data = null;
 	public float maxZFraction = 1;
 	public float minZFraction = 0;
-	//public double nmFromZ = 1; //conversion from data[][] z-value to nanometers
+	public double nmFromZPre = 1; //conversion from data[][] z-value to nanometers
+	public double nmFromZ; //conversion from fData[][] z-value to nanometers
 	
 	public String fileName = "";
 	
-	public BufferedSTMImage(float[][] data)
+	public BufferedSTMImage(float[][] data, double nmFromZPre)
 	{
 		super(data[0].length, data.length, BufferedImage.TYPE_INT_ARGB );
 		
 		this.data = data;
+		this.nmFromZPre = nmFromZPre;
+		
 		//draw();
 		if (colorSchemes.size() == 0)
 		{
@@ -99,7 +102,7 @@ public class BufferedSTMImage extends BufferedImage
 		return val;
 	}
 	
-	public void process(float[][] fData)
+	private void process(float[][] fData)
 	{
 		if (cropYEnd == -1)
 			cropYEnd = fData[0].length;
@@ -252,6 +255,10 @@ public class BufferedSTMImage extends BufferedImage
 			upMax = max;
 			upDen = den;
 		}
+		
+		nmFromZ = ((double)den)*nmFromZPre;
+		System.out.println("BufferedSTMImage nmFromZ = " + nmFromZ);
+		System.out.println("BufferedSTMImage nmFromZPre = " + nmFromZPre);
 		
 		/*
 		for (int xIdx = 0; xIdx < pixWidth; xIdx ++)
