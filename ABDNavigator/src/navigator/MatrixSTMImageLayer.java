@@ -115,17 +115,31 @@ public class MatrixSTMImageLayer extends ImageLayer
 		tabs.put("lattice", new String[] {"altLocateLattice","latticeExpectedSpacing","latticeSpacingUncertainty"});
 		//tabs.put("machine learning", new String[] {"addExample","clearExamples"});
 		tabs.put("training", new String[] {"addExample","clearExamples"});
-		tabs.put("settings", new String[] {"sampleBias","current"});
+		tabs.put("settings", new String[] {"sampleBias","current","width","height","tipSpeed"});
 		categories.put("colorSchemeIndex", new String[] {"0","1","2","3"});
 		categories.put("imageDirection", new String[] {"upForward","upBackward","downForward","downBackward"});
 		categories.put("lineByLineFlatten", new String[] {"true","false"});
 		categories.put("planeSubtract", new String[] {"true","false"});
+		categories.put("zoomedIn", new String[] {"true","false"});
 		units.put("latticeExpectedSpacing", "nm");
 		units.put("latticeSpacingUncertainty", "nm");
 		units.put("latticeAngle", "deg");
 		//units.put("maximaExpectedDiameter", "nm");
 		units.put("sampleBias", "V");
 		units.put("current", "nA");
+		units.put("width", "px");
+		units.put("height", "px");
+		units.put("tipSpeed", "nm/s");
+		
+		links.add("scanSettingsRef");
+		
+		uneditable.add("current");
+		uneditable.add("sampleBias");
+		uneditable.add("width");
+		uneditable.add("height");
+		uneditable.add("tipSpeed");
+		
+		appendAttributeOrder( new String[] {"sampleBias","current","width","height","tipSpeed"} );
 	}
 	
 	public void handleVisibilityChange()
@@ -352,6 +366,9 @@ public class MatrixSTMImageLayer extends ImageLayer
 	private int yPixels = 1;
 	private double bias = 2; //V
 	private double current = 0.01; //nA
+	//private double pxWidth = 100; //px
+	//private double pxHeight = 100; //px
+	private double tipSpeed = 100; //nm/s  not used yet
 	public double scaleX0 = 100; //nm
 	public double scaleY0 = 100; //nm 
 	public double angle0 = 0; //deg
@@ -391,6 +408,8 @@ public class MatrixSTMImageLayer extends ImageLayer
 		s = params.get("GapVoltageControl Voltage");
 		if (s != null)
 			bias = Double.parseDouble(s[0]);
+		
+		
 
 		s = params.get("Regulator Setpoint_1");
 		if (s != null)
@@ -407,6 +426,14 @@ public class MatrixSTMImageLayer extends ImageLayer
 		s = params.get("XYScanner Angle");
 		if (s != null)
 			angle0 = -Double.parseDouble(s[0]);
+
+		
+		s = params.get("XYScanner Move_Raster_Time");
+		if (s != null)
+		{
+			double moveTime = Double.parseDouble(s[0]);
+			tipSpeed = scaleX0/(double)xPixels/moveTime;
+		}
 		
 		paramsExtracted = true;
 	}
@@ -1034,7 +1061,8 @@ public class MatrixSTMImageLayer extends ImageLayer
 		//end algorithm test
 		 * 
 		 */
-				
+		
+		 
 		float[][] fData = new float[pixWidth][pixHeight];
 		for (int yIdx = 0; yIdx < pixHeight; yIdx ++)
 		{
@@ -1043,6 +1071,8 @@ public class MatrixSTMImageLayer extends ImageLayer
 				fData[xIdx][yIdx] = data[xIdx][yIdx];
 			}
 		}
+		
+		
 		//System.out.println(capturedLinesStart + "   to    " + capturedLinesEnd);
 		
 		double dzdxAve = 0;
@@ -1147,25 +1177,35 @@ public class MatrixSTMImageLayer extends ImageLayer
 		
 		float min = 0;
 		float max = 0;
+		float max0 = 0;
+		float min0 = 0;
 		for (int yIdx = capturedLinesStart; yIdx < capturedLinesEnd; yIdx ++)
 		{
 			for (int xIdx = 0; xIdx < pixWidth; xIdx ++)
 			{
 				float val = fData[xIdx][yIdx];
+				float val0 = data[xIdx][yIdx];
 				
 				if ((xIdx == 0) && (yIdx == capturedLinesStart))
 				{
 					max = val;
 					min = val;
+					max0 = val0;
+					min0 = val0;
 				}
 				if (max < val)
 					max = val;
 				if (min > val)
 					min = val;
+				if (max0 < val0)
+					max0 = val0;
+				if (min0 > val0)
+					min0 = val0;
 			}
 		}
 		
 		System.out.println("new min max: " + min + "  " + max);
+		System.out.println("original min max: " + min0 + "  " + max0);
 		
 		
 		for (int xIdx = 0; xIdx < pixWidth; xIdx ++)
@@ -1176,14 +1216,36 @@ public class MatrixSTMImageLayer extends ImageLayer
 			}
 		}
 		
+		/*
+		 float den = max-min;
+		if (den == 0)
+			den = 1;
+		
+		if (!isDownImage)
+		{
+			upMin = min;
+			upMax = max;
+			upDen = den;
+		}
+		
+		nmFromZ = ((double)den)*nmFromZPre;
+		 */
+		
+		double den = (double)(max0-min0);
 		
 		
 		
 		bImg = new BufferedSTMImage(fData, nmFromZ);
+		
 		bImg.colorSchemeIdx = this.colorSchemeIdx;
 		bImg.minZFraction = this.minZFraction;
 		bImg.maxZFraction = this.maxZFraction;
 		bImg.processData = false;
+		bImg.nmFromZ = den*nmFromZ;  //if we switch to have the bImg process its own data, this should change
+		
+		System.out.println("bImg den: " + den);
+		System.out.println("bImg nmFromZ: " + nmFromZ);
+		System.out.println("nmFromZ: " + nmFromZ);
 		
 		bImg.capturedLinesStart = capturedLinesStart;
 		bImg.capturedLinesEnd = capturedLinesEnd;
@@ -1463,6 +1525,9 @@ public class MatrixSTMImageLayer extends ImageLayer
 		e.setAttribute("predictionThreshold", Double.toString(predictionThreshold));
 		e.setAttribute("sampleBias", Double.toString(bias));
 		e.setAttribute("current", Double.toString(current));
+		e.setAttribute("tipSpeed", Double.toString(tipSpeed));
+		e.setAttribute("width", Integer.toString(xPixels));
+		e.setAttribute("height", Integer.toString(yPixels));
 		e.setAttribute("stepBlur", Integer.toString(stepBlur));
 		e.setAttribute("zoomedIn", Boolean.toString(zoomedIn));
 		
@@ -2419,11 +2484,11 @@ public class MatrixSTMImageLayer extends ImageLayer
 	
 	public void setLink(int val, NavigationLayer l)
 	{
-		super.setLink(val, l);
-		
 		if (l instanceof ScanSettingsLayer)
 		{
 			scanSettingsRef = val;
 		}
+		
+		super.setLink(val, l);
 	}
 }

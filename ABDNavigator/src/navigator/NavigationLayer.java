@@ -40,6 +40,7 @@ public class NavigationLayer extends Group
 	public static NavigationLayer rootLayer = null;
 	
 	public String[] actions = {};
+	public String[] attributesOrder = {};
 	public String[] deepAttributes = {};
 	public Hashtable<String,String[]> tabs = new Hashtable<String,String[]>();
 	public String currentTab = null;
@@ -47,6 +48,7 @@ public class NavigationLayer extends Group
 	public Hashtable<String,String> units = new Hashtable<String,String>();
 	public HashSet<String> uneditable = new HashSet<String>();
 	public HashSet<String> hidden = new HashSet<String>();
+	public HashSet<String> links = new HashSet<String>();
 	public static HashSet<NavigationLayer> finalInitList = new HashSet<NavigationLayer>();
 	
 	private int controlID = 0;
@@ -229,6 +231,22 @@ public class NavigationLayer extends Group
 		System.arraycopy(actions, 0, appended, 0, actions.length);
 		System.arraycopy(a2, 0, appended, actions.length, a2.length);
 		actions = appended;
+	}
+	
+	public void appendAttributeOrder(String[] a2)
+	{
+		String[] appended = new String[attributesOrder.length + a2.length];
+		System.arraycopy(attributesOrder, 0, appended, 0, attributesOrder.length);
+		System.arraycopy(a2, 0, appended, attributesOrder.length, a2.length);
+		attributesOrder = appended;
+	}
+	
+	public void prependAttributeOrder(String[] a2)
+	{
+		String[] appended = new String[attributesOrder.length + a2.length];
+		System.arraycopy(a2, 0, appended, 0, a2.length);
+		System.arraycopy(attributesOrder, 0, appended, a2.length, attributesOrder.length);
+		attributesOrder = appended;
 	}
 	
 	public void clearTransforms()
@@ -929,6 +947,18 @@ public class NavigationLayer extends Group
 	public boolean visibleInTree = true;
 	public boolean expanded = true;
 	public boolean expandedSet = false;
+	
+	public String getFullName()
+	{
+		StringBuffer fullName = new StringBuffer( getName() );
+		if (nickname.length() > 0)
+		{
+			fullName.append("\n" + nickname);
+		}
+		
+		return fullName.toString();
+	}
+	
 	public TreeItem<String> getAsTreeItem()
 	{
 		if (!visibleInTree)
@@ -1719,5 +1749,16 @@ public class NavigationLayer extends Group
 	
 	public void setLink(int val, NavigationLayer l)
 	{
+		SampleNavigator.refreshAttributeEditor();
 	}
+	/*
+	public int getAttributeOrder(int idx, NamedNodeMap attributes)
+	{
+		if (idx < attributesOrder.length)
+		{
+			
+		}
+		
+		return idx;
+	}*/
 }

@@ -4,6 +4,7 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.Hashtable;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
@@ -142,6 +143,7 @@ public class AttributeEditor extends GridPane
 	    	tabGrid.add(actionPane, 0, 0, 2, 1);
 	    		    	
 			int row = 0;
+			int rowIdx = 0;
 			int numItems = 0;	    	
 	    	if (layer.actions.length > 0)
 	    	{
@@ -229,13 +231,47 @@ public class AttributeEditor extends GridPane
 	    	tabGrid.add(attributeScroll, 0, 1, 2, 1);
 	    	
 	    	row = 0;
-			NamedNodeMap attributes = xml.getAttributes();
-			for (int i = 0; i < attributes.getLength(); i ++)
-			{
-				org.w3c.dom.Node n = attributes.item(i);
-				String name = n.getNodeName();
+			rowIdx = 0;
+	    	NamedNodeMap attributes = xml.getAttributes();
+	    	
+	    	
+	    	//reorder the attributes if necessary (alphabetical by default in xml)
+	    	//Hashtable<String,String> orderedAttributes = new Hashtable<String,String>();
+	    	List<String> orderedAttributeNames = Arrays.asList(layer.attributesOrder);
+	    	Vector<String> names = new Vector<String>();
+	    	Vector<String> values = new Vector<String>();
+	    	for (int i = 0; i < layer.attributesOrder.length; i ++)
+	    	{
+	    		org.w3c.dom.Node n = attributes.getNamedItem(layer.attributesOrder[i]);
+	    		String name = n.getNodeName();
 				String val = conditionValue(name, n.getNodeValue());
+				//orderedAttributes.put(name,val);
+				names.add(name);
+				values.add(val);
+	    	}
+	    	for (int i = 0; i < attributes.getLength(); i ++)
+	    	{
+	    		org.w3c.dom.Node n = attributes.item(i);
+				String name = n.getNodeName();
+				if (!orderedAttributeNames.contains(name))
+				{
+					String val = conditionValue(name, n.getNodeValue());
+					names.add(name);
+					values.add(val);
+				}
+	    	}
+	    	
+			for (int i = 0; i < names.size(); i ++)
+			{
+				//int i = idx;//layer.getAttributeOrder(idx, attributes);
 				
+				//org.w3c.dom.Node n = attributes.item(i);
+				//String name = n.getNodeName();
+				//String val = conditionValue(name, n.getNodeValue());
+				String name = names.get(i);
+				String val = values.get(i);
+				
+							
 				if (((actionsAndAttributes.contains(name)) || (tabName.equals("main") && !allActionsAndAttributes.contains(name))) && !(layer.hidden.contains(name)))
 				{
 					Label l = new Label(name);
@@ -250,13 +286,56 @@ public class AttributeEditor extends GridPane
 			    	
 			    	String[] options = layer.categories.get(name);
 			    	
-			    	if (options == null)
+			    	if (layer.links.contains(name))
+			    	{
+			    		//t.setText( linkL.getName() );
+			    		NavigationLayer linkL = NavigationLayer.registry.get(Integer.parseInt(val));
+			    		//String action = layer.actions[i];
+			    		
+		    			Button b = new Button(linkL.getFullName());
+		    			b.setUserData(linkL);
+		    			
+		    			b.setOnAction( new EventHandler<ActionEvent>()
+		    			{
+							public void handle(ActionEvent e)
+							{
+								Button thisButton = (Button)e.getSource();
+								String thisAction = thisButton.getText();
+								try
+								{
+									//Method m = layer.getClass().getMethod(thisAction, null);
+									//m.invoke(layer, null);
+									Object obj = thisButton.getUserData();
+									if (obj instanceof NavigationLayer)
+									{
+										SampleNavigator.setSelectedLayer((NavigationLayer)obj);
+									}
+									//SampleNavigator.setSelectedLayer();
+								}
+								catch (Exception ex)
+								{
+									ex.printStackTrace();
+								}
+								
+							}
+		    				
+		    			});
+		    			attributePane.add(b, 1, row);
+			    	}
+			    	else if (options == null)
 			    	{
 				    	final TextField t = new TextField(val);
 				    	t.setUserData( name );
-				    	if (layer.uneditable.contains(name))
+				    	if ((layer.uneditable.contains(name)) || (layer.links.contains(name)))
 				    	{
 				    		t.setEditable(false);
+				    		
+				    		if (layer.links.contains(name))
+				    		{
+				    			NavigationLayer linkL = NavigationLayer.registry.get(Integer.parseInt(val));
+				    			t.setText( linkL.getName() );
+				    			t.setId("linkTextField");
+				    		}
 				    	}
 				    	else
 				    	{
@@ -337,11 +416,12 @@ public class AttributeEditor extends GridPane
 			    		attributePane.add(c, 1, row);
 			    	}
 			    	
-			    	row ++;
+			    	rowIdx ++;
+			    	row = rowIdx;
 				}
 			}
 			
-			numItems += row;
+			numItems += rowIdx;
 			
 			if (numItems > 0)
 			{
@@ -381,7 +461,7 @@ public class AttributeEditor extends GridPane
 	}
 	
 	private void fieldChanged(Object source)
-	{
+	{	
 		if (source instanceof TextField)
 		{
 			TextField field = (TextField)source;
@@ -403,6 +483,9 @@ public class AttributeEditor extends GridPane
 	}
 	private void fieldChanged(String name, String value)
 	{
+		if ((layer.uneditable.contains(name)) || (layer.links.contains(name)))
+			return;//shouldn't be possible to get here in this case, but just in case let's escape before doing any damage
+		
 		SampleNavigator.addUndo(layer, false);
 		
 		value = unConditionValue(name, value);

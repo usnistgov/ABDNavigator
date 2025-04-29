@@ -567,6 +567,5 @@
             </ScannerLayer>
         </PathDisplayNode>
     </PathLayer>
-    <MLControlLayer angle="0.0" scaleX="1.0" scaleY="1.0" showFeature="none" transparency="0.0" visible="true" x="0.0" y="0.0"/>
     <ScaleBarLayer angle="-81.27569663836545" relativeAngle="0.0" transparency="0.0" visible="true" x="-247.8462677001953" y="230.0584716796875"/>
 </NavigationLayer>

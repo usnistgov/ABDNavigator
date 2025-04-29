@@ -29,6 +29,16 @@
 	-fx-effect: dropshadow( gaussian, rgba(55,55,55,0.75), 6,.7,0,0 ); 
 }
 
+#linkTextField
+{
+    -fx-background-color: rgba(1,1,1,0.0);
+    -fx-text-fill: white;
+    -fx-highlight-fill: white;
+    -fx-highlight-text-fill: gray;
+	-fx-font-size: 14px;
+	-fx-effect: dropshadow( gaussian, rgba(20,90,120,0.75), 6,.7,0,0 ); 	
+}
+
 #editingTextField
 {
     -fx-background-color: rgba(1,1,1,0.0);
