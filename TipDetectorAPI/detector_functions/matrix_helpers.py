@@ -42,6 +42,34 @@ def matrix_to_img_array(
 
     return img
 
+def matrix_to_img_array_with_z_range(matrix_path: str, trace: int, plane_slopes: tuple = None):
+    mtrx_data = access2thematrix.MtrxData()
+    traces, _ = mtrx_data.open(matrix_path)
+
+    # Check if the dictionary is empty
+    if not traces:
+        return None
+
+    # Select the first image
+    im, _ = mtrx_data.select_image(traces[trace])
+
+    # Normalize the data to 0-255 and reflect over the x-axis (not sure why it's like this)
+    if plane_slopes:
+        img = subtract_plane(im.data, (im.height, im.width), plane_slopes)
+    else:
+        img = im.data
+    z_range = np.max(img)-np.min(img)
+    img = (img - np.min(img)) / z_range * 255
+    img = np.flipud(img)
+
+    # Convert the image into a cv2 image
+    img = np.array(img, dtype=np.uint8)
+
+    # Convert the image to a 3 channel image
+    img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+
+    return img,z_range*1e9 #convert z_range from m to nm
+    
 
 def get_nm_from_matrix(matrix_path: str) -> float:
     """Extracts the nm from the matrix path.

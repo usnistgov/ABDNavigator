@@ -25,7 +25,7 @@ import numpy as np
 from tensorflow.keras.models import load_model  # type: ignore
 
 from detector_functions.main_functions import detect_tip
-from detector_functions.matrix_helpers import get_nm_from_matrix, matrix_to_img_array
+from detector_functions.matrix_helpers import get_nm_from_matrix, matrix_to_img_array, matrix_to_img_array_with_z_range
 
 # Handle arguments
 host = "localhost"
@@ -80,6 +80,8 @@ def process_image(data: dict) -> dict:
 
     scan_path = data["scan_path"]
     detector_options = data["detector_options"]
+    
+    z_range = 1
 
     if scan_path.endswith(".Z_mtrx"):
         if "matrix_options" not in data:
@@ -89,11 +91,14 @@ def process_image(data: dict) -> dict:
         if "direction" not in matrix_options:
             raise ValueError("Direction is required for matrix files")
 
-        img = matrix_to_img_array(
+        #img = matrix_to_img_array(
+        img,z_range = matrix_to_img_array_with_z_range(
             scan_path,
             matrix_options["direction"],
             plane_slopes=matrix_options.get("plane_slopes", None),
         )
+        print('matrix image z range:')
+        print(z_range)
         if img is None:
             raise Exception("Unable to open the matrix file")
         scan_nm = (
@@ -123,6 +128,7 @@ def process_image(data: dict) -> dict:
         rotation=rotation,
         scan_debug=False,
         roi_debug=False,
+        z_range=z_range
     )
 
     # Convert numpy types to Python types
