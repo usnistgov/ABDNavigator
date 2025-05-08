@@ -40,7 +40,8 @@ def detect_tip(
     rotation=45,
     scan_debug=False,
     roi_debug=False,
-    z_range=1
+    z_range=1,
+    sharp_prediction_threshold=0.5
 ) -> dict:
     """Detects the tip in the given image.
 
@@ -58,13 +59,49 @@ def detect_tip(
     Returns:
         dict: Dictionary containing the detection results
     """
-    print("detecting tip?")
+    print("detecting tip")
+    print("z_range:")
+    print(z_range)
+    
     if rotation != 0:
         img = rotate_image(img, rotation)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    
+    #no dangling bond should be taller than 2 nm, so clip colors "taller" than that
+    max_gray = np.max(gray)
+    z_cut = 0.2/z_range
+    print('z_cut: ')
+    print(z_cut)
+    if z_cut <= 1:
+        grayPre = gray
+        
+        gray = np.clip(gray, 0, int(z_cut*max_gray))
+        
+        gray = (gray - np.min(gray)) / (np.max(gray) - np.min(gray)) * 255
+        gray = np.array(gray, dtype=np.uint8)
+               
+        
+        print(gray)
+        print(np.max(gray))
+        
+        cv2.namedWindow("grayPre")
+        cv2.imshow("grayPre", cv2.resize(grayPre,(400,400)))
+        
+        cv2.namedWindow("gray")
+        cv2.imshow("gray", cv2.resize(gray,(400,400)))
+        
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+        
+        img = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
 
+    print('getting contours')
+    
     contours, img_contrast, edged_contrast = find_contours(img, contrast)
+    #contours, img_contrast, edged_contrast = find_contours(gray, contrast)
     contours = contours[::-1]
+    
+    print(len(contours))
 
     # Remove the contours caused by the rotation
     i = 0
@@ -77,11 +114,31 @@ def detect_tip(
         # Calculate the mode color ratio for each contour
         if (
             rotation != 0
+            #and calculate_black_pixel_ratio(gray, (x, y), (x + w, y + h)) > 0
             and calculate_black_pixel_ratio(img, (x, y), (x + w, y + h)) > 0
         ):
             contours.pop(i)
             continue
         i += 1
+    
+    #if there are no contours left, then we need to return
+    if (len(contours) <= 1):
+        print('contour length is 0')
+        output = {
+            "sharp": 0,
+            "dull": -1,
+            "total": -1,
+            "roi_data": {
+                "constants": {"nm_size": 0, "pixel_size": 0},
+                "locations": [],
+            },
+        }
+
+        print('output is: ')
+        print(output)
+        return output
+    
+    print('more than 0 contours')
     contours = tuple(contours)
 
     # Merge overlapping contours
@@ -89,7 +146,7 @@ def detect_tip(
 
     # Tqdm setup
     contour_iterator = (
-        contours if scan_debug else tqdm(contours, desc="Processing contours")
+        contours if scan_debug else tqdm(contours, desc="Processing contours ")
     )
 
     total_bonds = 0
@@ -136,7 +193,8 @@ def detect_tip(
                 cross_size,
                 scan_debug,
             )
-            cls = 1 if prediction >= SHARP_PREDICTION_THRESHOLD else 0
+            cls = 1 if prediction >= sharp_prediction_threshold else 0
+            #cls = 1 if prediction >= SHARP_PREDICTION_THRESHOLD else 0
             if scan_debug:
                 print(f"Class: {CLASS_NAMES[cls]}, Prediction: {prediction}")
 

@@ -36,6 +36,7 @@ import javafx.scene.paint.*;
 import javafx.scene.shape.*;
 import javafx.util.Duration;
 
+import org.json.simple.JSONObject;
 import org.w3c.dom.*;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXParseException;
@@ -232,8 +233,12 @@ public class SampleNavigator extends Application
     	URI userD = new File(userDir).toURI();
     	relativeDirectory = fullRelativize(userD,wd);//new File(userDir).toURI().relativize( new File(workingDirectory).toURI() ).getPath();
     	
+    	//special case when testing:
+    	if (relativeDirectory.equals("/"))
+    		relativeDirectory = "";
     	
-    	
+    	//if (!relativeDirectory.endsWith("/"))
+    	//	relativeDirectory = new String(relativeDirectory + "/");
     	
     	System.out.println("relative directory: " + relativeDirectory);
     	System.setProperty("user.dir", workingDirectory);
@@ -2268,16 +2273,24 @@ public class SampleNavigator extends Application
 		
 	}
 	
+	
+	private static ExtensionFilter filter0 = new ExtensionFilter("Matrix File", "*.*_mtrx");
+	private static ExtensionFilter filter1 = new ExtensionFilter("SCALA File", "*.par");
+	
+	private static ExtensionFilter filter2 = new ExtensionFilter("Image File", "*.png", "*.jpg", "*.bmp", "*.gif", "*.tif");
+	private static ExtensionFilter filter3 = new ExtensionFilter("GDS File", "*.gds", "*.GDS");
+	
+	private static String currentSTMImageDirectory = null;
+	private static ExtensionFilter currentSTMImageType = null;
+	private static String currentSTMImageExt = null;
+	public static double currentSTMImagePredictionThreshold = 0.5;
+	
 	public static void addImageFile()
 	{
 		FileChooser fc = new FileChooser();
     	fc.setTitle("Open Image File");
     	fc.setInitialDirectory( new File(openingDirectory) );
-    	ExtensionFilter filter0 = new ExtensionFilter("Matrix File", "*.*_mtrx");
-    	ExtensionFilter filter1 = new ExtensionFilter("SCALA File", "*.par");
     	
-    	ExtensionFilter filter2 = new ExtensionFilter("Image File", "*.png", "*.jpg", "*.bmp", "*.gif", "*.tif");
-    	ExtensionFilter filter3 = new ExtensionFilter("GDS File", "*.gds", "*.GDS");
     	fc.getExtensionFilters().add(filter0);
     	fc.getExtensionFilters().add(filter1);
     	fc.getExtensionFilters().add(filter2);
@@ -2288,8 +2301,79 @@ public class SampleNavigator extends Application
     	if (openFile == null)
     		return;
     	
+    	if (fc.getSelectedExtensionFilter() == filter0)
+    	{
+    		currentSTMImageDirectory = openFile.getParent();
+    		currentSTMImageType = filter0;
+    		currentSTMImageExt = ".Z_mtrx";
+    	}
     	
-    	
+    	addImageFile(openFile, fc.getSelectedExtensionFilter());
+	}
+	
+	public static void addMostRecentSTMImageFileLater()
+	{
+		Platform.runLater(new Runnable() 
+		{
+	        public void run() 
+	        {
+	    		addMostRecentSTMImageFile();
+	        }
+	    });
+	}
+	
+	public static void postTipQualityResultsLater(JSONObject results)
+	{
+		Platform.runLater(new Runnable() 
+		{
+	        public void run() 
+	        {
+	    		if ((mostRecentSTMImageFile != null) && (mostRecentSTMImageFile instanceof MatrixSTMImageLayer))
+	    		{
+	    			MatrixSTMImageLayer l = (MatrixSTMImageLayer)mostRecentSTMImageFile;
+	    			l.processTipQualityResult(results);
+	    		}
+	        }
+	    });
+	}
+	
+	public static void addMostRecentSTMImageFile()
+	{
+		System.out.println("currentSTMImageDirectory: " + currentSTMImageDirectory);
+		if (currentSTMImageDirectory == null)
+			return;
+		
+		File dir = new File(currentSTMImageDirectory);
+		File[] files = dir.listFiles( new FilenameFilter()
+		{
+			public boolean accept(File dir, String name)
+			{
+				return (name.endsWith(currentSTMImageExt));
+			}
+		} );
+		
+		if ((files != null) && (files.length > 0))
+		{
+			long lastModifiedTime = Long.MIN_VALUE;
+			File f = null;
+			
+			for (int i = 0; i < files.length; i ++)
+			{
+				if (files[i].lastModified() > lastModifiedTime)
+				{
+					f = files[i];
+					lastModifiedTime = f.lastModified();
+				}
+			}
+			
+			//most recent file of desired STM image type
+			addImageFile(f, currentSTMImageType);
+		}
+	}
+	
+	public static NavigationLayer mostRecentSTMImageFile = null;
+	public static void addImageFile(File openFile, ExtensionFilter filter)
+	{
     	openingDirectory = openFile.getParent();
     	
     	System.out.println("opening an image...");
@@ -2317,7 +2401,7 @@ public class SampleNavigator extends Application
     			openFile = newFile;
     			
     			//if this is a matrix file, we should also copy over the appropriate parameter file
-    			if (fc.getSelectedExtensionFilter() == filter0)
+    			if (filter == filter0)
     			{
     				System.out.println("finding param file for: " + prevFile );
     				StringBuffer paramFileS = MatrixSTMImageLayer.getParamFileFor( prevFile );
@@ -2349,7 +2433,7 @@ public class SampleNavigator extends Application
 	    		lAdd = (NavigationLayer)SampleNavigator.scanner.getParent();
 	    	}
     		
-			if (fc.getSelectedExtensionFilter() == filter0)
+			if (filter == filter0)
 				lAdd = (NavigationLayer)SampleNavigator.scanner.getParent();
     	}
     	
@@ -2371,7 +2455,7 @@ public class SampleNavigator extends Application
     		}
     	}
     	
-    	if (fc.getSelectedExtensionFilter() == filter3)
+    	if (filter == filter3)
     	{
     		//open gds file
     		URI f1 = new File(workingDirectory).toURI();
@@ -2399,7 +2483,7 @@ public class SampleNavigator extends Application
     		
     		l.finalSet();
     	}
-    	if (fc.getSelectedExtensionFilter() == filter2)
+    	if (filter == filter2)
     	{
     		ImageLayer l = new ImageLayer();
     		
@@ -2423,7 +2507,7 @@ public class SampleNavigator extends Application
     		
     		selectedLayer.getChildren().add(l);
     	}
-    	if (fc.getSelectedExtensionFilter() == filter1)
+    	if (filter == filter1)
     	{
     		OmicronSTMImageLayer l = new OmicronSTMImageLayer();
     		//String imgRelativeDirectory = new File(workingDirectory).toURI().relativize( openFile.toURI() ).getPath();
@@ -2440,9 +2524,11 @@ public class SampleNavigator extends Application
     		
     		selectedLayer.getChildren().add(l);
     	}
-    	if (fc.getSelectedExtensionFilter() == filter0)
+    	if (filter == filter0)
     	{
     		MatrixSTMImageLayer l = new MatrixSTMImageLayer();
+    		
+    		
     		
     		//l.imgName = openFile.toURI().toString();
     		URI f1 = new File(workingDirectory).toURI();
@@ -2452,6 +2538,8 @@ public class SampleNavigator extends Application
     		
     		
     		l.init();
+    		
+    		l.predictionThreshold = currentSTMImagePredictionThreshold;
     		
     		if (l.paramsExtracted)
     		{
@@ -2529,6 +2617,8 @@ public class SampleNavigator extends Application
     			if (notes != null)
     				notes.moveToFront();
     		}
+    		
+    		mostRecentSTMImageFile = l;
     	}
 	}
 	
@@ -2538,8 +2628,24 @@ public class SampleNavigator extends Application
 		child = child.normalize();
 		
 		String rel = parent.relativize(child).getPath();
+		//System.out.println(rel);
+		//File f0 = new File(new String("/" + rel));
+		//System.out.println(f0.exists());
+		//System.exit(0);
 		if (!rel.equals(child.getPath()))
+		{
+			File f = new File(rel);
+			if (!f.exists())
+			{
+				//may need a beginning slash
+				rel = new String("/" + rel);
+			}
+			if (f.exists() && (f.isDirectory()) && (!rel.endsWith("/")))
+				rel = new String(rel + "/");
 			return rel;
+		}
+		
+		
 		
 		
 		//int i = 0;
@@ -2588,16 +2694,36 @@ public class SampleNavigator extends Application
 		}
 		else
 		{
-			//if this ends up needing to be an absolute location, double check if it exists - if not, maybe it needs a starting "/"
+			//if this ends up needing to be an absolute location, double check if it exists - if not, maybe it needs a starting "/" or 2
 			//File f = new File(childS.substring(i));
 			File f = new File(diffChild.toString());
+			System.out.println("hi: " + diffChild.toString() + "  " + f.exists());
 			if (!f.exists())
-				backString.append("/");
+			{
+				if (!diffChild.toString().startsWith("//"))
+				{
+					if (diffChild.toString().startsWith("/"))
+						backString.append("/");
+					else
+						backString.append("//");
+				}
+			}
+			
+			
 		}
 		
 		
+		
+		String ret = new String(backString.toString() + diffChild.toString() );
+		//System.out.println(ret);
+		//System.exit(0);
+		
+		File f = new File(ret);
+		if (f.exists() && (f.isDirectory()) && (!ret.endsWith("/")))
+			ret = new String(ret + "/");
+		
 		//return new String(backString.toString() + childS.substring(i) );
-		return new String(backString.toString() + diffChild.toString() );
+		return ret;
 	}
 
 	public static void refreshTreeEditor()
@@ -2665,11 +2791,54 @@ public class SampleNavigator extends Application
 	public static double dzdx = 0;
 	public static double dzdy = 0;
 	public static boolean planeParametersSet = false;
-	public static void setPlaneParameters(double dzdx, double dzdy)
+	public static void setPlaneParameters(double dzdx, double dzdy, NavigationLayer l)
 	{
+		//the plane stored in SampleNavigator should be generic, so we determine the plane that is appropriate for an image with angle 0 degrees
+		try
+		{
+			Transform t = l.rotation.createInverse();
+			//double rotDzdx = t.getMxx()*dzdx + t.getMyx()*dzdy;
+			//double rotDzdy = t.getMxy()*dzdx + t.getMyy()*dzdy;
+			double rotDzdx = t.getMxx()*dzdx + t.getMxy()*dzdy;
+			double rotDzdy = t.getMyx()*dzdx + t.getMyy()*dzdy;
+					
+			System.out.println("transformed dzdx,dzdy: " + rotDzdx + "," + rotDzdy);
+			
+			dzdx = rotDzdx;
+			dzdy = rotDzdy;
+		}
+		catch (Exception ex)
+		{
+			ex.printStackTrace();
+		}
+				
 		SampleNavigator.dzdx = dzdx;
 		SampleNavigator.dzdy = dzdy;
 		SampleNavigator.planeParametersSet = true;
+	}
+	
+	public static Point2D getPlaneParameters(NavigationLayer l)
+	{
+		Point2D p = new Point2D(dzdx, dzdy);
+		try
+		{
+			Transform t = l.rotation;
+			//double rotDzdx = t.getMxx()*dzdx + t.getMyx()*dzdy;
+			//double rotDzdy = t.getMxy()*dzdx + t.getMyy()*dzdy;
+			
+			double rotDzdx = t.getMxx()*dzdx + t.getMxy()*dzdy;
+			double rotDzdy = t.getMyx()*dzdx + t.getMyy()*dzdy;
+					
+			//System.out.println("transformed dzdx,dzdy: " + rotDzdx + "," + rotDzdy);
+			
+			p = new Point2D(rotDzdx, rotDzdy);
+		}
+		catch (Exception ex)
+		{
+			ex.printStackTrace();
+		}
+		
+		return p;
 	}
 	
 	public static int link = 0;

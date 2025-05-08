@@ -21,6 +21,7 @@ import javafx.scene.shape.MeshView;
 import javafx.scene.shape.TriangleMesh;
 import javafx.scene.transform.Affine;
 import javafx.scene.transform.Scale;
+import javafx.scene.transform.Transform;
 
 import javax.xml.parsers.*;
 
@@ -67,7 +68,7 @@ public class ImageLayer extends NavigationLayer
 	
 	public ImageLayer()
 	{
-		appendActions( new String[]{"addScalePoint","toggleScalePoints","clearScalePoints","addRegionSelection","initPlaneFit","calculatePlane"} );
+		appendActions( new String[]{"addScalePoint","toggleScalePoints","clearScalePoints","addRegionSelection","initPlaneFit","calculatePlane","checkPlane"} );
 	}
 	
 	public double[][] getRawImageData()
@@ -1366,6 +1367,14 @@ public class ImageLayer extends NavigationLayer
 		SampleNavigator.refreshTreeEditor();
 	}
 	
+	public void checkPlane()
+	{
+		Point2D dz = SampleNavigator.getPlaneParameters(this);
+		System.out.println("checkPlane dzdx,dzdy: " + dz.getX() + ", " + dz.getY());
+		dzdx = dz.getX();
+		dzdy = dz.getY();
+	}
+	
 	public void calculatePlane()
 	{	
 		//get the 3 points that determine the plane from the CircleSelectionLayers in the planeFit GroupLayer
@@ -1418,9 +1427,12 @@ public class ImageLayer extends NavigationLayer
 		dzdx = -n.getX()/n.getZ();
 		dzdy = -n.getY()/n.getZ();
 
-		SampleNavigator.setPlaneParameters(dzdx, dzdy);
-		
 		System.out.println("calculated plane (dz/dx, dz/dy): " + dzdx + ", " + dzdy);
+		
+		SampleNavigator.setPlaneParameters(dzdx, dzdy, this);
+		
+		
+		
 		if (mLayer != null)
 			mLayer.togglePlaneSubtract();
 	}

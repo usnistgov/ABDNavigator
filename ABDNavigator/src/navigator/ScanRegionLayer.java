@@ -41,8 +41,12 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 		super();
 		
 		//appendActions(new String[] {"save","toggleFlip"});
-		actions = new String[]{/*"moveScanRegion","refreshScanRegion",*/"startScan","stopScan","togglePlaneSubtract","toggleLineByLineFlatten","nextColorScheme"};
+		actions = new String[]{/*"moveScanRegion","refreshScanRegion",*/"startScan","stopScan","togglePlaneSubtract","toggleLineByLineFlatten","nextColorScheme","reportZRange","startSingleScan"};
 		units.put("tipSpeed", "nm/s");
+		
+		categories.put("lineByLineFlatten", new String[] {"true","false"});
+		categories.put("planeSubtract", new String[] {"true","false"});
+		categories.put("colorSchemeIndex", new String[] {"0","1","2","3"});
 		
 		//generatesChildren();
 		
@@ -147,6 +151,8 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 	
 	public void refreshScanRegion()
 	{
+		System.out.println("** Refreshing Scan Region");
+		
 		String s = ABDClient.command("getScanX");
 		if (s != null)
 			setTranslateX( Double.parseDouble(s) );
@@ -292,6 +298,8 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 
 	public void init()
 	{
+		System.out.println("** Initializing Scan Region");
+		
 		resetScanRepresentation();
 		bImg = new BufferedSTMImage(scanImage, 1);
 		//bImg.minZFraction = this.minZFraction;
@@ -379,7 +387,17 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 		if (s.length() > 0)
 			colorSchemeIdx = Integer.parseInt(s);
 		
-		resetScanRepresentation();
+		s = xml.getAttribute("planeSubtract");
+		if (s.length() > 0)
+			planeSubtract = Boolean.parseBoolean(s);
+		
+		s = xml.getAttribute("lineByLineFlatten");
+		if (s.length() > 0)
+			lineByLineFlatten = Boolean.parseBoolean(s);
+		
+		
+		System.out.println("*** Setting from XML");
+		//resetScanRepresentation();
 	}
 	
 	public Element getAsXML()
@@ -393,6 +411,9 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 		
 		e.setAttribute("colorSchemeIndex", Integer.toString(colorSchemeIdx));
 		
+		e.setAttribute("lineByLineFlatten", Boolean.toString(lineByLineFlatten));
+		e.setAttribute("planeSubtract", Boolean.toString(planeSubtract));
+		
 		e.removeAttribute("transparency");
 		e.removeAttribute("visible");
 		e.removeAttribute("img");
@@ -404,7 +425,8 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 	
 	public void fireFieldChanged(String name)
 	{
-		
+		System.out.println("*************************************");
+		System.out.println("ScanRegionLayer: " + name);
 		if (name.equals("tipSpeed"))
 		{
 			currentSettings = null;
@@ -450,6 +472,18 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 			ABDClient.command("setScanAngle " + Double.toString(-rotation.getAngle()));
 			resetScanRepresentation();
 		}
+		else if (name.equals("lineByLineFlatten"))
+		{
+			updateImage();
+		}
+		else if (name.equals("planeSubtract"))
+		{
+			updateImage();
+		}
+		else if (name.equals("colorSchemeIndex"))
+		{
+			updateImage();
+		}
 	}
 	
 	private int line = 0;
@@ -466,6 +500,25 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 		return scanImage;
 	}
 	
+	public void reportZRange()
+	{
+		float min = scanImage[0][0];
+		float max = scanImage[0][0];
+		
+		for (int i = 0; i < scanImage.length; i ++)
+		{
+			for (int j = 0; j < scanImage[0].length; j ++)
+			{
+				if (min > scanImage[i][j])
+					min = scanImage[i][j];
+				if (max < scanImage[i][j])
+					max = scanImage[i][j];
+			}
+		}
+		
+		System.out.println("reporting z range: " + (max-min));
+	}
+	
 	public void resetScanRepresentation()
 	{
 		scanImage = new float[xPixels][yPixels];
@@ -473,7 +526,7 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 		prevImage = null;
 		line = 0;
 		//setLine(0, double[] values)
-		//System.out.println("resetting scan representation");
+		System.out.println("resetting scan representation");
 		setScanLineOffset();
 		updateImage();
 		imageReset = true;
@@ -482,6 +535,8 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 	private boolean scanningUp = false;
 	public void setLine(int lineNumber, double[] values)
 	{
+		System.out.println("setting line: " + lineNumber);
+		
 		if (lineNumber > line)
 			scanningUp = true;
 		else if ((lineNumber == line) && (line == 0))
@@ -498,7 +553,22 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 		
 		line = lineNumber;
 		setScanLineOffset();
+		
+		System.out.println("values: " + values.length);
+		for (int i = 0; i < values.length; i ++)
+			System.out.print(values[i] + " ");
+		System.out.println();
+		
+		
 		scanLine = squeezeLine(values);
+		
+		
+		System.out.println("scanLine: " + scanLine.length);
+		for (int i = 0; i < scanLine.length; i ++)
+			System.out.print(scanLine[i] + " ");
+		System.out.println();
+		
+		
 		updateImage();
 		imageReset = false;
 	}
@@ -546,7 +616,10 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 		if (n0[4] == null)
 			return;
 		
-		double a = (double)line/(double)yPixels;
+		//double a = (double)line/(double)yPixels;
+		double a = 0;
+		if (yPixels > 1)
+			a = (double)line/(double)(yPixels-1);
 		
 		double yVal = (0.5 - a);
 		//System.out.println("yVal: " + yVal);
@@ -602,20 +675,29 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 		bImg.lineByLineFlatten = lineByLineFlatten;
 		//bImg.minZFraction = this.minZFraction;
 		//bImg.maxZFraction = this.maxZFraction;
+		System.out.println("cropY: " + cropYStart + " -> " + cropYEnd);
+		
 		if (scanningUp)
 		{
-			bImg.capturedLinesStart = 1;
-			bImg.capturedLinesEnd = line-1;
+			//bImg.capturedLinesStart = 1;
+			bImg.capturedLinesStart = 0;
+			//bImg.capturedLinesEnd = line-1;
+			bImg.capturedLinesEnd = line;
 			bImg.isDownImage = false;
 			
 		}
 		else
 		{
-			bImg.capturedLinesStart = line-1;//yPixels-line+1;
-			bImg.capturedLinesEnd = yPixels;
+			//bImg.capturedLinesStart = line-1;//yPixels-line+1;
+			//bImg.capturedLinesEnd = yPixels;
+			bImg.capturedLinesStart = line;
+			bImg.capturedLinesEnd = yPixels-1;
 			bImg.isDownImage = true;
 			
 		}
+		
+		System.out.println("capturedLines: " + bImg.capturedLinesStart + " -> " + bImg.capturedLinesEnd);
+		
 		bImg.prevImage = prevImage;
 		bImg.colorSchemeIdx = colorSchemeIdx;
 		bImg.draw();
@@ -711,6 +793,7 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 	public void fireTransforming()
 	{
 		super.handleTranslationChange();
+		System.out.println("************ Transforming Scan Region");
 		if (!imageReset)
 			resetScanRepresentation();
 	

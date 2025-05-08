@@ -107,7 +107,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 		super();
 		//appendActions( new String[]{"imageLeftRight","imageUpDown","togglePlaneSubtract","toggleLineByLineFlatten","nextColorScheme","locateMaxima","locateLattice","addExample"} );
 		//appendActions( new String[]{"locateMaxima","locateLattice","altLocateLattice","addExample","clearExamples","checkTipQuality"} );
-		appendActions( new String[]{"altLocateLattice","addExample","clearExamples","checkTipQuality","detectStepEdges","linkScanSettingsRef"} );
+		appendActions( new String[]{"altLocateLattice","addExample","clearExamples","checkTipQuality","detectStepEdges","linkScanSettingsRef","openInGwyddion"} );
 		//tabs.put("maxima", new String[] {"locateMaxima","maximaExpectedDiameter","maximaPrecision","maximaThreshold"});
 		//tabs.put("lattice", new String[] {"locateLattice","altLocateLattice","latticeExpectedSpacing","latticeSpacingUncertainty"});
 		tabs.put("steps", new String[] {"detectStepEdges","stepBlur","zoomedIn"});
@@ -161,6 +161,8 @@ public class MatrixSTMImageLayer extends ImageLayer
 		init(false);
 	}
 	
+	private String fullFileName = null;
+	
 	public void init(boolean forceLoad)
 	{
 		listenToParentVisibility();
@@ -186,7 +188,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 			//imgNameString = imgNameString.replaceFirst("file:", "file:/" + SampleNavigator.workingDirectory +"/");
 			System.out.println( "image name: " + imgNameString );
 			
-			String fullFileName = imgNameString.replaceFirst("file:","");
+			fullFileName = imgNameString.replaceFirst("file:","");
 			SampleNavigator.linkRegistry.add(fullFileName);
 			
 			loadParamFile(fullFileName);
@@ -2343,6 +2345,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 				jObj.put("scan_settings_y", settings.getTranslateY());
 				jObj.put("scan_settings_scale_x", settings.scale.getMxx());
 				jObj.put("scan_settings_scale_y", settings.scale.getMyy());
+				jObj.put("scan_settings_angle", settings.rotation.getAngle());
 			}
 		}
 		
@@ -2400,12 +2403,29 @@ public class MatrixSTMImageLayer extends ImageLayer
 		String result = ABDPythonAPIClient.command(jObj.toString());
 		//System.out.println("tip check result: " + result);
 		
-		//read the result
 		try
 		{
 			JSONParser parser = new JSONParser();
 			Object obj = parser.parse(result);
 			JSONObject rObj = (JSONObject)obj;
+			processTipQualityResult(rObj);
+		}
+		catch (Exception ex)
+		{
+			ex.printStackTrace();
+		}
+		
+		
+	}
+	
+	public void processTipQualityResult(JSONObject rObj)
+	{
+		//read the result
+		try
+		{
+			//JSONParser parser = new JSONParser();
+			//Object obj = parser.parse(result);
+			//JSONObject rObj = (JSONObject)obj;
 			
 			Object s = rObj.get("sharp");
 			if (s == null)
@@ -2490,5 +2510,31 @@ public class MatrixSTMImageLayer extends ImageLayer
 		}
 		
 		super.setLink(val, l);
+	}
+	
+	public void openInGwyddion()
+	{
+		try
+		{
+			//ProcessBuilder b = new ProcessBuilder("cmd","/c",new String("gwyddion.exe --remote-new " + fullFileName));
+			String[] commands = new String[] {"gwyddion.exe","--remote-new", fullFileName};//"C:\\Program Files\\Gwyddion\\bin\\gwyddion.exe --remote-new " + fullFileName)};
+			System.out.println("executing command: " + commands[0]);
+			
+			//b.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+			
+			//Process proc = b.start();
+			//proc.waitFor();
+			
+			Process proc = Runtime.getRuntime().exec(commands);
+			//proc.waitFor();
+			//int exitVal = proc.exitValue();
+			
+			//System.out.println("process exit value: " + exitVal);
+		}
+		catch (Exception ex)
+		{
+			ex.printStackTrace();
+		}
+		
 	}
 }

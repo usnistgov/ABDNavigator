@@ -23,6 +23,9 @@ public class TipConditionLayer extends NavigationLayer
     public TipConditionLayer()
     {
         actions = new String[]{"condition","abort"};
+        categories.put("autoOpenImages", new String[] {"true","false"});
+        categories.put("imageFirst", new String[] {"true","false"});
+        
         displayRootScale = true;
     }
 
@@ -30,6 +33,8 @@ public class TipConditionLayer extends NavigationLayer
     public DropShadow ds = null;
     public Color glowColor = new Color(0,1,1,.8);
     public Color glowHightlight = new Color(1,1,0,0.8);
+    
+    private boolean imageFirst = false;
 
     public void init()
     {
@@ -60,6 +65,8 @@ public class TipConditionLayer extends NavigationLayer
     private double latticeAngle = 0;
     private double predictionThreshold = 0.5;
     private double majorityThreshold = 0.5;
+    
+    private boolean autoOpen = true;
 
     public void setFromXML(Element xml, boolean deep)
     {
@@ -78,6 +85,14 @@ public class TipConditionLayer extends NavigationLayer
         s = xml.getAttribute("majorityThreshold");
         if (s.length() > 0)
             majorityThreshold = Double.parseDouble(s);
+        
+        s = xml.getAttribute("autoOpenImages");
+        if (s.length() > 0)
+            autoOpen = Boolean.parseBoolean(s);
+        
+        s = xml.getAttribute("imageFirst");
+        if (s.length() > 0)
+        	imageFirst = Boolean.parseBoolean(s);
 
         super.setFromXML(xml, deep);
     }
@@ -90,6 +105,9 @@ public class TipConditionLayer extends NavigationLayer
         e.setAttribute("latticeAngle", Double.toString(latticeAngle));
         e.setAttribute("predictionThreshold", Double.toString(predictionThreshold));
         e.setAttribute("majorityThreshold", Double.toString(majorityThreshold));
+        
+        e.setAttribute("autoOpenImages", Boolean.toString(autoOpen));
+        e.setAttribute("imageFirst", Boolean.toString(imageFirst));
 
         return e;
     }
@@ -100,6 +118,13 @@ public class TipConditionLayer extends NavigationLayer
         Point2D p = t.transform(getTranslateX(),getTranslateY());
         return p;
     }
+    /*
+    public Point2D getScale()
+    {
+    	Transform t = getParent().getParent().getLocalToParentTransform().createConcatenation( getParent().getLocalToParentTransform() );//.createConcatenation( getParent().getParent().getParent().getLocalToParentTransform() );
+        Point2D p = t.transform(scale.getMxx(),scale.getMyy());
+        return p;
+    }*/
 
     public void condition()
     {
@@ -118,13 +143,31 @@ public class TipConditionLayer extends NavigationLayer
         Point2D scanPosition = t.transform( scan.getTranslateX(),scan.getTranslateY() );
         jObj.put("scanX", Double.valueOf(scanPosition.getX()));
         jObj.put("scanY", Double.valueOf(scanPosition.getY()));
+        
+        //require that the scan scale is square!!!
+        jObj.put("scanScaleX", Double.valueOf(scan.scale.getMxx()));
+        jObj.put("scanScaleY", Double.valueOf(scan.scale.getMxx()));
 
         Point2D condition = getCoordinates();
         jObj.put("conditionX", Double.valueOf(condition.getX()));
         jObj.put("conditionY", Double.valueOf(condition.getY()));
+        
+        //require that the scan scale is square!!!
+        //Point2D conditionScale = getScale();
+        jObj.put("conditionScaleX", Double.valueOf(scale.getMxx()*scan.scale.getMxx()));
+        jObj.put("conditionScaleY", Double.valueOf(scale.getMxx()*scan.scale.getMyy()));
 
-        jObj.put("dzdx", Double.valueOf(SampleNavigator.dzdx));
-        jObj.put("dzdy", Double.valueOf(SampleNavigator.dzdy));
+        Point2D dz = SampleNavigator.getPlaneParameters(scan);
+        jObj.put("dzdx", Double.valueOf(dz.getX()));
+        jObj.put("dzdy", Double.valueOf(dz.getY()));
+        
+        jObj.put("imageFirst", Boolean.valueOf(imageFirst));
+        
+        if (autoOpen)
+        {
+        	SampleNavigator.scanner.autoOpenImages = true;
+        }
+        SampleNavigator.currentSTMImagePredictionThreshold = predictionThreshold;
 
         System.out.println(jObj);
         ABDPythonAPIClient.threadedCommand(jObj.toString());

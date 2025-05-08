@@ -53,54 +53,33 @@ def condition_tip(data: dict, model, config):
     print('conditioning tip...')
     print(data)
     
-    if "detectionContrast" not in data:
-        raise ValueError("detectionContrast is required")
     detection_contrast = data["detectionContrast"]
-    
-    if "predictionThreshold" not in data:
-        raise ValueError("predictionThreshold is required")
     prediction_threshold = data["predictionThreshold"]
-    
-    if "majorityThreshold" not in data:
-        raise ValueError("majorityThreshold is required")
     majority_threshold = data["majorityThreshold"]
-    
-    if "latticeAngle" not in data:
-        raise ValueError("latticeAngle is required")
     lattice_angle = data["latticeAngle"]
-    
-    if "dzdx" not in data:
-        raise ValueError("dzdx is required")
     dzdx = data["dzdx"]
-    
-    if "dzdy" not in data:
-        raise ValueError("dzdy is required")
     dzdy = data["dzdy"]
-    
-    if "scanX" not in data:
-        raise ValueError("scanX is required")
     scan_x = data["scanX"]
-    
-    if "scanY" not in data:
-        raise ValueError("scanY is required")
     scan_y = data["scanY"]
-    
-    if "conditionX" not in data:
-        raise ValueError("conditionX is required")
+    scan_scale_x = data["scanScaleX"]
+    scan_scale_y = data["scanScaleY"]
     condition_x = data["conditionX"]
-    
-    if "conditionY" not in data:
-        raise ValueError("conditionY is required")
     condition_y = data["conditionY"]
+    condition_scale_x = data["conditionScaleX"]
+    condition_scale_y = data["conditionScaleY"]
+    image_first = data["imageFirst"]
     
-    #scan_x = 141.0
-    #scan_y = -38.0
+    print('scales:')
+    print(scan_scale_x)
+    print(scan_scale_y)
+    print(condition_scale_x)
+    print(condition_scale_y)
+    
+    width = scan_scale_x#50.0
+    height = scan_scale_y#50.0
 
-    width = 50.0
-    height = 50.0
-
-    window_width = 0.5*width
-    window_height = 0.5*height
+    window_width = condition_scale_x#0.5*width
+    window_height = condition_scale_y#0.5*height
 
     num_x = 8
     num_y = 8
@@ -132,24 +111,32 @@ def condition_tip(data: dict, model, config):
             print("settle position: " + str(height/2.0))
             #print("scan shift: " + str(-height))
             
-            #perform tip conditioning
-            stm.setWindowPosition( (condition_x,condition_y) )
-            if abort == True:
-                return
-            time.sleep(20)
-            stm.moveTip( (0.0,0.0) )
-            if abort == True:
-                return
-            print("settling...")
-            time.sleep(20)
-            print("continuing")
-            stm.moveTip( (x,y) )
-            stm.zPulse(-0.3)
-            #imgInfo = util.getNewImage()
-            #npImg = imgInfo[1]
+            #the first pulse happens before the first image, unless imageFirst is selected
+            print(y_idx)
+            print(start_y)
+            print(image_first)
+            if y_idx > start_y or x_idx > start_x or image_first == False:
+                #perform tip conditioning
+                stm.setWindowPosition( (condition_x,condition_y) )
+                stm.setWindowSize( (condition_scale_x, condition_scale_y) )
+                if abort == True:
+                    return
+                time.sleep(20)
+                stm.moveTip( (0.0,0.0) )
+                if abort == True:
+                    return
+                print("settling...")
+                time.sleep(20)
+                print("continuing")
+                stm.moveTip( (x,y) )
+                stm.zPulse(-0.3)
+                #imgInfo = util.getNewImage()
+                #npImg = imgInfo[1]
             
             #image to check tip condition
+            print('imaging to check tip condition')
             stm.setWindowPosition( (scan_x,scan_y) )
+            stm.setWindowSize( (scan_scale_x, scan_scale_y) )
             
             if abort == True:
                 return
@@ -171,6 +158,9 @@ def condition_tip(data: dict, model, config):
             #npImg = imgInfo[1]
             npImg,z_range = subtract_bg_plane(imgInfo[1], width, height, dzdx=dzdx, dzdy=dzdy)
             
+            print('conditioning z_range: ')
+            print(z_range)
+            
             #plt.imshow(npImg)
             #plt.gray()
             #plt.show()
@@ -189,8 +179,10 @@ def condition_tip(data: dict, model, config):
                 rotation=lattice_angle,
                 scan_debug=False,
                 roi_debug=False,
-                z_range=z_range )
+                z_range=z_range,
+                sharp_prediction_threshold=prediction_threshold )
 
+            print('done detecting tip')
             print(tip_data)
             
             num_sharp = tip_data['sharp']

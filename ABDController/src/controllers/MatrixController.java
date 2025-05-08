@@ -649,7 +649,7 @@ public class MatrixController implements ABDControllerInterface
 		StringBuffer s = new StringBuffer();
 		s.append(zScanLine[0]);
 		
-		for (int i = 0; i < zScanLine.length; i ++)
+		for (int i = 1; i < zScanLine.length; i ++)
 		{
 			s.append(",");
 			s.append(zScanLine[i]);

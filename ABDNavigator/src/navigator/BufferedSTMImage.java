@@ -142,7 +142,8 @@ public class BufferedSTMImage extends BufferedImage
 			{
 				float[] diffs = new float[pixWidth];
 				//float[] medians = new float[pixHeight-1];
-				for (int yIdx = capturedLinesStart; yIdx < capturedLinesEnd-2; yIdx ++)
+				//for (int yIdx = capturedLinesStart; yIdx < capturedLinesEnd-2; yIdx ++)
+				for (int yIdx = capturedLinesStart; yIdx < capturedLinesEnd; yIdx ++)
 				{
 					for (int xIdx = 0; xIdx < pixWidth; xIdx ++)
 					{
@@ -174,18 +175,21 @@ public class BufferedSTMImage extends BufferedImage
 			dzdyAve /= (pixWidth)*(capturedLinesEnd-capturedLinesStart);
 			*/
 			//now do the plane subtract
-			for (int yIdx = capturedLinesStart; yIdx < capturedLinesEnd; yIdx ++)
+			//for (int yIdx = capturedLinesStart; yIdx < capturedLinesEnd; yIdx ++)
+			for (int yIdx = capturedLinesStart; yIdx <= capturedLinesEnd; yIdx ++)
 			{
 				dzdxAve += fData[pixWidth-1][yIdx]-fData[0][yIdx];
 			}
 			
 			for (int xIdx = 0; xIdx < pixWidth-1; xIdx ++)
 			{
-				dzdyAve += fData[xIdx][capturedLinesEnd-1]-fData[xIdx][capturedLinesStart];
+				//dzdyAve += fData[xIdx][capturedLinesEnd-1]-fData[xIdx][capturedLinesStart];
+				dzdyAve += fData[xIdx][capturedLinesEnd]-fData[xIdx][capturedLinesStart];
 			}
 						
 			dzdxAve /= ((pixWidth-1)*(capturedLinesEnd-capturedLinesStart));
-			dzdyAve /= ((pixWidth-1)*(capturedLinesEnd-capturedLinesStart-1));
+			//dzdyAve /= ((pixWidth-1)*(capturedLinesEnd-capturedLinesStart-1));
+			dzdyAve /= ((pixWidth-1)*(capturedLinesEnd-capturedLinesStart));
 			
 			/* if ((dzdx != 0) || (dzdy != 0))
 			{
@@ -193,7 +197,8 @@ public class BufferedSTMImage extends BufferedImage
 				dzdyAve = 
 			}*/
 			
-			for (int yIdx = capturedLinesStart; yIdx < capturedLinesEnd; yIdx ++)//used to start at 0
+			//for (int yIdx = capturedLinesStart; yIdx < capturedLinesEnd; yIdx ++)//used to start at 0
+			for (int yIdx = capturedLinesStart; yIdx <= capturedLinesEnd; yIdx ++)//used to start at 0
 			{
 				for (int xIdx = 0; xIdx < pixWidth; xIdx ++)
 				{
@@ -206,7 +211,8 @@ public class BufferedSTMImage extends BufferedImage
 		{
 			float[] diffs = new float[pixWidth];
 			//float[] medians = new float[pixHeight-1];
-			for (int yIdx = capturedLinesStart; yIdx < capturedLinesEnd-2; yIdx ++)
+			//for (int yIdx = capturedLinesStart; yIdx < capturedLinesEnd-2; yIdx ++)
+			for (int yIdx = capturedLinesStart; yIdx < capturedLinesEnd; yIdx ++)
 			{
 				for (int xIdx = 0; xIdx < pixWidth; xIdx ++)
 				{
@@ -224,7 +230,8 @@ public class BufferedSTMImage extends BufferedImage
 		
 		float min = 0;
 		float max = 0;
-		for (int yIdx = capturedLinesStart; yIdx < capturedLinesEnd; yIdx ++)
+		//for (int yIdx = capturedLinesStart; yIdx < capturedLinesEnd; yIdx ++)
+		for (int yIdx = capturedLinesStart; yIdx <= capturedLinesEnd; yIdx ++)
 		{
 			for (int xIdx = 0; xIdx < pixWidth; xIdx ++)
 			{

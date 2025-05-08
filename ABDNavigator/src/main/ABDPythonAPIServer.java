@@ -2,6 +2,7 @@ package main;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
+import java.io.File;
 import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -15,6 +16,7 @@ import org.json.simple.JSONArray;
 import org.json.simple.parser.ParseException;
 
 import javafx.application.Platform;
+import javafx.stage.FileChooser.ExtensionFilter;
 import navigator.CircleSelectionLayer;
 import navigator.NavigationLayer;
 import navigator.Positioner;
@@ -107,7 +109,8 @@ public class ABDPythonAPIServer
 		try
 		{
 			JSONParser parser = new JSONParser();
-			Object obj = parser.parse(in.readLine());
+			String results = in.readLine();
+			Object obj = parser.parse(results);
 			System.out.println("JSON String" + obj);
 			JSONObject jObj = (JSONObject)obj;
 			Object s = jObj.get("op");
@@ -151,6 +154,14 @@ public class ABDPythonAPIServer
 								System.out.print(".");
 							}
 							System.out.println();
+							
+							System.out.println("auto open: " + SampleNavigator.scanner.autoOpenImages);
+							if (SampleNavigator.scanner.autoOpenImages == true)
+							{
+								//SampleNavigator.addMostRecentSTMImageFile();
+								SampleNavigator.addMostRecentSTMImageFileLater();
+								//SampleNavigator.addImageFile(File openFile, ExtensionFilter filter);
+							}
 							
 							//populate the JSON image array with a 1D (flattened from 2D) array of the image data
 							float[][] scanImage = SampleNavigator.scanner.scan.getScanImage();
@@ -229,6 +240,50 @@ public class ABDPythonAPIServer
 							SampleNavigator.scanner.scan.startScan();
 							break;
 							
+						case 7: //change window size (nm, nm)
+							System.out.println("setting window size");
+							
+							//position the tip at the center of the scan region just to be safe when scaling
+							//this adds the positioner and waits for the GUI thread to update
+							p = SampleNavigator.scanner.scan.getPositioner("PyPositioner");
+							if (p == null)
+								p = SampleNavigator.addPositionerLater(0, 0, "PyPositioner", SampleNavigator.scanner.scan);
+							else
+							{
+								p.setTranslateX(0);
+					    		p.setTranslateY(0);
+							}
+							
+							System.out.println("start moving tip");
+							p.moveTipNoThread();
+							System.out.println("done moving tip");
+							
+							double w = 50;
+							double h = 50;
+							
+							s = data.get("w");
+							w = ((Double)s).doubleValue();
+							
+							s = data.get("h");
+							h = ((Double)s).doubleValue();
+							
+							System.out.println("w,h: " + w + ", " + h);
+							
+							SampleNavigator.scanner.scan.scale.setX(w);
+							SampleNavigator.scanner.scan.scale.setY(h);
+							SampleNavigator.scanner.scan.fireTransforming();
+							SampleNavigator.scanner.scan.moveScanRegion();
+							
+							SampleNavigator.refreshAttributeEditorLater();
+							
+							while (SampleNavigator.scanner.tipIsMoving)
+							{
+								Thread.sleep(5);
+								System.out.print(".tipIsMoving.");
+							}
+							
+							break;
+						
 						case 8: //change window position (nm,nm)
 							System.out.println("setting wondow position");
 							
@@ -281,6 +336,14 @@ public class ABDPythonAPIServer
 							}
 							
 							break;
+							
+						case 21: //report tip quality
+							System.out.println("reporting tip quality");
+							//s = data.get("x");
+							//x = ((Double)s).doubleValue();
+							System.out.println(data);
+							
+							SampleNavigator.postTipQualityResultsLater(data);
 					}
 					
 					break;
