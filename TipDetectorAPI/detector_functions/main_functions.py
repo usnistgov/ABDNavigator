@@ -41,6 +41,8 @@ def detect_tip(
     scan_debug=False,
     roi_debug=False,
     z_range=1,
+    min_height=0,
+    max_height=0.2,
     sharp_prediction_threshold=0.5
 ) -> dict:
     """Detects the tip in the given image.
@@ -67,9 +69,13 @@ def detect_tip(
         img = rotate_image(img, rotation)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     
-    #no dangling bond should be taller than 2 nm, so clip colors "taller" than that
+        
+    #no dangling bond should be taller than max_height nm, so clip colors "taller" than that and scale image appropriately
     max_gray = np.max(gray)
-    z_cut = 0.2/z_range
+    min_gray = np.min(gray)
+    heights = z_range*(gray - min_gray)/(max_gray - min_gray)  #array of the actual heights
+    
+    z_cut = max_height/z_range
     print('z_cut: ')
     print(z_cut)
     if z_cut <= 1:
@@ -84,14 +90,14 @@ def detect_tip(
         print(gray)
         print(np.max(gray))
         
-        cv2.namedWindow("grayPre")
-        cv2.imshow("grayPre", cv2.resize(grayPre,(400,400)))
+        #cv2.namedWindow("grayPre")
+        #cv2.imshow("grayPre", cv2.resize(grayPre,(400,400)))
         
-        cv2.namedWindow("gray")
-        cv2.imshow("gray", cv2.resize(gray,(400,400)))
+        #cv2.namedWindow("gray")
+        #cv2.imshow("gray", cv2.resize(gray,(400,400)))
         
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        #cv2.waitKey(0)
+        #cv2.destroyAllWindows()
         
         img = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
 
@@ -143,7 +149,25 @@ def detect_tip(
 
     # Merge overlapping contours
     contours = merge_overlapping_contours(contours, overlap_threshold=0)
-
+    
+    
+    #remove contours that are too tall or too short
+    i = 0
+    contours = list(contours)
+    while i < len(contours):
+        x, y, w, h = cv2.boundingRect(contours[i])
+        check_heights = heights[y : y + w, x : x + h]
+        h_diff = np.max(check_heights)-np.min(check_heights)
+        
+        if (h_diff > max_height):
+            contours.pop(i)
+        elif (h_diff < min_height):
+            contours.pop(i)
+        
+        i += 1
+    contours = tuple(contours)
+    
+    
     # Tqdm setup
     contour_iterator = (
         contours if scan_debug else tqdm(contours, desc="Processing contours ")

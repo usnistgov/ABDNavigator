@@ -2822,7 +2822,18 @@ public class SampleNavigator extends Application
 		Point2D p = new Point2D(dzdx, dzdy);
 		try
 		{
+			
+				
 			Transform t = l.rotation;
+			
+			NavigationLayer parent = (NavigationLayer)l.getParent();
+			if (parent instanceof ControlGroupLayer)
+			{
+				System.out.println("adding on control group rotation: " + parent.rotation.getAngle() + "  to the scan rotation of: " + l.rotation.getAngle());
+				Transform t0 = parent.rotation;
+				t = t0.createConcatenation(t);
+			}
+			
 			//double rotDzdx = t.getMxx()*dzdx + t.getMyx()*dzdy;
 			//double rotDzdy = t.getMxy()*dzdx + t.getMyy()*dzdy;
 			

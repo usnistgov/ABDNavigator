@@ -25,6 +25,8 @@ public class TipConditionLayer extends NavigationLayer
         actions = new String[]{"condition","abort"};
         categories.put("autoOpenImages", new String[] {"true","false"});
         categories.put("imageFirst", new String[] {"true","false"});
+        units.put("minHeight", "nm");
+        units.put("maxHeight", "nm");
         
         displayRootScale = true;
     }
@@ -35,6 +37,9 @@ public class TipConditionLayer extends NavigationLayer
     public Color glowHightlight = new Color(1,1,0,0.8);
     
     private boolean imageFirst = false;
+    
+    private double minHeight = 0.11;
+    private double maxHeight = 0.2;
 
     public void init()
     {
@@ -93,6 +98,14 @@ public class TipConditionLayer extends NavigationLayer
         s = xml.getAttribute("imageFirst");
         if (s.length() > 0)
         	imageFirst = Boolean.parseBoolean(s);
+        
+        s = xml.getAttribute("minHeight");
+        if (s.length() > 0)
+        	minHeight = Double.parseDouble(s);
+        
+        s = xml.getAttribute("maxHeight");
+        if (s.length() > 0)
+        	maxHeight = Double.parseDouble(s);
 
         super.setFromXML(xml, deep);
     }
@@ -108,6 +121,8 @@ public class TipConditionLayer extends NavigationLayer
         
         e.setAttribute("autoOpenImages", Boolean.toString(autoOpen));
         e.setAttribute("imageFirst", Boolean.toString(imageFirst));
+        e.setAttribute("minHeight", Double.toString(minHeight));
+        e.setAttribute("maxHeight", Double.toString(maxHeight));
 
         return e;
     }
@@ -157,11 +172,14 @@ public class TipConditionLayer extends NavigationLayer
         jObj.put("conditionScaleX", Double.valueOf(scale.getMxx()*scan.scale.getMxx()));
         jObj.put("conditionScaleY", Double.valueOf(scale.getMxx()*scan.scale.getMyy()));
 
+        System.out.println("scan angle: " + scan.rotation.getAngle());
         Point2D dz = SampleNavigator.getPlaneParameters(scan);
         jObj.put("dzdx", Double.valueOf(dz.getX()));
         jObj.put("dzdy", Double.valueOf(dz.getY()));
         
         jObj.put("imageFirst", Boolean.valueOf(imageFirst));
+        jObj.put("minHeight", Double.valueOf(minHeight));
+        jObj.put("maxHeight", Double.valueOf(maxHeight));
         
         if (autoOpen)
         {

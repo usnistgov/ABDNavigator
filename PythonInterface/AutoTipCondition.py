@@ -27,6 +27,7 @@ def subtract_bg_plane(img, width_nm, height_nm, dzdx = 0, dzdy = 0):
     nm_px_x = width_nm/(len(img[0])-1)
     nm_px_y = height_nm/(len(img)-1)
     
+    
     img_sub = np.empty((len(img), len(img[0])))
     for x_idx in range(len(img[0])):
         for y_idx in range(len(img)):
@@ -68,6 +69,8 @@ def condition_tip(data: dict, model, config):
     condition_scale_x = data["conditionScaleX"]
     condition_scale_y = data["conditionScaleY"]
     image_first = data["imageFirst"]
+    min_height = data["minHeight"]
+    max_height = data["maxHeight"]
     
     print('scales:')
     print(scan_scale_x)
@@ -156,6 +159,11 @@ def condition_tip(data: dict, model, config):
             print("continuing")
             imgInfo = util.getNewImage()
             #npImg = imgInfo[1]
+            
+            print('initial z range:')
+            print(np.max(imgInfo[1]) - np.min(imgInfo[1]))
+    
+    
             npImg,z_range = subtract_bg_plane(imgInfo[1], width, height, dzdx=dzdx, dzdy=dzdy)
             
             print('conditioning z_range: ')
@@ -180,6 +188,8 @@ def condition_tip(data: dict, model, config):
                 scan_debug=False,
                 roi_debug=False,
                 z_range=z_range,
+                min_height=min_height,
+                max_height=max_height,
                 sharp_prediction_threshold=prediction_threshold )
 
             print('done detecting tip')
@@ -193,6 +203,10 @@ def condition_tip(data: dict, model, config):
             if num_sharp/num_total > majority_threshold:
                 print('done conditioning tip')
                 return
+            
+            #if image_first == True:
+            #    return
+                
             # Convert numpy types to Python types
             #serializable_data = convert_to_serializable(tip_data)
             

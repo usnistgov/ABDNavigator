@@ -82,7 +82,7 @@ def color_layers(overlay, cleaned, maximas):
         print("WARNING: Number of layers does not match local maximas detected. Consider updating blur parameter")
     return labels
 
-def detect_steps(img, img_width=None, img_height=None, show_plots=False, show_each_mask=False, show_output=False, blur = 3, postprocessing = False, max_pxl=500):
+def detect_steps(img, img_width=None, img_height=None, show_plots=False, show_each_mask=False, show_output=False, blur = 3, postprocessing = False, max_pxl=500, nm_from_z=1):
     #print('it\'s working!')
     #return
     

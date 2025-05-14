@@ -197,6 +197,7 @@ def handle_client(client_socket: socket.socket) -> None:
                 print(input_data["scan_settings_y"])
                 print(input_data["scan_settings_scale_x"])
                 print(input_data["scan_settings_scale_y"])
+                print(input_data["scan_settings_angle"])
                 print()
                 detect_steps_alt(
                     np.array(input_data["img"]), 
