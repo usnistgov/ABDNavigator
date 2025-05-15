@@ -192,7 +192,7 @@ def handle_client(client_socket: socket.socket) -> None:
                 print(input_data["captured_lines_end"])
                 print('nm from z:')
                 print(input_data["nm_from_z"])
-                print('scan settings x,y and scale_x, scale_y (nm):')
+                print('scan settings x,y and scale_x, scale_y (nm), angle (deg):')
                 print(input_data["scan_settings_x"])
                 print(input_data["scan_settings_y"])
                 print(input_data["scan_settings_scale_x"])

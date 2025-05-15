@@ -323,9 +323,11 @@ def detect_steps(img, img_width=None, img_height=None, show_plots=False, show_ou
                 x, y = zip(*polygon.points)
                 poly = []
                 for i in range(len(x)):
-                    x_vertex = int(int(x[i]-scan_settings_x)*(img_width/(img_rescale_x))+(img_width/2))
-                    y_vertex = int(int(y[i]-scan_settings_y)*(img_height/(img_rescale_y))+(img_height/2))
-                    poly.append([x_vertex-1, y_vertex-1])
+                    x_vertex = x[i]-scan_settings_x
+                    y_vertex = y[i]-scan_settings_y
+                    xr = int(((x_vertex*np.cos(scan_settings_angle*(np.pi/180))) - (y_vertex*np.sin((scan_settings_angle+180)*(np.pi/180))))*(img_width/(img_rescale_x)) + (img_width/2))
+                    yr = int(((x_vertex*np.sin(scan_settings_angle*(np.pi/180))) + (y_vertex*np.cos((scan_settings_angle+180)*(np.pi/180))))*(img_height/(img_rescale_y)) + (img_height/2))
+                    poly.append([xr-1, yr-1])
                 polys.append(np.array(poly, np.int32))
             print(polys)
             cv2.fillPoly(image, polys, (255, 255, 0))
