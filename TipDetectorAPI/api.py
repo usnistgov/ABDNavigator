@@ -14,7 +14,7 @@ sys.path.append('../StepEdgeDetector')
 from AutoTipCondition import condition_tip
 from AutoTipCondition import set_abort
 
-from helpers.main_functions import detect_steps_alt
+from helpers.main_functions import detect_steps_alt, detect_steps
 
 # Disable OneDNN optimizations and CPU instructions messages
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
@@ -198,18 +198,37 @@ def handle_client(client_socket: socket.socket) -> None:
                 print(input_data["scan_settings_scale_x"])
                 print(input_data["scan_settings_scale_y"])
                 print(input_data["scan_settings_angle"])
+                print('roughness threshold:')
+                print(input_data["roughnessThreshold"])
+                print('low resolution?:')
+                print(input_data["lowResolution"])
+                print('lithography method:')
+                print(input_data["findLithoMethod"])
+                print('step edge thickness:')
+                print(input_data["thickness"])
+                print('verify with GDS file?:')
+                print(input_data["verifyGDS"])
                 print()
-                detect_steps_alt(
+                detect_steps(
                     np.array(input_data["img"]), 
 					img_width=int(input_data["img_width"]),
                     img_height=int(input_data["img_height"]),
-                    show_plots=True,
-                    show_each_mask=False, 
+                    show_plots=False, 
                     show_output=True, 
                     blur=int(input_data["blur"]), 
-                    postprocessing=True, 
-                    max_pxl=500,
-                    nm_from_z=float(input_data["nm_from_z"])
+                    postprocessing=input_data["zoomedIn"], 
+                    max_pxl=400,
+                    nm_from_z=float(input_data["nm_from_z"]),
+                    roughnessThreshold=float(input_data["roughnessThreshold"]),
+                    lowResolution=input_data["lowResolution"],
+                    find_litho=input_data["findLithoMethod"],
+                    thickness=float(input_data["thickness"]),
+                    verifyGDS=input_data["verifyGDS"],
+                    scan_settings_x=input_data["scan_settings_x"],
+                    scan_settings_y=input_data["scan_settings_y"],
+                    img_rescale_x=input_data["img_rescale_x"],
+                    img_rescale_y=input_data["img_rescale_y"],
+                    scan_settings_angle=input_data["scan_settings_angle"]
                     )
                 print('all done')
 

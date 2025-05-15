@@ -97,7 +97,9 @@ public class MatrixSTMImageLayer extends ImageLayer
 	public double predictionThreshold = 0.5;
 	
 	public int stepBlur = 2;
-	public boolean zoomedIn = false;
+	public double roughnessThreshold = 0.12;
+	public String findLithoMethod = "default";
+	public double thickness = 1.0;
 	
 	private int scanSettingsRef = 0;
 	
@@ -110,7 +112,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 		appendActions( new String[]{"altLocateLattice","addExample","clearExamples","checkTipQuality","detectStepEdges","linkScanSettingsRef","openInGwyddion"} );
 		//tabs.put("maxima", new String[] {"locateMaxima","maximaExpectedDiameter","maximaPrecision","maximaThreshold"});
 		//tabs.put("lattice", new String[] {"locateLattice","altLocateLattice","latticeExpectedSpacing","latticeSpacingUncertainty"});
-		tabs.put("steps", new String[] {"detectStepEdges","stepBlur","zoomedIn"});
+		tabs.put("steps", new String[] {"detectStepEdges","stepBlur","zoomedIn","roughnessThreshold","lowResolution","findLithoMethod","thickness","verifyGDS"});
 		tabs.put("detection", new String[] {"checkTipQuality","latticeAngle", "detectionContrast", "predictionThreshold"});
 		tabs.put("lattice", new String[] {"altLocateLattice","latticeExpectedSpacing","latticeSpacingUncertainty"});
 		//tabs.put("machine learning", new String[] {"addExample","clearExamples"});
@@ -120,7 +122,10 @@ public class MatrixSTMImageLayer extends ImageLayer
 		categories.put("imageDirection", new String[] {"upForward","upBackward","downForward","downBackward"});
 		categories.put("lineByLineFlatten", new String[] {"true","false"});
 		categories.put("planeSubtract", new String[] {"true","false"});
+		categories.put("lowResolution", new String[] {"true","false"});
 		categories.put("zoomedIn", new String[] {"true","false"});
+		categories.put("findLithoMethod", new String[] {"default","off","minorityLitho","majorityLitho"});
+		categories.put("verifyGDS", new String[] {"true","false"});
 		units.put("latticeExpectedSpacing", "nm");
 		units.put("latticeSpacingUncertainty", "nm");
 		units.put("latticeAngle", "deg");
@@ -1040,6 +1045,30 @@ public class MatrixSTMImageLayer extends ImageLayer
 		setImageTo(currentImageData);
 		SampleNavigator.refreshAttributeEditor();
 	}
+
+	public boolean lowResolution = false;
+	public void toggleLowResolution()
+	{
+		lowResolution = !lowResolution;
+		setImageTo(currentImageData);
+		SampleNavigator.refreshAttributeEditor();
+	}
+
+	public boolean zoomedIn = false;
+	public void toggleZoomedIn()
+	{
+		zoomedIn = !zoomedIn;
+		setImageTo(currentImageData);
+		SampleNavigator.refreshAttributeEditor();
+	}
+
+	public boolean verifyGDS = false;
+	public void toggleverifyGDS()
+	{
+		verifyGDS = !verifyGDS;
+		setImageTo(currentImageData);
+		SampleNavigator.refreshAttributeEditor();
+	}
 	
 	public float[][] currentImageData = null;
 	public void setImageTo(float[][] data)
@@ -1482,6 +1511,26 @@ public class MatrixSTMImageLayer extends ImageLayer
 		s = xml.getAttribute("zoomedIn");
 		if (s.length() > 0)
 			zoomedIn = Boolean.parseBoolean(s);
+
+		s = xml.getAttribute("roughnessThreshold");
+		if (s.length() > 0)
+			roughnessThreshold = Double.parseDouble(s);
+
+		s = xml.getAttribute("lowResolution");
+		if (s.length() > 0)
+			lowResolution = Boolean.parseBoolean(s);
+
+		s = xml.getAttribute("findLithoMethod");
+		if (s.length() > 0)
+			findLithoMethod = new String(s);
+
+		s = xml.getAttribute("thickness");
+		if (s.length() > 0)
+			thickness = Double.parseDouble(s);
+
+		s = xml.getAttribute("verifyGDS");
+		if (s.length() > 0)
+			verifyGDS = Boolean.parseBoolean(s);
 		
 		s = xml.getAttribute("scanSettingsRef");
 		if (s.length() > 0)
@@ -1532,6 +1581,11 @@ public class MatrixSTMImageLayer extends ImageLayer
 		e.setAttribute("height", Integer.toString(yPixels));
 		e.setAttribute("stepBlur", Integer.toString(stepBlur));
 		e.setAttribute("zoomedIn", Boolean.toString(zoomedIn));
+		e.setAttribute("roughnessThreshold", Double.toString(roughnessThreshold));
+		e.setAttribute("lowResolution", Boolean.toString(lowResolution));
+		e.setAttribute("findLithoMethod", findLithoMethod);
+		e.setAttribute("thickness", Double.toString(thickness));
+		e.setAttribute("verifyGDS", Boolean.toString(verifyGDS));
 		
 		if (scanSettingsRef > 0)
 			e.setAttribute("scanSettingsRef", Integer.toString(scanSettingsRef));
@@ -2319,6 +2373,11 @@ public class MatrixSTMImageLayer extends ImageLayer
 		
 		jObj.put("blur", Integer.valueOf(stepBlur));
 		jObj.put("zoomedIn", Boolean.valueOf(zoomedIn));
+		jObj.put("roughnessThreshold", Double.valueOf(roughnessThreshold));
+		jObj.put("lowResolution", Boolean.valueOf(lowResolution));
+		jObj.put("findLithoMethod", String.valueOf(findLithoMethod));
+		jObj.put("thickness", Double.valueOf(thickness));
+		jObj.put("verifyGDS", Boolean.valueOf(verifyGDS));
 		jObj.put("img_height", imgData[0].length);
 		jObj.put("img_width", imgData.length);
 		
