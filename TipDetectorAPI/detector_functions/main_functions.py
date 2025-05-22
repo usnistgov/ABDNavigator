@@ -69,6 +69,240 @@ def detect_tip(
         img = rotate_image(img, rotation)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     
+    
+    #threshold the image to find all the dangling bonds
+    max_gray = np.max(gray)
+    min_gray = np.min(gray)
+    print(min_gray)
+    print(max_gray)
+    print(min_height)
+    print(z_range)
+    print((max_gray-min_gray)*min_height)
+    z_thresh = min_gray + (max_gray-min_gray)*min_height/z_range
+    
+    _, thresh = cv2.threshold(gray, int(z_thresh), 255, cv2.THRESH_BINARY)
+    
+    
+    #cv2.namedWindow("gray")
+    #cv2.imshow("gray", cv2.resize(gray,(400,400)))
+    
+    #cv2.namedWindow("thresh")
+    #cv2.imshow("thresh", cv2.resize(thresh,(400,400)))
+    
+    #cv2.waitKey(0)
+    #cv2.destroyAllWindows()
+    
+    
+    
+    #get the connected components, which should be individual features
+    num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(thresh, connectivity=8)
+
+    
+    
+    #only need bounding boxes from the connected components
+    boxes = []
+    for i in range(num_labels):
+        x = stats[i, cv2.CC_STAT_LEFT]
+        y = stats[i, cv2.CC_STAT_TOP]
+        w = stats[i, cv2.CC_STAT_WIDTH]
+        h = stats[i, cv2.CC_STAT_HEIGHT]
+        boxes.append([x,y,w,h])
+    
+    
+   
+    
+    #no dangling bond should be taller than max_height nm, so clip colors "taller" than that and scale image appropriately
+    heights = z_range*(gray - min_gray)/(max_gray - min_gray)  #array of the actual heights
+    
+    #remove features that are too tall or too short
+    i = 0
+    boxes = list(boxes)
+    while i < len(boxes):
+        [x, y, w, h] = boxes[i]
+        check_heights = heights[y : y + w, x : x + h]
+        h_diff = np.max(check_heights)#-np.min(check_heights)
+        
+        if (h_diff > max_height):
+            boxes.pop(i)
+        elif (h_diff < min_height):
+            boxes.pop(i)
+        else:
+            i += 1
+    
+    
+    #if there are no features left, then we need to return
+    if (len(boxes) <= 1):
+        print('contour length is 0')
+        output = {
+            "sharp": 0,
+            "dull": -1,
+            "total": -1,
+            "roi_data": {
+                "constants": {"nm_size": 0, "pixel_size": 0},
+                "locations": [],
+            },
+        }
+
+        print('output is: ')
+        print(output)
+        return output
+    
+    print('more than 0 features')
+    
+    total_bonds = 0
+    total_cls = {0: 0, 1: 0}
+    nm_p_pixel = scan_nm / img.shape[0]  # Calculate using height
+    brightest_locations = set()
+    roi_locations = []
+    for box in boxes:
+        [x, y, w, h] = box
+        if (
+            w >= CONTOUR_MIN_SIZE[0] / nm_p_pixel
+            and h >= CONTOUR_MIN_SIZE[1] / nm_p_pixel
+        ):
+            # Extract the ROI and resize it to a square
+            roi, x_roi, y_roi, _ = extract_roi(gray, x, y, x + w, y + h)
+            new_size = int(roi_nm_size / nm_p_pixel)
+
+            # Remove nearby duplicates from brightness centering
+            x_b, y_b = locate_brightest_pixel(roi)
+            area_check = False
+            for x_test in range(-cross_size * 2, cross_size * 2 + 1):
+                if area_check:
+                    break
+                for y_test in range(-cross_size * 2, cross_size * 2 + 1):
+                    if (
+                        x_b + x_roi + x_test,
+                        y_b + y_roi + y_test,
+                    ) in brightest_locations:
+                        area_check = True
+                        break
+            if area_check:
+                continue
+            brightest_locations.add((x_b + x_roi, y_b + y_roi))
+
+            # Perform the cross check
+            prediction, new_x, new_y, roi_preprocessed = cross_check_prediction(
+                model,
+                gray,
+                x_roi,
+                y_roi,
+                x_b,
+                y_b,
+                new_size,
+                cross_size,
+                scan_debug,
+            )
+            cls = 1 if prediction >= sharp_prediction_threshold else 0
+            #cls = 1 if prediction >= SHARP_PREDICTION_THRESHOLD else 0
+            if scan_debug:
+                print(f"Class: {CLASS_NAMES[cls]}, Prediction: {prediction}")
+
+            # Count the number of contours
+            total_bonds += 1
+            total_cls[cls] += 1
+
+            # Store the additional information
+            roi_locations.append(
+                {
+                    "x": new_x,
+                    "y": new_y,
+                    "prediction": prediction,
+                }
+            )
+
+            if scan_debug:
+                # Draw colored bounding boxes
+                cv2.rectangle(
+                    img,
+                    (new_x, new_y),
+                    (new_x + new_size, new_y + new_size),
+                    GREEN if cls else RED,
+                    0,
+                )
+                # Show a live preview
+                cv2.imshow("Scan", img)
+                cv2.imshow("Contrast", img_contrast)
+                cv2.imshow("Edges", edged_contrast)
+                cv2.waitKey(1)
+
+            if roi_debug:
+                cv2.imshow("Scan", img)
+                cv2.imshow("ROI2", roi_preprocessed[0])
+                cv2.waitKey(0)
+                cv2.destroyAllWindows()
+
+    if scan_debug:
+        decision = 0 if total_cls[0] > total_cls[1] else 1
+        percent = total_cls[1] / total_bonds * 100 if total_bonds > 0 else 0
+        print(f"Total bonds: {total_bonds}")
+        print(f"Total sharp: {total_cls[1]}")
+        print(f"Total dull: {total_cls[0]}")
+        print(f"Overall Decision: {CLASS_NAMES[decision]}")
+        print(f"Sharp Percentage: {percent:.4f}%")
+
+        cv2.imshow("Scan", img)
+        cv2.imshow("Contrast", img_contrast)
+        cv2.imshow("Edges", edged_contrast)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+    if total_bonds == 0:
+        raise ValueError("No bonds detected in the image.")
+
+    output = {
+        "sharp": total_cls[1],
+        "dull": total_cls[0],
+        "total": total_cls[0] + total_cls[1],
+        "roi_data": {
+            "constants": {"nm_size": float(roi_nm_size), "pixel_size": new_size},
+            "locations": roi_locations,
+        },
+    }
+
+    return output
+    
+    
+
+def detect_tip_using_contours(
+    img: np.ndarray,
+    scan_nm,
+    model,
+    roi_nm_size=2,
+    cross_size=0,
+    contrast=1,
+    rotation=45,
+    scan_debug=False,
+    roi_debug=False,
+    z_range=1,
+    min_height=0,
+    max_height=0.2,
+    sharp_prediction_threshold=0.5
+) -> dict:
+    """Detects the tip in the given image.
+
+    Parameters:
+        img (ndarray): Image to process
+        scan_nm (float): Scan size in nm
+        model: Prediction model
+        roi_nm_size (int, optional): Size of the region of interest in nm.
+        cross_size (int, optional): Size of the cross for roi cross check.
+        contrast (int, optional): Contrast adjustment factor.
+        rotation (float, optional): Rotation angle for the image.
+        scan_debug (bool, optional): Enable debugging for finished scans.
+        roi_debug (bool, optional): Enable debugging for each region of interest.
+
+    Returns:
+        dict: Dictionary containing the detection results
+    """
+    print("detecting tip")
+    print("z_range:")
+    print(z_range)
+    
+    if rotation != 0:
+        img = rotate_image(img, rotation)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    
         
     #no dangling bond should be taller than max_height nm, so clip colors "taller" than that and scale image appropriately
     max_gray = np.max(gray)
@@ -104,7 +338,6 @@ def detect_tip(
     print('getting contours')
     
     contours, img_contrast, edged_contrast = find_contours(img, contrast)
-    #contours, img_contrast, edged_contrast = find_contours(gray, contrast)
     contours = contours[::-1]
     
     print(len(contours))
@@ -157,7 +390,7 @@ def detect_tip(
     while i < len(contours):
         x, y, w, h = cv2.boundingRect(contours[i])
         check_heights = heights[y : y + w, x : x + h]
-        h_diff = np.max(check_heights)-np.min(check_heights)
+        h_diff = np.max(check_heights)#-np.min(check_heights)
         
         if (h_diff > max_height):
             contours.pop(i)

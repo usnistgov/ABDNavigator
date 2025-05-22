@@ -113,7 +113,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 		//tabs.put("maxima", new String[] {"locateMaxima","maximaExpectedDiameter","maximaPrecision","maximaThreshold"});
 		//tabs.put("lattice", new String[] {"locateLattice","altLocateLattice","latticeExpectedSpacing","latticeSpacingUncertainty"});
 		tabs.put("steps", new String[] {"detectStepEdges","stepBlur","zoomedIn","roughnessThreshold","lowResolution","findLithoMethod","thickness","verifyGDS"});
-		tabs.put("detection", new String[] {"checkTipQuality","latticeAngle", "detectionContrast", "predictionThreshold"});
+		tabs.put("detection", new String[] {"checkTipQuality","latticeAngle", "detectionContrast", "predictionThreshold","minTipDetectHeight","maxTipDetectHeight"});
 		tabs.put("lattice", new String[] {"altLocateLattice","latticeExpectedSpacing","latticeSpacingUncertainty"});
 		//tabs.put("machine learning", new String[] {"addExample","clearExamples"});
 		tabs.put("training", new String[] {"addExample","clearExamples"});
@@ -1500,6 +1500,14 @@ public class MatrixSTMImageLayer extends ImageLayer
 		if (s.length() > 0)
 			detectionContrast = Double.parseDouble(s);
 		
+		s = xml.getAttribute("minTipDetectHeight");
+		if (s.length() > 0)
+			minTipDetectHeight = Double.parseDouble(s);
+		
+		s = xml.getAttribute("maxTipDetectHeight");
+		if (s.length() > 0)
+			maxTipDetectHeight = Double.parseDouble(s);
+		
 		s = xml.getAttribute("predictionThreshold");
 		if (s.length() > 0)
 			predictionThreshold = Double.parseDouble(s);
@@ -1573,6 +1581,8 @@ public class MatrixSTMImageLayer extends ImageLayer
 		e.setAttribute("latticeSpacingUncertainty", Double.toString(spacingUncertainty));
 		e.setAttribute("latticeAngle", Double.toString(latticeAngle));
 		e.setAttribute("detectionContrast", Double.toString(detectionContrast));
+		e.setAttribute("minTipDetectHeight", Double.toString(minTipDetectHeight));
+		e.setAttribute("maxTipDetectHeight", Double.toString(maxTipDetectHeight));
 		e.setAttribute("predictionThreshold", Double.toString(predictionThreshold));
 		e.setAttribute("sampleBias", Double.toString(bias));
 		e.setAttribute("current", Double.toString(current));
@@ -2405,6 +2415,16 @@ public class MatrixSTMImageLayer extends ImageLayer
 				jObj.put("scan_settings_scale_x", settings.scale.getMxx());
 				jObj.put("scan_settings_scale_y", settings.scale.getMyy());
 				jObj.put("scan_settings_angle", settings.rotation.getAngle());
+				
+				NavigationLayer settingsParent = (NavigationLayer)settings.getParent();
+				Vector<GDSLayer> gdsChildren = settingsParent.getChildrenOfType(GDSLayer.class);
+				System.out.println("gdsChildren: " + gdsChildren.size());
+				if (gdsChildren.size() >= 1)
+				{
+					GDSLayer gds = gdsChildren.get(0);
+					if (gds.gdsAbsPath != null)
+						jObj.put("gds_path", gds.gdsAbsPath);
+				}
 			}
 		}
 		
@@ -2428,6 +2448,9 @@ public class MatrixSTMImageLayer extends ImageLayer
 		String result = ABDPythonAPIClient.command(jObj.toString());
 	}
 	
+	private double minTipDetectHeight = 0.15;
+	private double maxTipDetectHeight = 0.35;
+	
 	public void checkTipQuality()
 	{
 		//send the image to python to analyze it
@@ -2446,7 +2469,11 @@ public class MatrixSTMImageLayer extends ImageLayer
 		JSONObject options = new JSONObject();
 		options.put("contrast", Double.valueOf(detectionContrast));
 		options.put("rotation", Double.valueOf(latticeAngle));
+		options.put("minHeight", Double.valueOf(minTipDetectHeight));
+        options.put("maxHeight", Double.valueOf(maxTipDetectHeight));
+		
 		jObj.put("detector_options", options);
+		
 		
 		
 		options = new JSONObject();

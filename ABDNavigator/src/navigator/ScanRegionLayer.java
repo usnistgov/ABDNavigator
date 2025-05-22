@@ -554,19 +554,19 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 		line = lineNumber;
 		setScanLineOffset();
 		
-		System.out.println("values: " + values.length);
-		for (int i = 0; i < values.length; i ++)
-			System.out.print(values[i] + " ");
-		System.out.println();
+		//System.out.println("values: " + values.length);
+		//for (int i = 0; i < values.length; i ++)
+		//	System.out.print(values[i] + " ");
+		//System.out.println();
 		
 		
 		scanLine = squeezeLine(values);
 		
 		
-		System.out.println("scanLine: " + scanLine.length);
-		for (int i = 0; i < scanLine.length; i ++)
-			System.out.print(scanLine[i] + " ");
-		System.out.println();
+		//System.out.println("scanLine: " + scanLine.length);
+		//for (int i = 0; i < scanLine.length; i ++)
+		//	System.out.print(scanLine[i] + " ");
+		//System.out.println();
 		
 		
 		updateImage();
@@ -673,9 +673,8 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 		bImg.cropYEnd = cropYEnd;
 		bImg.planeSubtract = planeSubtract;
 		bImg.lineByLineFlatten = lineByLineFlatten;
-		//bImg.minZFraction = this.minZFraction;
-		//bImg.maxZFraction = this.maxZFraction;
-		System.out.println("cropY: " + cropYStart + " -> " + cropYEnd);
+		
+		//System.out.println("cropY: " + cropYStart + " -> " + cropYEnd);
 		
 		if (scanningUp)
 		{
@@ -696,7 +695,7 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 			
 		}
 		
-		System.out.println("capturedLines: " + bImg.capturedLinesStart + " -> " + bImg.capturedLinesEnd);
+		//System.out.println("capturedLines: " + bImg.capturedLinesStart + " -> " + bImg.capturedLinesEnd);
 		
 		bImg.prevImage = prevImage;
 		bImg.colorSchemeIdx = colorSchemeIdx;

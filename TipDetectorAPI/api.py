@@ -117,6 +117,8 @@ def process_image(data: dict) -> dict:
 
     contrast = detector_options.get("contrast", 1.0)
     rotation = detector_options.get("rotation", 0.0)
+    min_height = detector_options.get("minHeight",0.11)
+    max_height = detector_options.get("maxHeight",0.35)
 
     tip_data = detect_tip(
         img,
@@ -128,7 +130,9 @@ def process_image(data: dict) -> dict:
         rotation=rotation,
         scan_debug=False,
         roi_debug=False,
-        z_range=z_range
+        z_range=z_range,
+        min_height=min_height,
+        max_height=max_height
     )
 
     # Convert numpy types to Python types
@@ -208,6 +212,8 @@ def handle_client(client_socket: socket.socket) -> None:
                 print(input_data["thickness"])
                 print('verify with GDS file?:')
                 print(input_data["verifyGDS"])
+                print('gds file path')
+                print(input_data["gds_path"])
                 print()
                 detect_steps(
                     np.array(input_data["img"]), 

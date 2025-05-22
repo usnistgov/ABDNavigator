@@ -164,6 +164,7 @@ public class GDSLayer extends NavigationLayer
 	public GDSRecord record;
 	public Vector<GDSRecord> records;
 	public GDSLayer p;
+	public String gdsAbsPath = null;
 	
 	public void init() throws Exception
 	{
@@ -197,6 +198,8 @@ public class GDSLayer extends NavigationLayer
 				gdsin = new GDSInputStream(in);
 				parseRecords();	
 				gdsin.close();
+				
+				gdsAbsPath = in.getAbsolutePath();
 			}
 			//no need to switch to the left-handed coordinate system of javafx 
 			//scale.setY(-1);

@@ -159,21 +159,7 @@ public class BufferedSTMImage extends BufferedImage
 				}
 			}
 			
-			//now do the plane subtract
-			/*
-			for (int yIdx = capturedLinesStart; yIdx < capturedLinesEnd; yIdx ++)
-			{
-				dzdxAve += fData[pixWidth-1][yIdx]-fData[0][yIdx];
-			}
 			
-			for (int xIdx = 0; xIdx < pixWidth-1; xIdx ++)
-			{
-				dzdyAve += fData[xIdx][capturedLinesEnd-1]-fData[xIdx][capturedLinesStart];
-			}
-						
-			dzdxAve /= (pixWidth-1)*(capturedLinesEnd-capturedLinesStart+1);
-			dzdyAve /= (pixWidth)*(capturedLinesEnd-capturedLinesStart);
-			*/
 			//now do the plane subtract
 			//for (int yIdx = capturedLinesStart; yIdx < capturedLinesEnd; yIdx ++)
 			for (int yIdx = capturedLinesStart; yIdx <= capturedLinesEnd; yIdx ++)
@@ -181,15 +167,17 @@ public class BufferedSTMImage extends BufferedImage
 				dzdxAve += fData[pixWidth-1][yIdx]-fData[0][yIdx];
 			}
 			
-			for (int xIdx = 0; xIdx < pixWidth-1; xIdx ++)
+			//for (int xIdx = 0; xIdx < pixWidth-1; xIdx ++)
+			for (int xIdx = 0; xIdx <= pixWidth-1; xIdx ++)
 			{
 				//dzdyAve += fData[xIdx][capturedLinesEnd-1]-fData[xIdx][capturedLinesStart];
 				dzdyAve += fData[xIdx][capturedLinesEnd]-fData[xIdx][capturedLinesStart];
 			}
 						
-			dzdxAve /= ((pixWidth-1)*(capturedLinesEnd-capturedLinesStart));
-			//dzdyAve /= ((pixWidth-1)*(capturedLinesEnd-capturedLinesStart-1));
-			dzdyAve /= ((pixWidth-1)*(capturedLinesEnd-capturedLinesStart));
+			//dzdxAve /= ((pixWidth-1)*(capturedLinesEnd-capturedLinesStart));
+			//dzdyAve /= ((pixWidth-1)*(capturedLinesEnd-capturedLinesStart));
+			dzdxAve /= ((pixWidth-1)*(1+capturedLinesEnd-capturedLinesStart));
+			dzdyAve /= ((pixWidth)*(capturedLinesEnd-capturedLinesStart));
 			
 			/* if ((dzdx != 0) || (dzdy != 0))
 			{
