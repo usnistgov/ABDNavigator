@@ -57,7 +57,8 @@ op = {"WAIT": 0,
       "SETDZ": 18,
       "CRESOLUTION": 19,
       "FREETIP": 20,
-      "TIPQUALITY": 21}
+      "TIPQUALITY": 21,
+      "MANIP": 22}
 
 # query types
 qry = {"WINSIZE": 0,
@@ -271,6 +272,14 @@ def zPulse(dz: float):
     seq += 1
     send_json_to_server(_json)
 
+# do point manipulation (combination z pulse and v pulse)
+def manip(dz: float, v: float):
+    global seq
+    _data = {"dz": dz, "v": v}
+    _json = {"type": pkg["ACTION"], "seq": seq, "op": op["MANIP"], "data": _data}
+    seq += 1
+    send_json_to_server(_json)
+    
 # do V pulse
 def vPulse(v: float):
     global seq

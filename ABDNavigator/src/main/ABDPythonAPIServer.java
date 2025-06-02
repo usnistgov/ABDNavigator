@@ -344,6 +344,28 @@ public class ABDPythonAPIServer
 							System.out.println(data);
 							
 							SampleNavigator.postTipQualityResultsLater(data);
+							
+						case 22: //point manip
+							System.out.println("doing point manipulation");
+							//Double.toString(pokeDZ) + "," + Double.toString(pulseV)
+							p = SampleNavigator.scanner.scan.getPositioner("PyPositioner");
+							if (p != null)
+							{
+								s = data.get("dz");
+								double dz = ((Double)s).doubleValue();
+								
+								s = data.get("v");
+								double v = ((Double)s).doubleValue();
+								
+								p.pokeDZ = dz;
+								p.pulseV = v;
+								
+								p.manipNoThread();
+								
+								//hardcoded 1s pause for manip to complete
+								Thread.sleep(1000);
+								System.out.println("manip complete... hopefully");
+							}
 					}
 					
 					break;

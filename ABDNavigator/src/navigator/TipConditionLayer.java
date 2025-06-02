@@ -27,6 +27,11 @@ public class TipConditionLayer extends NavigationLayer
         categories.put("imageFirst", new String[] {"true","false"});
         units.put("minHeight", "nm");
         units.put("maxHeight", "nm");
+        units.put("manipDZ", "nm");
+        units.put("manipV", "V");
+        units.put("settleTime", "s");
+        //units.put("minDBsPer25x25nmSq", "nm^-2");
+        //units.put("maxDBsPer25x25nmSq", "nm^-2");
         
         displayRootScale = true;
     }
@@ -38,8 +43,16 @@ public class TipConditionLayer extends NavigationLayer
     
     private boolean imageFirst = false;
     
-    private double minHeight = 0.11;
-    private double maxHeight = 0.2;
+    private double minHeight = 0.10;
+    private double maxHeight = 0.45;
+    
+    private double manipDZ = -0.3;
+    private double manipV = 4;
+    
+    private double settleTime = 20;
+    
+    private double minDBsPer25x25nmSq = 2;
+    private double maxDBsPer25x25nmSq = 8;
 
     public void init()
     {
@@ -106,6 +119,26 @@ public class TipConditionLayer extends NavigationLayer
         s = xml.getAttribute("maxHeight");
         if (s.length() > 0)
         	maxHeight = Double.parseDouble(s);
+        
+        s = xml.getAttribute("manipDZ");
+        if (s.length() > 0)
+        	manipDZ = Double.parseDouble(s);
+        
+        s = xml.getAttribute("manipV");
+        if (s.length() > 0)
+        	manipV = Double.parseDouble(s);
+        
+        s = xml.getAttribute("settleTime");
+        if (s.length() > 0)
+        	settleTime = Double.parseDouble(s);
+        
+        s = xml.getAttribute("minDBsPer25x25nmSq");
+        if (s.length() > 0)
+        	minDBsPer25x25nmSq = Double.parseDouble(s);
+
+        s = xml.getAttribute("maxDBsPer25x25nmSq");
+        if (s.length() > 0)
+        	maxDBsPer25x25nmSq = Double.parseDouble(s);
 
         super.setFromXML(xml, deep);
     }
@@ -123,6 +156,12 @@ public class TipConditionLayer extends NavigationLayer
         e.setAttribute("imageFirst", Boolean.toString(imageFirst));
         e.setAttribute("minHeight", Double.toString(minHeight));
         e.setAttribute("maxHeight", Double.toString(maxHeight));
+        
+        e.setAttribute("manipDZ", Double.toString(manipDZ));
+        e.setAttribute("manipV", Double.toString(manipV));
+        e.setAttribute("settleTime", Double.toString(settleTime));
+        e.setAttribute("minDBsPer25x25nmSq", Double.toString(minDBsPer25x25nmSq));
+        e.setAttribute("maxDBsPer25x25nmSq", Double.toString(maxDBsPer25x25nmSq));
 
         return e;
     }
@@ -180,6 +219,12 @@ public class TipConditionLayer extends NavigationLayer
         jObj.put("imageFirst", Boolean.valueOf(imageFirst));
         jObj.put("minHeight", Double.valueOf(minHeight));
         jObj.put("maxHeight", Double.valueOf(maxHeight));
+        
+        jObj.put("manipDZ", Double.valueOf(manipDZ));
+        jObj.put("manipV", Double.valueOf(manipV));
+        jObj.put("settleTime", Double.valueOf(settleTime));
+        jObj.put("minDBsPer25x25nmSq", Double.valueOf(minDBsPer25x25nmSq));
+        jObj.put("maxDBsPer25x25nmSq", Double.valueOf(maxDBsPer25x25nmSq));
         
         if (autoOpen)
         {

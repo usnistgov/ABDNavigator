@@ -71,6 +71,9 @@ def condition_tip(data: dict, model, config):
     image_first = data["imageFirst"]
     min_height = data["minHeight"]
     max_height = data["maxHeight"]
+    manip_dz = data["manipDZ"]
+    manip_V = data["manipV"]
+    settle_time = data["settleTime"]
     
     print('scales:')
     print(scan_scale_x)
@@ -90,17 +93,14 @@ def condition_tip(data: dict, model, config):
     start_x = 0
     start_y = 0
 
-    #get the ML model and configuration
-    #model,config = get_model_and_config()
-    
+        
     print(condition_x)
     print(condition_y)
     print(scan_x)
     print(scan_y)
     
     
-    #x_idx = 2
-    #y_idx = 0
+   
     for y_idx in range(start_y,num_y+1):
         for x_idx in range(start_x,num_x+1):
         
@@ -121,37 +121,40 @@ def condition_tip(data: dict, model, config):
             if y_idx > start_y or x_idx > start_x or image_first == False:
                 #perform tip conditioning
                 stm.setWindowPosition( (condition_x,condition_y) )
+                print("setting window size")
                 stm.setWindowSize( (condition_scale_x, condition_scale_y) )
                 if abort == True:
                     return
-                time.sleep(20)
+                time.sleep(settle_time)
                 stm.moveTip( (0.0,0.0) )
                 if abort == True:
                     return
                 print("settling...")
-                time.sleep(20)
+                time.sleep(settle_time)
                 print("continuing")
                 stm.moveTip( (x,y) )
-                stm.zPulse(-0.3)
+                print("manipulating")
+                stm.manip(manip_dz,manip_V)
                 #imgInfo = util.getNewImage()
                 #npImg = imgInfo[1]
             
             #image to check tip condition
             print('imaging to check tip condition')
             stm.setWindowPosition( (scan_x,scan_y) )
+            print("setting window size")
             stm.setWindowSize( (scan_scale_x, scan_scale_y) )
             
             if abort == True:
                 return
             
-            time.sleep(20)
+            time.sleep(settle_time)
             
             if abort == True:
                 return
             
             stm.moveTip( (0.0,height/2.0) )
             print("settling...")
-            time.sleep(20)
+            time.sleep(settle_time)
             
             if abort == True:
                 return

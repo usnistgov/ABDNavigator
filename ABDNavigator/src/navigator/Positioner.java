@@ -664,9 +664,9 @@ public class Positioner extends NavigationLayer
 	
 	double pokeDZ0 = 0;
 	double pulseV0 = 0;
-	double pokeDZ = 0;
+	public double pokeDZ = 0;
 	double pokeDZinc = 0;
-	double pulseV = 0;
+	public double pulseV = 0;
 	double pulseVinc = 0;
 	
 	public void setFromXML(Element xml, boolean deep)

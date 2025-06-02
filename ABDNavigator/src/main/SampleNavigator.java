@@ -189,6 +189,7 @@ public class SampleNavigator extends Application
 	{
 		//System.out.println( ABDClient.command("this is a test") );
 		ABDPythonAPIServer.startServer();
+		EmergencyServer.startServer();
 		
 		stage = stage0;
 		stage.setTitle("Sample Navigator");
@@ -1865,6 +1866,33 @@ public class SampleNavigator extends Application
 		try
 		{
 			out = new PrintWriter(mainFileName);
+			out.write(b.toString());
+		} 
+		catch (FileNotFoundException e)
+		{
+			e.printStackTrace();
+		}
+		if (out != null)
+			out.close();
+		
+		saving = false;
+	}
+	
+	public static void emergencySave()
+	{
+		saving = true;
+		
+		StringBuffer b = new StringBuffer( "<?xml version=\"1.0\"?>\n" );
+		b.append( xmlToString(rootLayer.getAsXML()).replaceAll("&", "&amp;") );
+		//System.out.println("saving: \n" + b.toString());
+		
+		PrintWriter out = null;
+		try
+		{
+			String emergencyName = mainFileName.substring(0, mainFileName.length() - 4);
+			emergencyName = new String(emergencyName + "_emergency_shutdown.xml");
+			System.out.println("saving emergency file: " + emergencyName);
+			out = new PrintWriter(emergencyName);
 			out.write(b.toString());
 		} 
 		catch (FileNotFoundException e)

@@ -290,6 +290,44 @@ public class ScannerLayer extends NavigationLayer
 			this.remove();
 	}
 	
+	private static CalibrationLayer mostRecentCalib = null; 
+	public void emergencyRetract()
+	{
+		
+		
+		//withdraw tip
+		ABDClient.command("withdraw");
+		
+		ABDClient.command("abortLitho");
+		ABDClient.command("stopScan");
+				
+		int zSteps = 15;
+		System.out.println("emergency retract z steps: " + zSteps);
+		
+		if (mostRecentCalib == null)
+		{
+			mostRecentCalib = new CalibrationLayer("z+", 1000, 10, 0, 0, 10);
+			
+		}
+		CalibrationLayer zCalib = mostRecentCalib;
+		
+		try
+		{
+			//wait 5s to allow for tip withdraw
+			Thread.sleep(5000);
+			
+			//retract
+			String s = zCalib.getName();
+			
+			ABDClient.command(s + "  " + zSteps);
+			Thread.sleep(100*zSteps);
+		}
+		catch (Exception ex)
+		{
+			ex.printStackTrace();
+		}
+	}
+	
 	public void performWalk(PathDisplayNode walk)
 	{
 		PathLayer path = walk.getParentPath();
@@ -317,6 +355,7 @@ public class ScannerLayer extends NavigationLayer
 		System.out.println("z steps: " + zSteps);
 		
 		CalibrationLayer zCalib = zCalibs.get(0);
+		mostRecentCalib = zCalib;
 		
 		try
 		{
