@@ -2,8 +2,10 @@ package navigator;
 
 import java.util.Hashtable;
 
+import org.json.simple.JSONObject;
 import org.w3c.dom.Element;
 
+import main.ABDPythonAPIClient;
 import main.SampleNavigator;
 
 public class ControlGroupLayer extends GroupLayer
@@ -13,7 +15,7 @@ public class ControlGroupLayer extends GroupLayer
 	public ControlGroupLayer()
 	{
 		super();
-		actions = new String[]{"addScanSettings","saveControlGroup","openControlGroup"};
+		actions = new String[]{"addScanSettings","saveControlGroup","openControlGroup","excecuteAll"};
 		categories.put("live", new String[] {"true","false"});
 		
 		name = "ControlGroup";
@@ -25,7 +27,18 @@ public class ControlGroupLayer extends GroupLayer
 		//isImobile = true;
 	}
 	
-	
+	public void executeAll()
+	{
+		JSONObject jObj = new JSONObject();
+		jObj.put("command", "autoFab");
+		
+		SampleNavigator.saving = true;//need the controlIDs of everything
+		String xml = SampleNavigator.xmlToString( getAsXML() );
+		SampleNavigator.saving = false;
+		
+		jObj.put("xml", xml);
+		String result = ABDPythonAPIClient.command(jObj.toString());
+	}
 	
 	public void addScanSettings()
 	{

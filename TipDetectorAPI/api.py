@@ -172,6 +172,9 @@ def handle_client(client_socket: socket.socket) -> None:
         command = input_data["command"]
         print(command)
         match command:
+            case "autoFab":
+                xml = input_data("xml")
+                print(xml)
             case "checkTipQuality":
                 result = process_image(input_data)
             case "conditionTip":
