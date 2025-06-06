@@ -146,7 +146,8 @@ public class ABDPythonAPIServer
 						case 7: //get new scan image
 							System.out.println("get new scan");
 													
-							SampleNavigator.scanner.scan.startSingleScan();
+							//SampleNavigator.scanner.scan.startSingleScan();
+							SampleNavigator.scanner.scan.executeAction("startSingleScan");
 							
 							while (SampleNavigator.scanner.scan.isScanning())
 							{
@@ -274,6 +275,9 @@ public class ABDPythonAPIServer
 							SampleNavigator.scanner.scan.fireTransforming();
 							SampleNavigator.scanner.scan.moveScanRegion();
 							
+							//make sure previous ScanSettings no longer thinks it is current
+							SampleNavigator.scanner.scan.currentSettings = null;
+							
 							SampleNavigator.refreshAttributeEditorLater();
 							
 							while (SampleNavigator.scanner.tipIsMoving)
@@ -285,13 +289,31 @@ public class ABDPythonAPIServer
 							break;
 						
 						case 8: //change window position (nm,nm)
-							System.out.println("setting wondow position");
+							System.out.println("setting window position");
 							
 							s = data.get("x");
-							x = ((Double)s).doubleValue();
+							x = objectToType(s, Double.class).doubleValue();
+							/*
+							if (s instanceof String)
+							{
+								x = Double.parseDouble((String)s);
+							}
+							else
+							{
+								x = ((Double)s).doubleValue();
+							}*/
 							
 							s = data.get("y");
-							y = ((Double)s).doubleValue();
+							y = objectToType(s, Double.class).doubleValue();
+							/*
+							if (s instanceof String)
+							{
+								y = Double.parseDouble((String)s);
+							}
+							else
+							{
+								y = ((Double)s).doubleValue();
+							}*/
 							
 							System.out.println("x,y: " + x + "," + y);
 							
@@ -344,6 +366,7 @@ public class ABDPythonAPIServer
 							System.out.println(data);
 							
 							SampleNavigator.postTipQualityResultsLater(data);
+							break;
 							
 						case 22: //point manip
 							System.out.println("doing point manipulation");
@@ -366,6 +389,30 @@ public class ABDPythonAPIServer
 								Thread.sleep(1000);
 								System.out.println("manip complete... hopefully");
 							}
+							break;
+							
+						case 23: //reference command
+							System.out.println("reference command");
+							
+							s = data.get("ref");
+							int ref = Integer.parseInt((String)s);
+							
+							s = data.get("cmd");
+							String command = (String)s;
+							
+							NavigationLayer layer = NavigationLayer.registry.get(ref);
+							
+							layer.executeAction(command);
+							
+							while ( (layer.actionThread != null) && (layer.actionThread.isAlive()) )
+							{
+								Thread.sleep(200);
+								System.out.print(".");
+							}
+							
+							//AttributeEditor.executeAction(layer, command);
+							
+							break;
 					}
 					
 					break;
@@ -421,5 +468,28 @@ public class ABDPythonAPIServer
 		{
 			ex.printStackTrace();
 		}
+	}
+	
+	public static <T>T objectToType(Object s, Class<T> type)
+	{
+		T val = null;
+		
+		if (s instanceof String)
+		{
+			if (type == Double.class)
+				val = (T)Double.valueOf((String)s);
+			else if (type == Integer.class)
+				val = (T)Integer.valueOf((String)s);
+			else if (type == Boolean.class)
+				val = (T)Boolean.valueOf((String)s);
+			else if (type == String.class)
+				val = (T)s;
+		}
+		else
+		{
+			val = (T)s;
+		}
+		
+		return val;
 	}
 }

@@ -160,6 +160,10 @@ public class AttributeEditor extends GridPane
 							{
 								Button thisButton = (Button)e.getSource();
 								String thisAction = thisButton.getText();
+								
+								//executeAction(layer, thisAction);
+								layer.executeAction(thisAction);
+								/*
 								try
 								{
 									Method m = layer.getClass().getMethod(thisAction, null);
@@ -169,7 +173,7 @@ public class AttributeEditor extends GridPane
 								{
 									ex.printStackTrace();
 								}
-								
+								*/
 							}
 		    				
 		    			});
@@ -536,4 +540,17 @@ public class AttributeEditor extends GridPane
 		}
 		return returnVal;
 	}
+	/*
+	public static void executeAction(NavigationLayer layer, String thisAction)
+	{
+		try
+		{
+			Method m = layer.getClass().getMethod(thisAction, null);
+			m.invoke(layer, null);
+		}
+		catch (Exception ex)
+		{
+			ex.printStackTrace();
+		}
+	}*/
 }

@@ -58,7 +58,8 @@ op = {"WAIT": 0,
       "CRESOLUTION": 19,
       "FREETIP": 20,
       "TIPQUALITY": 21,
-      "MANIP": 22}
+      "MANIP": 22,
+      "REFCMD": 23}
 
 # query types
 qry = {"WINSIZE": 0,
@@ -277,6 +278,14 @@ def manip(dz: float, v: float):
     global seq
     _data = {"dz": dz, "v": v}
     _json = {"type": pkg["ACTION"], "seq": seq, "op": op["MANIP"], "data": _data}
+    seq += 1
+    send_json_to_server(_json)
+    
+#send a command based on a reference ID to an object in the control software
+def ref_command(ref: int, cmd: str):
+    global seq
+    _data = {"ref": ref, "cmd": cmd}
+    _json = {"type": pkg["ACTION"], "seq": seq, "op": op["REFCMD"], "data": _data}
     seq += 1
     send_json_to_server(_json)
     

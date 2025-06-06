@@ -126,6 +126,7 @@ public class ABDPythonAPIClient
 			outStream.writeBytes(out + '\n');
 			String readLine = null;
 			line = new StringBuffer( serverReader.readLine() );
+			System.out.println(line);
 						
 			clientSocket.close();
 		}

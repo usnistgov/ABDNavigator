@@ -15,7 +15,7 @@ public class ControlGroupLayer extends GroupLayer
 	public ControlGroupLayer()
 	{
 		super();
-		actions = new String[]{"addScanSettings","saveControlGroup","openControlGroup","excecuteAll"};
+		actions = new String[]{"addScanSettings","saveControlGroup","openControlGroup","executeAll"};
 		categories.put("live", new String[] {"true","false"});
 		
 		name = "ControlGroup";
@@ -29,15 +29,21 @@ public class ControlGroupLayer extends GroupLayer
 	
 	public void executeAll()
 	{
+		//if (autoOpen)
+        //{
+        SampleNavigator.scanner.autoOpenImages = true;
+        //}
+		
 		JSONObject jObj = new JSONObject();
 		jObj.put("command", "autoFab");
-		
+				
 		SampleNavigator.saving = true;//need the controlIDs of everything
 		String xml = SampleNavigator.xmlToString( getAsXML() );
 		SampleNavigator.saving = false;
 		
 		jObj.put("xml", xml);
-		String result = ABDPythonAPIClient.command(jObj.toString());
+		ABDPythonAPIClient.threadedCommand(jObj.toString()); 
+		//ABDPythonAPIClient.command(jObj.toString());
 	}
 	
 	public void addScanSettings()

@@ -1,6 +1,7 @@
 package navigator;
 
 
+import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
@@ -29,6 +30,7 @@ import org.xml.sax.InputSource;
 
 import javax.xml.parsers.*;
 import java.io.*;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.nio.file.Files;
 import java.text.DecimalFormat;
@@ -87,11 +89,13 @@ public class NavigationLayer extends Group
 	public String nickname = "";
 	
 	
-	
+	public NavigationLayer thisLayer = null;
 	
 	public NavigationLayer()
 	{
 		super();
+		
+		thisLayer = this;
 		
 		actions = new String[]{"clearTransforms","copyTransforms","pasteTransforms","generateKeyFrame"};
 		//System.out.println(this.getClass().getName());
@@ -573,6 +577,63 @@ public class NavigationLayer extends Group
 			e.setAttribute("controlID", Integer.toString(getControlID()));
 		
 		return e;
+	}
+	
+	public Thread actionThread = null;
+	public String thisAction = null;
+	public boolean actionExecuted = false;
+	public void executeAction(String thisAction)
+	{
+		
+		this.thisAction = thisAction;
+		actionExecuted = false;
+		
+		if (Platform.isFxApplicationThread())
+		{
+			try
+			{
+				Method m = thisLayer.getClass().getMethod(thisAction, null);
+				m.invoke(this, null);
+			}
+			catch (Exception ex)
+			{
+				ex.printStackTrace();
+			}
+		}
+		else
+		{
+			Platform.runLater(new Runnable() 
+			{
+			    public void run() 
+			    {
+			    	try
+			    	{
+				      	Method m = thisLayer.getClass().getMethod(thisAction, null);
+						m.invoke(thisLayer, null);
+			    	}
+			    	catch (Exception ex)
+			    	{
+			    		ex.printStackTrace();
+			    	}
+			    	actionExecuted = true;
+			    }
+			});
+			
+			while (!actionExecuted)
+			{
+				try
+				{
+					Thread.sleep(200);
+				}
+				catch (Exception ex)
+				{
+					ex.printStackTrace();
+				}
+			}
+		}
+		
+		
+
 	}
 	
 	public Vector<NavigationLayer> getLayerChildren()
@@ -1744,6 +1805,9 @@ public class NavigationLayer extends Group
 		
 		controlIDcounter ++;
 		controlID = controlIDcounter;
+		
+		registry.put(controlID, this);
+		
 		return controlID;
 	}
 	

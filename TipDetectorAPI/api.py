@@ -14,6 +14,9 @@ sys.path.append('../StepEdgeDetector')
 from AutoTipCondition import condition_tip
 from AutoTipCondition import set_abort
 
+import MatrixPythonAPI as stm
+import STMUtils as util
+
 from helpers.main_functions import detect_steps_alt, detect_steps
 
 # Disable OneDNN optimizations and CPU instructions messages
@@ -22,10 +25,15 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 import cv2
 import numpy as np
+from scipy.spatial.transform import Rotation as R
+
 from tensorflow.keras.models import load_model  # type: ignore
 
 from detector_functions.main_functions import detect_tip
 from detector_functions.matrix_helpers import get_nm_from_matrix, matrix_to_img_array, matrix_to_img_array_with_z_range
+
+import xmltodict
+
 
 # Handle arguments
 host = "localhost"
@@ -46,6 +54,29 @@ with open("config.json") as f:
 # Load the model
 model = load_model("model.h5")
 
+def get_bg_plane(img, width_nm, height_nm):
+    dzdx_ave = 0
+    dzdy_ave = 0
+    
+    num_cols = len(img[0])
+    num_rows = len(img)
+    
+    for yIdx in range(num_cols):
+        dzdxAve += img[num_rows-1][yIdx] - img[0][yIdx]
+    
+    for xIdx in range(num_rows):
+        dzdyAve += img[xIdx][num_cols-1] - img[xIdx][0]
+        
+    dzdxAve /= num_cols*(num_rows-1)
+    dzdyAve /= (num_cols-1)*num_rows
+    
+    #convert from nm(dz)/px to nm(dz)/nm(dx or dy)
+    dzdxAve *= num_cols/width_nm
+    dzdyAve *= num_rows/height_nm
+    
+    return dzdxAve, dzdyAve
+
+    
 
 def get_model_and_config():
     return model, config
@@ -171,10 +202,166 @@ def handle_client(client_socket: socket.socket) -> None:
             
         command = input_data["command"]
         print(command)
+        result = ""
         match command:
             case "autoFab":
-                xml = input_data("xml")
-                print(xml)
+                xml = input_data["xml"]
+                
+                dzdx_ave = None
+                dzdy_ave = None
+                 
+                dict = xmltodict.parse(xml)
+                control = dict["ControlGroupLayer"]
+                
+                
+                theta = float( control["@angle"] )
+                
+                x0 = float( control["@x"] )
+                
+                y0 = float( control["@y"] )
+                
+                scan_settings_list = control["ScanSettingsLayer"]
+                for scan_settings in scan_settings_list:
+                    
+                    
+                    scan_control_ID = scan_settings["@controlID"]
+                    xT = float( scan_settings["@x"] )
+                    yT = float( scan_settings["@y"] )
+                    
+                    r = R.from_rotvec( (theta*np.pi/180)*np.array([0.0,0.0,1.0]) )
+                    
+                    [x,y,z] = r.apply([xT,yT,0]) + np.array([x0,y0,0])
+                    
+                    if "LithoRasterLayer" not in scan_settings:
+                        condition_settings = scan_settings["TipConditionLayer"]
+                        #condition_control_ID = condition_settings["@controlID"]
+                        #print('condition control ID:')
+                        #print(condition_control_ID)
+                        
+                        #stm.ref_command(condition_control_ID, 'condition')
+                        
+                        
+                        '''
+                        detection_contrast = data["detectionContrast"]
+                        prediction_threshold = data["predictionThreshold"]
+                        majority_threshold = data["majorityThreshold"]
+                        lattice_angle = data["latticeAngle"]
+                        dzdx = data["dzdx"]
+                        dzdy = data["dzdy"]
+                        scan_x = data["scanX"]
+                        scan_y = data["scanY"]
+                        scan_scale_x = data["scanScaleX"]
+                        scan_scale_y = data["scanScaleY"]
+                        condition_x = data["conditionX"]
+                        condition_y = data["conditionY"]
+                        condition_scale_x = data["conditionScaleX"]
+                        condition_scale_y = data["conditionScaleY"]
+                        image_first = data["imageFirst"]
+                        min_height = data["minHeight"]
+                        max_height = data["maxHeight"]
+                        manip_dz = data["manipDZ"]
+                        manip_V = data["manipV"]
+                        settle_time = data["settleTime"]
+                        '''
+                        detection_contrast = float( condition_settings["@detectionContrast"] )
+                        prediction_threshold = float( condition_settings["@predictionThreshold"] )
+                        majority_threshold = float( condition_settings["@majorityThreshold"] )
+                        lattice_angle = float( condition_settings["@latticeAngle"] )
+                        scan_x = float( condition_settings["@scanPositionX"] )
+                        scan_y = float( condition_settings["@scanPositionY"] )
+                        scan_scale_x = float( condition_settings["@scanScaleX"] )#condition_settings["scanScaleX"]
+                        scan_scale_y = float( condition_settings["@scanScaleY"] )
+                        
+                        dzdx = float( condition_settings["@dzdx"] )
+                        dzdy = float( condition_settings["@dzdy"] )
+                        
+                        condition_x = float( condition_settings["@conditionPositionX"] )
+                        condition_y = float( condition_settings["@conditionPositionY"] )
+                        condition_scale_x = float( condition_settings["@conditionScaleX"] ) #data["conditionScaleX"]
+                        condition_scale_y = float( condition_settings["@conditionScaleY"] ) #data["conditionScaleY"]
+                        
+                        image_first = bool( condition_settings["@imageFirst"] )
+                        min_height = float( condition_settings["@minHeight"] )
+                        max_height = float( condition_settings["@maxHeight"] )
+                        manip_dz = float( condition_settings["@manipDZ"] )
+                        manip_V = float( condition_settings["@manipV"] )
+                        settle_time = float( condition_settings["@settleTime"] )
+                        
+                        input_data = {
+                            "detectionContrast": detection_contrast,
+                            "predictionThreshold": prediction_threshold,
+                            "majorityThreshold": majority_threshold,
+                            "latticeAngle": lattice_angle,
+                            "dzdx": dzdx,
+                            "dzdy": dzdy,
+                            "scanX": scan_x,
+                            "scanY": scan_y,
+                            "scanScaleX": scan_scale_x,
+                            "scanScaleY": scan_scale_y,
+                            "conditionX": condition_x,
+                            "conditionY": condition_y,
+                            "conditionScaleX": condition_scale_x,
+                            "conditionScaleY": condition_scale_y,
+                            "imageFirst": image_first,
+                            "minHeight": min_height,
+                            "maxHeight": max_height,
+                            "manipDZ": manip_dz,
+                            "manipV": manip_V,
+                            "settleTime": settle_time
+                        }
+                        
+                        print(input_data)
+                        condition_tip(input_data, model, config)
+                        
+                        
+                        
+                        scan_control_ID = prev_scan_settings["@controlID"]
+                        xT = float( prev_scan_settings["@x"] )
+                        yT = float( prev_scan_settings["@y"] )
+                    
+                        r = R.from_rotvec( (theta*np.pi/180)*np.array([0.0,0.0,1.0]) )
+                    
+                        [x,y,z] = r.apply([xT,yT,0]) + np.array([x0,y0,0])
+                        
+                        #move scan region
+                        stm.setWindowPosition( (x,y) )
+                        time.sleep(20)
+                        
+                        #apply scan settings
+                        stm.ref_command(scan_control_ID, 'apply')
+                        time.sleep(1)
+                        
+                        #acquire the post-litho image
+                        imgInfo = util.getNewImage()
+                        
+                    
+                    else:
+                        litho_settings = scan_settings["LithoRasterLayer"]
+                        litho_control_ID = litho_settings["@controlID"]
+                        print('litho_control_ID:')
+                        print(litho_control_ID)
+                    
+                        #move scan region
+                        stm.setWindowPosition( (x,y) )
+                        time.sleep(20)
+                        
+                        #apply scan settings
+                        stm.ref_command(scan_control_ID, 'apply')
+                        time.sleep(1)
+                        
+                        #acquire the pre-litho image
+                        imgInfo = util.getNewImage()
+                        
+                        
+                        #write the pattern
+                        stm.ref_command(litho_control_ID, 'litho')
+                        
+                        #acquire the post-litho image
+                        #imgInfo = util.getNewImage()
+                        prev_scan_settings = scan_settings
+                    
+                               
+                
             case "checkTipQuality":
                 result = process_image(input_data)
             case "conditionTip":

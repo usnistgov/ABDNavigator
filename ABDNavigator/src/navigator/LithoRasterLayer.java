@@ -88,6 +88,7 @@ public class LithoRasterLayer extends NavigationLayer
 		//System.out.println("finalSetFromXML");
 	}
 	
+	
 	public void litho()
 	{
 		update();
@@ -164,21 +165,20 @@ public class LithoRasterLayer extends NavigationLayer
 					//send the litho command to the ABDController
 					ABDClient.command(commandString.toString());
 					
-					/*
-					 * 
-					 * Platform.runLater( new Runnable()
+					try 
 					{
-						public void run()
-						{
-							SampleNavigator.scanner.scan.refreshScanRegion();
-						}
-					} );
-		
-					 */
+						while (Boolean.parseBoolean(ABDClient.command("isLithoOn"))) {Thread.sleep(10);System.out.print("*");};
+					}
+					catch(Exception ex)
+					{
+						ex.printStackTrace();
+					}					
 					
+					actionThread = null;
 				}
 			};
 			t.start();
+			actionThread = t;
 			
 			//move this to the front of the layers
 			Node n = scanSettings.getParent();

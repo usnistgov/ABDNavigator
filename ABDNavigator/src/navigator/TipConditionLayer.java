@@ -162,6 +162,32 @@ public class TipConditionLayer extends NavigationLayer
         e.setAttribute("settleTime", Double.toString(settleTime));
         e.setAttribute("minDBsPer25x25nmSq", Double.toString(minDBsPer25x25nmSq));
         e.setAttribute("maxDBsPer25x25nmSq", Double.toString(maxDBsPer25x25nmSq));
+        
+        /*
+          public void updatePositionsAndScales()
+    {
+    	ScanSettingsLayer scan = (ScanSettingsLayer)getParent();
+        Transform t = scan.getParent().getLocalToParentTransform();
+        scanPosition = t.transform( scan.getTranslateX(),scan.getTranslateY() );
+        
+        scanScale = new Point2D( scan.scale.getMxx(), scan.scale.getMxx() );
+        
+        conditionPosition = getCoordinates();
+        //conditionPosition = Double.valueOf(condition.getX())
+        conditionScale = new Point2D( scale.getMxx()*scan.scale.getMxx(), scale.getMxx()*scan.scale.getMyy() );  
+    }
+         */
+        updatePositionsAndScales();
+        e.setAttribute("scanPositionX", Double.toString(scanPosition.getX()));
+        e.setAttribute("scanPositionY", Double.toString(scanPosition.getY()));
+        e.setAttribute("scanScaleX", Double.toString(scanScale.getX()));
+        e.setAttribute("scanScaleY", Double.toString(scanScale.getY()));
+        e.setAttribute("conditionPositionX", Double.toString(conditionPosition.getX()));
+        e.setAttribute("conditionPositionY", Double.toString(conditionPosition.getY()));
+        e.setAttribute("conditionScaleX", Double.toString(conditionScale.getX()));
+        e.setAttribute("conditionScaleY", Double.toString(conditionScale.getY()));
+        e.setAttribute("dzdx", Double.toString(dz.getX()));
+        e.setAttribute("dzdy", Double.toString(dz.getY()));
 
         return e;
     }
@@ -180,6 +206,29 @@ public class TipConditionLayer extends NavigationLayer
         return p;
     }*/
 
+    public Point2D scanPosition = new Point2D(0,0);
+    public Point2D scanScale = new Point2D(0,0);
+    public Point2D conditionPosition = new Point2D(0,0);
+    public Point2D conditionScale = new Point2D(0,0);
+    public Point2D dz = new Point2D(0,0);
+    public void updatePositionsAndScales()
+    {
+    	ScanSettingsLayer scan = (ScanSettingsLayer)getParent();
+    	if (scan == null)
+    		return;
+        Transform t = scan.getParent().getLocalToParentTransform();
+        scanPosition = t.transform( scan.getTranslateX(),scan.getTranslateY() );
+        
+        scanScale = new Point2D( scan.scale.getMxx(), scan.scale.getMxx() );
+        
+        conditionPosition = getCoordinates();
+        //conditionPosition = Double.valueOf(condition.getX())
+        conditionScale = new Point2D( scale.getMxx()*scan.scale.getMxx(), scale.getMxx()*scan.scale.getMyy() );  
+        
+        //ScanSettingsLayer scan = (ScanSettingsLayer)getParent();
+        Point2D dz = SampleNavigator.getPlaneParameters(scan);
+    }
+    
     public void condition()
     {
         //send command to python to condition tip
@@ -192,27 +241,28 @@ public class TipConditionLayer extends NavigationLayer
         jObj.put("predictionThreshold", Double.valueOf(predictionThreshold));
         jObj.put("majorityThreshold", Double.valueOf(majorityThreshold));
 
-        ScanSettingsLayer scan = (ScanSettingsLayer)getParent();
-        Transform t = scan.getParent().getLocalToParentTransform();
-        Point2D scanPosition = t.transform( scan.getTranslateX(),scan.getTranslateY() );
-        jObj.put("scanX", Double.valueOf(scanPosition.getX()));
-        jObj.put("scanY", Double.valueOf(scanPosition.getY()));
+        updatePositionsAndScales();
+        //ScanSettingsLayer scan = (ScanSettingsLayer)getParent();
+        //Transform t = scan.getParent().getLocalToParentTransform();
+        //scanPosition = t.transform( scan.getTranslateX(),scan.getTranslateY() );
+        
+        jObj.put("scanX", scanPosition.getX());
+        jObj.put("scanY", scanPosition.getY());
         
         //require that the scan scale is square!!!
-        jObj.put("scanScaleX", Double.valueOf(scan.scale.getMxx()));
-        jObj.put("scanScaleY", Double.valueOf(scan.scale.getMxx()));
+        jObj.put("scanScaleX", scanScale.getX() );//Double.valueOf(scan.scale.getMxx()));
+        jObj.put("scanScaleY", scanScale.getY() );//Double.valueOf(scan.scale.getMxx()));
 
-        Point2D condition = getCoordinates();
-        jObj.put("conditionX", Double.valueOf(condition.getX()));
-        jObj.put("conditionY", Double.valueOf(condition.getY()));
+        jObj.put("conditionX", conditionPosition.getX());
+        jObj.put("conditionY", conditionPosition.getY());
         
         //require that the scan scale is square!!!
         //Point2D conditionScale = getScale();
-        jObj.put("conditionScaleX", Double.valueOf(scale.getMxx()*scan.scale.getMxx()));
-        jObj.put("conditionScaleY", Double.valueOf(scale.getMxx()*scan.scale.getMyy()));
+        jObj.put("conditionScaleX", conditionScale.getX() );//Double.valueOf(scale.getMxx()*scan.scale.getMxx()));
+        jObj.put("conditionScaleY", conditionScale.getY() );//Double.valueOf(scale.getMxx()*scan.scale.getMyy()));
 
-        System.out.println("scan angle: " + scan.rotation.getAngle());
-        Point2D dz = SampleNavigator.getPlaneParameters(scan);
+        //System.out.println("scan angle: " + scan.rotation.getAngle());
+        
         jObj.put("dzdx", Double.valueOf(dz.getX()));
         jObj.put("dzdy", Double.valueOf(dz.getY()));
         

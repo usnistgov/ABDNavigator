@@ -105,6 +105,11 @@ public class ScanSettingsLayer extends ScanRegionLayer
 	
 	public void applyNoThread()
 	{
+		System.out.println("applying scan settings...");
+		
+		if (SampleNavigator.scanner == null)
+			return;
+		
 		if (SampleNavigator.scanner.scan == null)
 			return;
 		
