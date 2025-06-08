@@ -550,3 +550,329 @@ def detect_steps_alt(img, img_width=None, img_height=None, show_plots=False, sho
         #        curr = (curr + 1) % len(windows)
 
        # cv2.destroyAllWindows()
+
+def auto_detect_edges(img, input_data, show_plots=False):
+    
+    print("Finding Step Edges ...")
+    img_width = int( input_data["img_wdith"] )
+    img_height = int( input_data["img_height"] )
+    scan_settings_x = float( input_data["scan_settings_x"] )
+    scan_settings_y = float( input_data["scan_settings_y"] )
+    img_scale_x = float( input_data["img_scale_x"] )
+    img_scale_y = float( input_data["img_scale_y"] )
+    scan_settings_angle = float( input_data["scan_settings_angle"] )
+    litho_img = bool( input_data["litho_img"] )
+    gds_path = input_data["gds_path"]
+                            
+    img = np.array(img).reshape(img_height, img_width)
+	
+    min = np.min(img)
+    max = np.max(img)
+    
+    gray = ((img - min) / (max - min) * 255).astype(np.uint8)
+    img = cv2.cvtColor(gray, cv2.COLOR_GRAY2RGB)
+
+
+    # Create a smoothed histogram and determine the maximas
+    #smooth_hist = smooth_histogram(create_histogram(gray), smoothing_factor=25)
+    smooth_hist = smooth_histogram(create_histogram(gray), smoothing_factor=1)
+    maximas = determine_maximas(
+        smooth_hist, side_increase_min=10
+    )  # x values of the maximas
+
+    # Determine the minimas between the maximas for layer thresholding
+    minimas = []
+    for m in range(len(maximas) - 1):
+        minimas.append(
+            determine_minimum_between_points(smooth_hist, maximas[m], maximas[m + 1])
+        )
+    minimas = sorted(minimas)
+
+    #if show_plots:
+    #    plt.plot(smooth_hist)
+    #    for maxima in maximas:
+    #        plt.axvline(x=maxima, color="g", linestyle="--")
+    #    for x_val in minimas:
+    #        plt.plot(x_val, smooth_hist[x_val], "ro")
+    #    plt.show()
+    
+    # Setting up parameters ¯\_(ツ)_/¯:
+    max_pxl = 400
+    if( litho_img == False ):
+        if ( img_scale_x < 30 and img_scale_y < 30 ):
+            blur = 3
+            lowResolution = False
+            thickness = 1.0
+            postprocessing = True
+        elif( img_scale_x <= 150 and img_scale_y <= 150 ):
+            blur = 4
+            lowResolution = False
+            thickness = 1.0
+            postprocessing = False
+        elif ( img_scale_x <= 400 and img_scale_y <= 400 ):
+            blur = 3
+            lowResolution = False
+            thickness = 1.0
+            postprocessing = False
+        elif ( img_scale_x <= 600 and img_scale_y <= 600 ):
+            blur = 2
+            lowResolution = False
+            thickness = 1.0
+            postprocessing = False
+        else:
+            blur = 1
+            lowResolution = True
+            thickness = 1.0
+            postprocessing = False
+        
+        contours = find_contours(gray, blur, lowResolution, thickness)
+        if(postprocessing):
+            cleaned = white_tophat(contours, max_pxl, 1)
+        else:
+            cleaned = white_tophat(contours, max_pxl, 0)
+
+        overlay = np.zeros((img_height, img_width, 3), dtype=np.uint8)
+        overlay[cleaned] = [0, 255, 0]  # Set the color for True values (green in this case)
+        result = cv2.addWeighted(img, 1, overlay, 0.5, 0)
+
+        numbered = np.zeros_like(gray)
+        labels, numbered = color_layers(overlay, cleaned, len(maximas), numbered)
+
+        if ( show_plots ):
+            fig, ax = plt.subplots(1, 5, figsize=(15, 5))
+            ax[0,0].imshow(gray, cmap='gray')
+            ax[0,0].set_title('Original Image')
+            ax[0,0].axis("off")
+            ax[0,1].imshow(contours, cmap='gray')
+            ax[0,1].set_title('Contours')
+            ax[0,1].axis("off")
+            ax[0,2].imshow(cleaned, cmap='gray')
+            ax[0,2].set_title('Post-processing')
+            ax[0,2].axis("off")
+            ax[0,3].imshow(result)
+            ax[0,3].set_title('Detected Step Edges')
+            ax[0,3].axis("off")
+            ax[0,4].imshow(labels)
+            ax[0,4].set_title('Color Coded Regions')
+            ax[0,4].axis("off")
+            plt.show()
+            cv2.waitKey(0) 
+            cv2.destroyAllWindows()
+        
+        return cleaned
+
+    else: # Litho Image
+
+        # **********************************************************
+        # TODO: - REMOVE SMALL REGIONS
+        #       - IGNORE REGIONS COMPLETELY OUTSIDE GDS FILE AREA
+        #       - TEST AUTOFAB FUNCTION
+        #
+        # **********************************************************
+
+        # Parameters loop to find lowest error
+        i = 0
+        num_iter = 12
+        prev_error = 100
+        for i in range(num_iter):
+            if ( img_scale_x < 400 and img_scale_y < 400 ):
+                if ( i < 4 ):
+                    blur = i + 1
+                    lowResolution = False
+                    thickness = 1.0
+                    roughnessThreshold = 0.12
+                    litho_method = "minorityLitho"
+                elif ( i < 8 ):
+                    blur = i - 3
+                    lowResolution = False
+                    thickness = 1.0
+                    roughnessThreshold = 0.12
+                    litho_method = "default"
+                elif ( i < 10 ):
+                    blur = i - 5
+                    lowResolution = False
+                    thickness = 1.3
+                    roughnessThreshold = 0.01
+                    litho_method = "default"
+                else:
+                    blur = i - 7
+                    lowResolution = False
+                    thickness = 1.3
+                    roughnessThreshold = 0.2
+                    litho_method = "default"
+            else:
+                if ( i < 3 ):
+                    blur = int( i + 1 )
+                    lowResolution = False
+                    thickness = 1.0
+                    roughnessThreshold = 0.15
+                    litho_method = "default"
+                elif ( i < 6 ):
+                    blur = int( i - 2 )
+                    lowResolution = False
+                    thickness = 1.0
+                    roughnessThreshold = 0.01
+                    litho_method = "default"
+                elif ( i < 9 ):
+                    blur = int( i - 5 )
+                    lowResolution = True
+                    thickness = 1.0
+                    roughnessThreshold = 0.5
+                    litho_method = "default"
+                else:
+                    blur = int( i - 8 )
+                    lowResolution = True
+                    thickness = 1.8
+                    roughnessThreshold = 0.5
+                    litho_method = "default"
+        
+            curr_contours = find_contours(gray, blur, lowResolution, thickness)
+            curr_cleaned = white_tophat(curr_contours, max_pxl, 0)
+            curr_overlay = np.zeros((img_height, img_width, 3), dtype=np.uint8)
+            curr_overlay[curr_cleaned] = [0, 255, 0]  # Set the color for True values (green in this case)
+            curr_result = cv2.addWeighted(img, 1, curr_overlay, 0.5, 0)
+            curr_numbered = np.zeros_like(gray)
+            curr_labels, curr_numbered = color_layers(curr_overlay, curr_cleaned, len(maximas), curr_numbered)
+            
+            
+            curr_litho = detect_litho(curr_labels, gray, curr_numbered, blur, roughnessThreshold, litho_method)
+            lib = gdstk.read_gds(gds_path, 1e-9)
+            top = lib.top_level()[0]
+            bbox = top.bounding_box()
+            if bbox is None:
+                print("Detect Litho: Failed to read GDS File")
+            curr_image = np.zeros((img_height, img_width, 3), dtype=np.uint8)
+            if bbox is not None:
+                polygons = top.polygons
+                polys = []
+                for polygon in polygons:
+                    x, y = zip(*polygon.points)
+                    poly = []
+                    for i in range(len(x)):
+                        x_vertex = x[i]-scan_settings_x
+                        y_vertex = y[i]-scan_settings_y
+                        #xr = int(((x_vertex*np.cos(scan_settings_angle*(np.pi/180))) - (y_vertex*np.sin((scan_settings_angle+180)*(np.pi/180))))*(img_width/(img_rescale_x)) + (img_width/2))
+                        #yr = int(((x_vertex*np.sin(scan_settings_angle*(np.pi/180))) + (y_vertex*np.cos((scan_settings_angle+180)*(np.pi/180))))*(img_height/(img_rescale_y)) + (img_height/2))
+                        xr = int(((x_vertex*np.cos(scan_settings_angle*(np.pi/180))) - (y_vertex*np.sin((scan_settings_angle+180)*(np.pi/180))))*(img_width/(img_scale_x)) + (img_width/2))
+                        yr = int(((x_vertex*np.sin(scan_settings_angle*(np.pi/180))) + (y_vertex*np.cos((scan_settings_angle+180)*(np.pi/180))))*(img_height/(img_scale_y)) + (img_height/2))
+                        poly.append([xr-1, yr-1])
+                    polys.append(np.array(poly, np.int32))
+                cv2.fillPoly(curr_image, polys, (255, 255, 0))
+                curr_error = np.zeros_like(curr_image)
+                total_error = 0
+                curr_image = cv2.cvtColor(curr_image, cv2.COLOR_RGB2GRAY)
+                curr_litho = cv2.cvtColor(curr_litho, cv2.COLOR_RGB2GRAY)
+                error_gray = np.abs(curr_image - curr_litho)*2
+                for i in range(len(error_gray)):
+                    for j in range(len(error_gray[0])):
+                        if curr_cleaned[i,j]:
+                            curr_error[i,j] = (0,0,0)
+                        elif error_gray[i,j] == 60:
+                            curr_error[i,j] = (150,0,0)
+                            total_error = total_error + 1
+                        elif error_gray[i,j] == 196:
+                            curr_error[i,j] = (255,0,0)
+                            total_error = total_error + 1
+                curr_error_percent = total_error/(img_width*img_height)
+
+                # Keep results that yield lowest error
+                if (curr_error_percent < prev_error):
+                    contours = curr_contours
+                    cleaned = curr_cleaned
+                    result = curr_result
+                    labels = curr_labels
+                    litho = curr_litho
+                    image = curr_image
+                    error = curr_error
+                    error_percent = curr_error_percent
+                
+                # update for next loop
+                prev_error = curr_error_percent
+            
+            else:
+                print("Failed to read GDS file")    
+
+        if(error_percent < 0.1):
+            pf = True
+        else:
+            pf = False
+
+
+        if ( show_plots ):
+            fig, ax = plt.subplots(1, 5, figsize=(15, 5))
+            ax[0,0].imshow(gray, cmap='gray')
+            ax[0,0].set_title('Original Image')
+            ax[0,0].axis("off")
+            ax[0,1].imshow(contours, cmap='gray')
+            ax[0,1].set_title('Contours')
+            ax[0,1].axis("off")
+            ax[0,2].imshow(cleaned, cmap='gray')
+            ax[0,2].set_title('Post-processing')
+            ax[0,2].axis("off")
+            ax[0,3].imshow(result)
+            ax[0,3].set_title('Detected Step Edges')
+            ax[0,3].axis("off")
+            ax[0,4].imshow(labels)
+            ax[0,4].set_title('Color Coded Regions')
+            ax[0,4].axis("off")
+            ax[1,1].imshow(litho)
+            ax[1,1].set_title('Detected Lithography')
+            ax[1,1].axis("off")
+            ax[1,2].imshow(image)
+            ax[1,2].set_title('GDS File')
+            ax[1,2].axis("off")
+            ax[1,3].imshow(error)
+            ax[1,3].set_title('Error')
+            ax[1,3].axis("off")
+            ax[1,4].remove()
+            plt.show()
+            cv2.waitKey(0) 
+            cv2.destroyAllWindows()
+        return litho, error, pf
+
+def auto_detect_creep(litho_error, input_data):
+
+    img_width = float( input_data["img_wdith"] )
+    img_height = float( input_data["img_height"] )
+    img_scale_x = float( input_data["img_scale_x"] )
+    img_scale_y = float( input_data["img_scale_y"] )
+
+    x_pxl_nm = img_width / img_scale_x
+    y_pxl_nm = img_height / img_scale_y
+    x_origin = int( img_width/2 )
+    y_origin = int( img_height/2 )
+
+    x_offset_ovrwttn = 0
+    y_offset_ovrwttn = 0
+    x_offset_undrwttn = 0
+    y_offset_undrwttn = 0
+
+    for i in range(len(litho_error)):
+        for j in range(len(litho_error[0])):
+            if litho_error[i,j] == (150,0,0):
+                if( i > x_origin ):
+                    x_offset_undrwttn += x_pxl_nm
+                else:
+                    x_offset_undrwttn -= x_pxl_nm
+                if ( j > y_origin ):
+                    y_offset_undrwttn += y_pxl_nm
+                else:
+                    y_offset_undrwttn -= y_pxl_nm
+            elif litho_error[i,j] == (255,0,0):
+                if( i < x_origin ):
+                    x_offset_ovrwttn += x_pxl_nm
+                else:
+                    x_offset_ovrwttn -= x_pxl_nm
+                if ( j < y_origin ):
+                    y_offset_ovrwttn += y_pxl_nm
+                else:
+                    y_offset_ovrwttn -= y_pxl_nm
+    
+    x_offset = (x_offset_ovrwttn + x_offset_undrwttn)/2
+    y_offset = (y_offset_ovrwttn + y_offset_undrwttn)/2
+
+
+    return x_offset, y_offset
+
+
+
