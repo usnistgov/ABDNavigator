@@ -786,8 +786,8 @@ def auto_detect_edges(img, input_data, show_plots=False):
                     error = curr_error
                     error_percent = curr_error_percent
                 
-                # update for next loop
-                prev_error = curr_error_percent
+                    # update for next loop
+                    prev_error = curr_error_percent
             
             else:
                 print("Failed to read GDS file")    
@@ -846,29 +846,65 @@ def auto_detect_creep(litho_error, input_data):
     y_offset_ovrwttn = 0
     x_offset_undrwttn = 0
     y_offset_undrwttn = 0
+    x_tot_ovrwttn = 0
+    x_tot_undrwttn = 0
+    y_tot_ovrwttn = 0
+    y_tot_undrwttn = 0
 
     for i in range(len(litho_error)):
+        x_reset_ovrwttn = 0
+        x_reset_undrwttn = 0
         for j in range(len(litho_error[0])):
             if litho_error[i,j] == (150,0,0):
                 if( i > x_origin ):
                     x_offset_undrwttn += x_pxl_nm
+                    if(x_reset_undrwttn == 0):
+                        x_tot_undrwttn += 1
+                        x_reset_undrwttn = 1
                 else:
                     x_offset_undrwttn -= x_pxl_nm
+                    if(x_reset_undrwttn == 0):
+                        x_tot_undrwttn += 1
+                        x_reset_undrwttn = 1
                 if ( j > y_origin ):
                     y_offset_undrwttn += y_pxl_nm
+                    y_tot_undrwttn += 1
                 else:
                     y_offset_undrwttn -= y_pxl_nm
+                    y_tot_undrwttn += 1
             elif litho_error[i,j] == (255,0,0):
                 if( i < x_origin ):
                     x_offset_ovrwttn += x_pxl_nm
+                    if(x_reset_ovrwttn == 0):
+                        x_tot_ovrwttn += 1
+                        x_reset_ovrwttn = 1
                 else:
                     x_offset_ovrwttn -= x_pxl_nm
+                    if(x_reset_ovrwttn == 0):
+                        x_tot_ovrwttn += 1
+                        x_reset_ovrwttn = 1
                 if ( j < y_origin ):
                     y_offset_ovrwttn += y_pxl_nm
+                    y_tot_ovrwttn += 1
                 else:
                     y_offset_ovrwttn -= y_pxl_nm
+                    y_tot_ovrwttn += 1
+        if(y_tot_undrwttn != 0):
+            y_offset_undrwttn /= y_tot_undrwttn
+            y_tot_undrwttn = 0
+        if(y_tot_ovrwttn != 0):
+            y_offset_ovrwttn /= y_tot_ovrwttn
+            y_tot_ovrwttn = 0
     
-    x_offset = (x_offset_ovrwttn + x_offset_undrwttn)/2
+    if(x_tot_ovrwttn != 0 and x_tot_undrwttn != 0):
+        x_offset = ((x_offset_ovrwttn/x_tot_ovrwttn) + (x_offset_undrwttn/x_tot_undrwttn))/2
+    elif(x_tot_ovrwttn != 0):
+        x_offset = ((x_offset_ovrwttn/x_tot_ovrwttn) + x_offset_undrwttn)/2
+    elif(x_tot_undrwttn != 0):
+        x_offset = (x_offset_ovrwttn + (x_offset_undrwttn/x_tot_undrwttn))/2
+    else:
+        x_offset = (x_offset_ovrwttn + x_offset_undrwttn)/2
+    
     y_offset = (y_offset_ovrwttn + y_offset_undrwttn)/2
 
 
