@@ -17,7 +17,7 @@ from AutoTipCondition import set_abort
 import MatrixPythonAPI as stm
 import STMUtils as util
 
-from helpers.main_functions import detect_steps_alt, detect_steps
+from helpers.main_functions import detect_steps_alt, detect_steps, auto_detect_edges, auto_detect_creep
 
 # Disable OneDNN optimizations and CPU instructions messages
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
@@ -219,6 +219,9 @@ def handle_client(client_socket: socket.socket) -> None:
                 x0 = float( control["@x"] )
                 
                 y0 = float( control["@y"] )
+
+                gds_layer = control["GDSLayer"]
+                gds_path = gds_layer["@img"]
                 
                 scan_settings_list = control["ScanSettingsLayer"]
                 for scan_settings in scan_settings_list:
@@ -333,7 +336,36 @@ def handle_client(client_socket: socket.socket) -> None:
                         
                         #acquire the post-litho image
                         imgInfo = util.getNewImage()
+
+                        #setting up parameters for litho detection:
+                        litho_detect_input = {
+                            "img_width": int( scan_settings["@pixelsX"] ),
+                            "img_height": int( scan_settings["@pixelsY"] ),
+                            "scan_settings_x": float( scan_settings["@x"] ),
+                            "scan_settings_y": float( scan_settings["@y"] ),
+                            "img_scale_x": float( scan_settings["@scaleX"] ),
+                            "img_scale_y": float( scan_settings["@scaleY"] ),
+                            "scan_settings_angle": float( scan_settings["@angle"] ),
+                            "litho_img": True,
+                            "gds_path": gds_path 
+                        }
+
+                        #detect litho: returns img array of where litho is detected & boolean pass/fail
+                        detected_litho, litho_error, pass_litho = auto_detect_edges(imgInfo, litho_detect_input, show_plots=False)
                         
+                        #creep correction: returns x & y value to offset window position
+                        x_offset, y_offset = auto_detect_creep(litho_error, litho_detect_input)
+
+                        if(not pass_litho):
+                            litho_detect_input["scan_settings_x"] += x_offset
+                            litho_detect_input["scan_settings_y"] += y_offset
+                            detected_litho, litho_error, pass_litho = auto_detect_edges(imgInfo, litho_detect_input, show_plots=False)
+                            if(not pass_litho):
+                                print("Error: Failed to Detect Litho")
+                                print("User Input Required to Proceed")
+                            new_x_offset, new_y_offset = auto_detect_creep(litho_error, litho_detect_input)
+                            x_offset += new_x_offset
+                            y_offset += new_y_offset          
                     
                     else:
                         litho_settings = scan_settings["LithoRasterLayer"]
@@ -351,6 +383,22 @@ def handle_client(client_socket: socket.socket) -> None:
                         
                         #acquire the pre-litho image
                         imgInfo = util.getNewImage()
+
+                        #setting up parameters for step edge detection:
+                        step_edge_input = {
+                            "img_width": int( scan_settings["@pixelsX"] ),
+                            "img_height": int( scan_settings["@pixelsY"] ),
+                            "scan_settings_x": float( scan_settings["@x"] ),
+                            "scan_settings_y": float( scan_settings["@y"] ),
+                            "img_scale_x": float( scan_settings["@scaleX"] ),
+                            "img_scale_y": float( scan_settings["@scaleY"] ),
+                            "scan_settings_angle": float( scan_settings["@angle"] ),
+                            "litho_img": False,
+                            "gds_path": gds_path 
+                        }
+
+                        #detect step edges: returns binary mask of detected step edges
+                        step_edges = auto_detect_edges(imgInfo, step_edge_input, show_plots=False)
                         
                         
                         #write the pattern
