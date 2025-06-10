@@ -33,10 +33,10 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
-import org.apache.commons.math3.complex.Complex;
-import org.apache.commons.math3.transform.DftNormalization;
-import org.apache.commons.math3.transform.FastFourierTransformer;
-import org.apache.commons.math3.transform.TransformType;
+//import org.apache.commons.math3.complex.Complex;
+//import org.apache.commons.math3.transform.DftNormalization;
+//import org.apache.commons.math3.transform.FastFourierTransformer;
+//import org.apache.commons.math3.transform.TransformType;
 import org.w3c.dom.Element;
 
 import javafx.application.Platform;
@@ -1948,7 +1948,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 		latticeLayer.getChildren().clear();
 		SampleNavigator.addSegment(lambda/scaleR, theta, latticeLayer, 0, 0);
 	}
-	
+	/*
 	public void locateLattice() 
 	{
 		try
@@ -2326,7 +2326,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 			ex.printStackTrace();
 		}
 	}
-	
+	*/
 	
 	
 	
