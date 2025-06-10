@@ -156,6 +156,8 @@ public class GDSLayer extends NavigationLayer
 	{
 		Element e = super.getAsXML();
 		e.setAttribute("img", gdsName);
+		
+		e.setAttribute("absolutePath", gdsAbsPath);
 				
 		return e;
 	}
@@ -164,7 +166,7 @@ public class GDSLayer extends NavigationLayer
 	public GDSRecord record;
 	public Vector<GDSRecord> records;
 	public GDSLayer p;
-	public String gdsAbsPath = null;
+	public String gdsAbsPath = new String();
 	
 	public void init() throws Exception
 	{
