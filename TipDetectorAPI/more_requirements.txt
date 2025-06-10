@@ -1,4 +1,4 @@
-python version 2.18.0
+python version 3.11.3
 pip install tensorflow==2.18.0
 pip install pydantic
 pip install matplotlib
