@@ -2857,7 +2857,10 @@ public class SampleNavigator extends Application
 			NavigationLayer parent = (NavigationLayer)l.getParent();
 			if (parent instanceof ControlGroupLayer)
 			{
-				System.out.println("adding on control group rotation: " + parent.rotation.getAngle() + "  to the scan rotation of: " + l.rotation.getAngle());
+				//System.out.println("plane parameters set: " + SampleNavigator.planeParametersSet);
+				//System.out.println("adding on control group rotation: " + parent.rotation.getAngle() + "  to the scan rotation of: " + l.rotation.getAngle());
+				//System.out.println("dzdx = " + dzdx + "   dzdy = " + dzdy);
+				
 				Transform t0 = parent.rotation;
 				t = t0.createConcatenation(t);
 			}
