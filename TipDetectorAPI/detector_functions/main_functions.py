@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 from detector_functions.image_helpers import (
     calculate_black_pixel_ratio,
@@ -69,16 +70,44 @@ def detect_tip(
         img = rotate_image(img, rotation)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     
+    max_gray0 = np.max(gray)
+    min_gray0 = np.min(gray)
+    
+    #print('min and max')
+    #print(min_gray0)
+    #print(max_gray0)
+    
+    #get rid of dips below the plane
+    hist, bin_edges = np.histogram(gray, bins=256)
+    max_idx = np.argmax(hist)
+    
+    #plt.axvline(x=max_idx, color='r', linestyle='--')
+    #plt.plot(hist)
+    #plt.show()
+    
+    gray = np.clip(gray, a_min=max_idx, a_max=None)
+    
+    gray = gray.astype(np.uint8)
+    #print(gray)
+    
+    max_gray = np.max(gray)
+    min_gray = np.min(gray)
+    
+    #print('min and max')
+    #print(min_gray)
+    #print(max_gray)
+    
+    #cv2.namedWindow("gray")
+    #cv2.imshow("gray", cv2.resize(gray,(400,400)))
+    #cv2.imshow("gray", cv2.resize(gray,(400,400)))
+    #cv2.waitKey(0)
+    #cv2.destroyAllWindows()
     
     #threshold the image to find all the dangling bonds
     max_gray = np.max(gray)
     min_gray = np.min(gray)
-    print(min_gray)
-    print(max_gray)
-    print(min_height)
-    print(z_range)
-    print((max_gray-min_gray)*min_height)
-    z_thresh = min_gray + (max_gray-min_gray)*min_height/z_range
+    
+    z_thresh = min_gray + (max_gray0-min_gray0)*min_height/z_range
     
     _, thresh = cv2.threshold(gray, int(z_thresh), 255, cv2.THRESH_BINARY)
     
@@ -90,7 +119,7 @@ def detect_tip(
     #cv2.imshow("thresh", cv2.resize(thresh,(400,400)))
     
     #cv2.waitKey(0)
-    #cv2.destroyAllWindows()
+    cv2.destroyAllWindows()
     
     
     
