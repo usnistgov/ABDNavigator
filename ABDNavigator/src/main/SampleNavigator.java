@@ -48,6 +48,7 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.util.Properties;
 import java.util.Vector;
 
 import navigator.*;
@@ -118,6 +119,7 @@ public class SampleNavigator extends Application
 	public static ScannerLayer scanner = null;
 	public static MLControlLayer mlController = null;
 	
+	public static Properties settings = new Properties();
 	
 	
 	public static class UndoObject
@@ -187,6 +189,22 @@ public class SampleNavigator extends Application
 	
 	public void start(Stage stage0) throws Exception 
 	{
+		//read settings from file
+		try
+		{
+			File f = new File("config.xml");
+			if (f.exists())
+			{
+				FileInputStream in = new FileInputStream(f);
+				settings.loadFromXML(in);
+				in.close();
+			}
+		}
+		catch (Exception ex)
+		{
+			ex.printStackTrace();
+		}
+		
 		//System.out.println( ABDClient.command("this is a test") );
 		ABDPythonAPIServer.startServer();
 		EmergencyServer.startServer();
@@ -213,6 +231,8 @@ public class SampleNavigator extends Application
     	rootLayer.scalesChildren();
     	selectedLayer = rootLayer;
     	previousSelectedLayer = selectedLayer;
+    	
+    	rootLayer.initConfig();
     	
     	userDir = System.getProperty("user.dir");
     	
@@ -2331,12 +2351,75 @@ public class SampleNavigator extends Application
     	
     	if (fc.getSelectedExtensionFilter() == filter0)
     	{
-    		currentSTMImageDirectory = openFile.getParent();
-    		currentSTMImageType = filter0;
-    		currentSTMImageExt = ".Z_mtrx";
+    		if (NavigationLayer.stmImageFolder.length() == 0)
+    		{
+	    		currentSTMImageDirectory = openFile.getAbsoluteFile().getParent();
+	    		currentSTMImageType = filter0;
+	    		currentSTMImageExt = ".Z_mtrx";
+	    		
+	    		File parent = new File(currentSTMImageDirectory);
+	    		NavigationLayer.stmImageFolder = new String(parent.getAbsoluteFile().getParent());
+	    		SampleNavigator.rootLayer.saveConfig();
+    		}
     	}
     	
     	addImageFile(openFile, fc.getSelectedExtensionFilter());
+	}
+	
+	public static void updateCurrentSTMImageInfo()
+	{
+		if (NavigationLayer.stmImageFolder.length() == 0)
+			return;
+		
+		File imageFolder = new File(NavigationLayer.stmImageFolder);
+		File[] files = imageFolder.listFiles();
+		if ((files != null) && (files.length > 0))
+		{
+			if (files[0].isDirectory())
+			{
+				long lastModifiedTime = Long.MIN_VALUE;
+				File f = null;
+				
+				for (int i = 0; i < files.length; i ++)
+				{
+					if ((files[i].lastModified() > lastModifiedTime) && (files[i].isDirectory()))
+					{
+						f = files[i];
+						lastModifiedTime = f.lastModified();
+					}
+				}
+				
+				if (f != null)
+				{
+					currentSTMImageDirectory = f.getAbsolutePath();
+		    		//currentSTMImageType = filter0;
+		    		//currentSTMImageExt = ".Z_mtrx";
+				}
+			}
+			else
+			{
+				currentSTMImageDirectory = imageFolder.getAbsolutePath();
+			}
+		}
+		
+		//figure out what type of STM file format the files are
+		File leafFolder = new File(currentSTMImageDirectory);
+		files = leafFolder.listFiles(new FilenameFilter()
+		{
+			public boolean accept(File dir, String name)
+			{
+				return (name.endsWith(".Z_mtrx"));
+			}
+		} );
+		if ((files != null) && (files.length > 0))
+		{
+			currentSTMImageType = filter0;
+    		currentSTMImageExt = ".Z_mtrx";
+		}
+		
+		System.out.println("currentSTMImageDirectory: " + currentSTMImageDirectory);
+		System.out.println("currentSTMImageType: " + currentSTMImageType);
+		System.out.println("currentSTMImageExt: " + currentSTMImageExt);
 	}
 	
 	public static void addMostRecentSTMImageFileLater()
@@ -2365,8 +2448,12 @@ public class SampleNavigator extends Application
 	    });
 	}
 	
+	
+	
 	public static void addMostRecentSTMImageFile()
 	{
+		updateCurrentSTMImageInfo();
+		
 		System.out.println("currentSTMImageDirectory: " + currentSTMImageDirectory);
 		if (currentSTMImageDirectory == null)
 			return;
@@ -2897,5 +2984,8 @@ public class SampleNavigator extends Application
 	    System.out.println("SampleNavigator is closing...");
 	    ABDReverseServer.stopServer();
 	    ABDPythonAPIServer.stopServer();
+	    EmergencyServer.stopServer();
 	}
+	
+	
 }
