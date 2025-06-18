@@ -366,45 +366,29 @@ def handle_client(client_socket: socket.socket) -> None:
                 result = process_image(input_data)
             case "conditionTip":
                 condition_tip(input_data, model, config)
-            case "detectStepEdges":
+            case "altDetectStepEdges":
                 print()
-                print(input_data["blur"])
                 print(np.array(input_data["img"]))
                 print('height and width in pixels:')
                 print(input_data["img_width"])
                 print(input_data["img_height"])
-                print('zoomed in?:')
-                print(input_data["zoomedIn"])
                 print('image size in nm:')
                 print(input_data["img_scale_x"])
                 print(input_data["img_scale_y"])
-                print('image size in nm after possible user rescaling:')
-                print(input_data["img_rescale_x"])
-                print(input_data["img_rescale_y"])
                 print('captured lines start and end:')
                 print(input_data["captured_lines_start"])
                 print(input_data["captured_lines_end"])
-                print('nm from z:')
-                print(input_data["nm_from_z"])
-                print('scan settings x,y and scale_x, scale_y (nm), angle (deg):')
-                print(input_data["scan_settings_x"])
-                print(input_data["scan_settings_y"])
-                print(input_data["scan_settings_scale_x"])
-                print(input_data["scan_settings_scale_y"])
-                print(input_data["scan_settings_angle"])
-                print('roughness threshold:')
-                print(input_data["roughnessThreshold"])
-                print('low resolution?:')
-                print(input_data["lowResolution"])
-                print('lithography method:')
-                print(input_data["findLithoMethod"])
-                print('step edge thickness:')
-                print(input_data["thickness"])
-                print('verify with GDS file?:')
-                print(input_data["verifyGDS"])
-                print('gds file path')
-                print(input_data["gds_path"])
-                print()
+                                
+                img = np.array(input_data["img"])
+                img = img.reshape( int(input_data["img_height"]), int(input_data["img_width"]) )
+                
+                detect_steps_alt(
+                    img, 
+                    img_width_nm=float(input_data["img_scale_x"]), 
+                    img_height_nm=float(input_data["img_scale_x"]) 
+                    )
+                
+                '''
                 detect_steps(
                     np.array(input_data["img"]), 
 					img_width=int(input_data["img_width"]),
@@ -426,6 +410,7 @@ def handle_client(client_socket: socket.socket) -> None:
                     img_rescale_y=input_data["img_rescale_y"],
                     scan_settings_angle=input_data["scan_settings_angle"]
                     )
+                '''
                 print('all done')
 
         # Send the result back to the client
