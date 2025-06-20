@@ -5,6 +5,8 @@ from skimage import filters, feature, morphology, segmentation
 from scipy import ndimage as ndi
 import random
 import gdstk
+from scipy.optimize import minimize
+from scipy.signal import find_peaks, peak_prominences, peak_widths
 
 from helpers.histogram_helpers import (
     create_histogram,
@@ -381,24 +383,163 @@ def detect_steps(img, img_width=None, img_height=None, show_plots=False, show_ou
         cv2.destroyAllWindows()
         
 
+#function to optimize with respect to dz=dzdx,dzdy with the raw image as the fixed argument 
+def bg_plane_quality(dz, args):
+    img,img_width_nm,img_height_nm = args
+    dzdx,dzdy = dz
+    
+    img_sub = sub_plane(img, img_width_nm, img_height_nm, dzdx, dzdy)
+    
+    #estimate of the proper vertical range of the image - should be close
+    delta_z = np.max(img_sub) - np.min(img_sub)
+    
+    #set bins to be enough to give a resolution of 0.005 nm
+    min_bin_dz = 0.005
+    num_bins = int(delta_z/min_bin_dz)
+    #print('num_bins: ' + str(num_bins))
+    
+    #min peak distance should be 0.3 nm
+    peak_dist_nm = 0.08
+    bin_dist = int(peak_dist_nm/min_bin_dz)
+    
+    #print('bin_dist: ' + str(bin_dist))
+        
+    hist, bin_edges = np.histogram(img_sub, bins=num_bins)
+    max_idx = np.argmax(hist)  #index of tallest "peak"
+    max_val = np.max(hist)  #height of tallest peak
+    
+    #get full-width half max of tallest peak
+    min_val = max_val/2
+    
+    right_idx = len(hist)-1
+    for idx in range(max_idx, len(hist)):
+        if hist[idx] < min_val:
+            right_idx = idx
+            break
+    
+    left_idx = 0
+    for idx in range(max_idx, 0,-1):
+        if hist[idx] < min_val:
+            left_idx = idx
+            break
+    
+    bin_width = right_idx-left_idx
+    width_nm = bin_width*min_bin_dz
+    
+    #print('peak width: ' + str(width_nm))
+    return width_nm
 
 
 def detect_steps_alt(img, img_width_nm=100, img_height_nm=100 ):
     
     #estimate the background plane by getting the average slope
+    #resulting in an initial guess for dzdx and dzdy
     dzdx,dzdy = get_bg_plane(img, img_width_nm, img_height_nm)
     
+    qual = bg_plane_quality((dzdx,dzdy), [img, img_width_nm, img_height_nm])
+    print('before width nm: ' + str(qual))
+    
+    
+    min_plane = minimize(bg_plane_quality, (dzdx,dzdy), args=[img, img_width_nm, img_height_nm], method=None)
+    
+    if min_plane.success:
+        print('optimization successful')
+        print('optimum plane: ' + str(min_plane.x))
+    else:
+        print('well that sucks')
+        print('optimum plane: ' + str(min_plane.x))
+        print(min_plane.message)
+    
+    qual = bg_plane_quality((dzdx,dzdy), [img, img_width_nm, img_height_nm])
+    print('after width nm: ' + str(qual))
+    
+    '''   
     #subtract off estimated background plane
-    img = sub_plane(img, img_width_nm, img_height_nm, dzdx, dzdy)
+    img = sub_plane(img, img_width_nm, img_height_nm, dzdx, dzdy)   
+    
+    #estimate of the proper vertical range of the image - should be close
+    delta_z = np.max(img) - np.min(img)
+    
+    #set bins to be enough to give a resolution of 0.005 nm
+    min_bin_dz = 0.005
+    num_bins = int(delta_z/min_bin_dz)
+    print('num_bins: ' + str(num_bins))
+    
+    #min peak distance should be 0.3 nm
+    peak_dist_nm = 0.08
+    bin_dist = int(peak_dist_nm/min_bin_dz)
+    
+    print('bin_dist: ' + str(bin_dist))
         
+    hist, bin_edges = np.histogram(img, bins=num_bins)
+    max_idx = np.argmax(hist)  #index of tallest "peak"
+    max_val = np.max(hist)  #height of tallest peak
     
+    #get full-width half max of tallest peak
+    min_val = max_val/2
+    
+    right_idx = len(hist)-1
+    for idx in range(max_idx, len(hist)):
+        if hist[idx] < min_val:
+            right_idx = idx
+            break
+    
+    left_idx = 0
+    for idx in range(max_idx, 0,-1):
+        if hist[idx] < min_val:
+            left_idx = idx
+            break
+    
+    bin_width = right_idx-left_idx
+    width_nm = bin_width*min_bin_dz
+    
+    print('peak width: ' + str(width_nm))
+    '''
+    
+    
+    '''
+    peaks,_ = find_peaks(hist,distance=bin_dist)
+    
+    
+    #use the max peak height to determine height (prominence) cutoffs for other peaks
+    cut_fract = 0.1
+    max_pk = np.max( peak_prominences(hist, peaks, wlen=bin_dist) )
+    height_cut = int(cut_fract*max_pk)
+    
+    print('height_cut: ' + str(height_cut))
+    peaks,pk_info = find_peaks(hist,distance=bin_dist,prominence=height_cut) 
+    
+    heights = pk_info['prominences']
+    right_bases = pk_info['right_bases']
+    left_bases = pk_info['left_bases']
+    print('heights: ' + str(heights))
+    
+    #get peak_widths from full width half max
+    widths,width_heights,left_ips,right_ips = peak_widths(hist, peaks, rel_height=0.5, prominence_data=(heights,left_bases,right_bases))
+    
+    print('widths: ' + str(widths))
+    plt.plot(peaks, hist[peaks], "x", color='red', label='Detected Peaks')
+    '''
+    
+    '''
+    plt.plot(hist)
+    plt.axvline(x=left_idx, color='r', linestyle='--')
+    plt.axvline(x=right_idx, color='r', linestyle='--')
+    plt.show()
+    '''
+    
+    img = sub_plane(img, img_width_nm, img_height_nm, dzdx, dzdy)
     hist, bin_edges = np.histogram(img, bins=256)
-    max_idx = np.argmax(hist)
-    max_val = np.max(hist)
-    
-    plt.axvline(x=max_idx, color='r', linestyle='--')
     plt.plot(hist)
     plt.show()
+    
+    #determine the width of the peak that has maximum prominence b7:
+    #  1. get the highest peak index (hist_idx)
+    #pk_idx = np.argmax(heights)
+    #hist_idx = peaks[pk_idx]
+    
+    #  2. collect the data around that peak
+    
     
     #convert to grayscale image
     min = np.min(img)
