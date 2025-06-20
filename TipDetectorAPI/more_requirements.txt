@@ -7,3 +7,4 @@ pip install tqdm
 pip install scikit-image
 pip install gdstk
 pip install access2theMatrix
+pip install xmltodict
