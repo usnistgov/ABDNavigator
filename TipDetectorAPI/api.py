@@ -11,7 +11,7 @@ from tensorflow.python.ops.gen_control_flow_ops import abort
 sys.path.append('../PythonInterface')
 sys.path.append('../StepEdgeDetector')
 
-from AutoTipCondition import condition_tip
+from AutoTipCondition import condition_tip, subtract_bg_plane
 from AutoTipCondition import set_abort
 
 import MatrixPythonAPI as stm
@@ -24,7 +24,9 @@ os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
+import gdstk
 from scipy.spatial.transform import Rotation as R
 
 from tensorflow.keras.models import load_model  # type: ignore
@@ -209,6 +211,8 @@ def handle_client(client_socket: socket.socket) -> None:
                 
                 dzdx_ave = None
                 dzdy_ave = None
+                dzdx = 0
+                dzdy = 0
                  
                 dict = xmltodict.parse(xml)
                 control = dict["ControlGroupLayer"]
@@ -221,7 +225,47 @@ def handle_client(client_socket: socket.socket) -> None:
                 y0 = float( control["@y"] )
 
                 gds_layer = control["GDSLayer"]
-                gds_path = gds_layer["@img"]
+                #gds_path = gds_layer["@img"]
+                #gds_path = "Y:/Sample Logbook/W62 All Device LT" + gds_path
+                gds_path = gds_layer["@absolutePath"]
+                print(gds_path)
+                lib = gdstk.read_gds(gds_path, 1e-9)
+                top = lib.top_level()[0]
+                bbox = top.bounding_box()
+                if bbox is None:
+                    print("Failed to read GDS File")
+                else:
+                    max_x, max_y = bbox[1]
+                    max_x = int(max_x)*2
+                    max_y = int(max_y)*2
+                    patterned = np.zeros((max_y, max_x, 3), dtype=np.uint8)
+                    polygons = top.polygons
+                    polys = []
+                    for polygon in polygons:
+                        x, y = zip(*polygon.points)
+                        poly = []
+                        for i in range(len(x)):
+                            x_vertex = x[i]+max_x/2
+                            y_vertex = y[i]+max_y/2
+                            poly.append([x_vertex, y_vertex])
+                        polys.append(np.array(poly, np.int32))
+                    cv2.fillPoly(patterned, polys, (255, 0, 0))
+                    #patterned = cv2.cvtColor(patterned, cv2.COLOR_RGB2GRAY) 
+                    patterned = np.flipud(patterned)
+                    print(patterned.shape)
+                    fig, ax = plt.subplots(1, 2, figsize=(15, 5))
+                    ax[0].imshow(patterned)
+                    ax[0].set_title('Verify GDS Pattern')
+                    ax[0].axis('off')
+                    ax[1].remove()
+                    plt.show()
+                    cv2.waitKey(0) 
+                    cv2.destroyAllWindows()
+                    #patterned = np.zeros((max_y, max_x, 3), dtype=np.uint8)
+
+                first_scan = 1
+                x_offset = 0
+                y_offset = 0
                 
                 scan_settings_list = control["ScanSettingsLayer"]
                 for scan_settings in scan_settings_list:
@@ -234,6 +278,9 @@ def handle_client(client_socket: socket.socket) -> None:
                     r = R.from_rotvec( (theta*np.pi/180)*np.array([0.0,0.0,1.0]) )
                     
                     [x,y,z] = r.apply([xT,yT,0]) + np.array([x0,y0,0])
+                    print("(x,y):")
+                    print(x)
+                    print(y)
                     
                     if "LithoRasterLayer" not in scan_settings:
                         condition_settings = scan_settings["TipConditionLayer"]
@@ -276,7 +323,7 @@ def handle_client(client_socket: socket.socket) -> None:
                         scan_scale_y = float( condition_settings["@scanScaleY"] )
                         
                         dzdx = float( condition_settings["@dzdx"] )
-                        dzdy = float( condition_settings["@dzdy"] )
+                        dzdy = float( condition_settings["@dzdy"] )                      
                         
                         condition_x = float( condition_settings["@conditionPositionX"] )
                         condition_y = float( condition_settings["@conditionPositionY"] )
@@ -329,43 +376,84 @@ def handle_client(client_socket: socket.socket) -> None:
                         #move scan region
                         stm.setWindowPosition( (x,y) )
                         time.sleep(20)
-                        
+                                             
                         #apply scan settings
                         stm.ref_command(scan_control_ID, 'apply')
-                        time.sleep(1)
+                        
+                        print("settling...")
+                        time.sleep(60)
+                        #time.sleep(1)
                         
                         #acquire the post-litho image
                         imgInfo = util.getNewImage()
-
+                        
                         #setting up parameters for litho detection:
+                        
                         litho_detect_input = {
-                            "img_width": int( scan_settings["@pixelsX"] ),
-                            "img_height": int( scan_settings["@pixelsY"] ),
-                            "scan_settings_x": float( scan_settings["@x"] ),
-                            "scan_settings_y": float( scan_settings["@y"] ),
-                            "img_scale_x": float( scan_settings["@scaleX"] ),
-                            "img_scale_y": float( scan_settings["@scaleY"] ),
-                            "scan_settings_angle": float( scan_settings["@angle"] ),
+                            "img_width": int( prev_scan_settings["@pixelsX"] ),
+                            "img_height": int( prev_scan_settings["@pixelsY"] ),
+                            "scan_settings_x": float( prev_scan_settings["@x"] ),
+                            "scan_settings_y": float( prev_scan_settings["@y"] ),
+                            "img_scale_x": float( prev_scan_settings["@scaleX"] ),
+                            "img_scale_y": float( prev_scan_settings["@scaleY"] ),
+                            "scan_settings_angle": float( prev_scan_settings["@angle"] ),
                             "litho_img": True,
-                            "gds_path": gds_path 
+                            "gds_path": gds_path, 
+                            "patterned": patterned,
+                            "dzdx": dzdx,
+                            "dzdy": dzdy,
+                            "overlap": False
                         }
+                        
+                        print("img_width:")
+                        print(litho_detect_input["img_width"])
+                        print("img_height:")
+                        print(litho_detect_input["img_height"])
+                        print("scan_settings_x:")
+                        print(litho_detect_input["scan_settings_x"])
+                        print("scan_settings_y:")
+                        print(litho_detect_input["scan_settings_y"])
+                        print("img_scale_x:")
+                        print(litho_detect_input["img_scale_x"])
+                        print("img_scale_y:")
+                        print(litho_detect_input["img_scale_y"])
+                        print("scan_settings_angle:")
+                        print(litho_detect_input["scan_settings_angle"])
+                        print("gds_path:")
+                        print(litho_detect_input["gds_path"])
+                        
+                        #subtract bg plane
+                        #npImg, z_range = subtract_bg_plane(imgInfo[1], litho_detect_input["img_scale_x"], litho_detect_input["img_scale_y"], dzdx, dzdy)
+                        #print(npImg.shape)
 
                         #detect litho: returns img array of where litho is detected & boolean pass/fail
-                        detected_litho, litho_error, pass_litho = auto_detect_edges(imgInfo, litho_detect_input, show_plots=False)
+                        detected_litho, pass_litho, patterned, x_offset, y_offset = auto_detect_edges(imgInfo[1], litho_detect_input, show_plots=True)
+                        #print("detected_litho:")
+                        #print(detected_litho)
+                        #print()
+                        #print("litho_error:")
+                        #print(litho_error)
+                        #print()
+                        print("pass_litho:")
+                        print(pass_litho)
+                        print("x_offset:")
+                        print(x_offset)
+                        print("y_offset:")
+                        print(y_offset)
                         
                         #creep correction: returns x & y value to offset window position
-                        x_offset, y_offset = auto_detect_creep(litho_error, litho_detect_input)
+                        #x_offset, y_offset = auto_detect_creep(litho_error, litho_detect_input)
 
-                        if(not pass_litho):
-                            litho_detect_input["scan_settings_x"] += x_offset
-                            litho_detect_input["scan_settings_y"] += y_offset
-                            detected_litho, litho_error, pass_litho = auto_detect_edges(imgInfo, litho_detect_input, show_plots=False)
-                            if(not pass_litho):
-                                print("Error: Failed to Detect Litho")
-                                print("User Input Required to Proceed")
-                            new_x_offset, new_y_offset = auto_detect_creep(litho_error, litho_detect_input)
-                            x_offset += new_x_offset
-                            y_offset += new_y_offset          
+                        #if(not pass_litho):
+                        #    litho_detect_input["scan_settings_x"] -= x_offset/2
+                        #    litho_detect_input["scan_settings_y"] -= y_offset/2
+                        #    detected_litho, litho_error, pass_litho, patterned = auto_detect_edges(imgInfo[1], litho_detect_input, show_plots=True)
+                        #    if(not pass_litho):
+                        #        print("Error: Failed to Detect Litho")
+                        #        print("User Input Required to Proceed")
+                        #    new_x_offset, new_y_offset = auto_detect_creep(litho_error, litho_detect_input)
+                        #    x_offset -= new_x_offset/2
+                        #    y_offset -= new_y_offset/2       
                     
                     else:
                         litho_settings = scan_settings["LithoRasterLayer"]
@@ -375,31 +463,95 @@ def handle_client(client_socket: socket.socket) -> None:
                     
                         #move scan region
                         stm.setWindowPosition( (x,y) )
-                        time.sleep(20)
+                        print("settling...")
+                        time.sleep(60)
                         
                         #apply scan settings
                         stm.ref_command(scan_control_ID, 'apply')
                         time.sleep(1)
                         
                         #acquire the pre-litho image
-                        imgInfo = util.getNewImage()
+                        imgInfo = util.getNewImage()           
 
                         #setting up parameters for step edge detection:
-                        step_edge_input = {
-                            "img_width": int( scan_settings["@pixelsX"] ),
-                            "img_height": int( scan_settings["@pixelsY"] ),
-                            "scan_settings_x": float( scan_settings["@x"] ),
-                            "scan_settings_y": float( scan_settings["@y"] ),
-                            "img_scale_x": float( scan_settings["@scaleX"] ),
-                            "img_scale_y": float( scan_settings["@scaleY"] ),
-                            "scan_settings_angle": float( scan_settings["@angle"] ),
-                            "litho_img": False,
-                            "gds_path": gds_path 
-                        }
+                        if ( first_scan == 1 ):
+                            step_edge_input = {
+                                "img_width": int( scan_settings["@pixelsX"] ),
+                                "img_height": int( scan_settings["@pixelsY"] ),
+                                "scan_settings_x": float( scan_settings["@x"] ),
+                                "scan_settings_y": float( scan_settings["@y"] ),
+                                "img_scale_x": float( scan_settings["@scaleX"] ),
+                                "img_scale_y": float( scan_settings["@scaleY"] ),
+                                "scan_settings_angle": float( scan_settings["@angle"] ),
+                                "litho_img": False,
+                                "gds_path": gds_path,
+                                "patterned": patterned,
+                                "dzdx": dzdx,
+                                "dzdy": dzdy,
+                                "overlap": False
+                            }
+                            print("img_width:")
+                            print(step_edge_input["img_width"])
+                            print("img_height:")
+                            print(step_edge_input["img_height"])
+                            print("scan_settings_x:")
+                            print(step_edge_input["scan_settings_x"])
+                            print("scan_settings_y:")
+                            print(step_edge_input["scan_settings_y"])
+                            print("img_scale_x:")
+                            print(step_edge_input["img_scale_x"])
+                            print("img_scale_y:")
+                            print(step_edge_input["img_scale_y"])
+                            print("scan_settings_angle:")
+                            print(step_edge_input["scan_settings_angle"])
+                            print("gds_path:")
+                            print(step_edge_input["gds_path"])
 
-                        #detect step edges: returns binary mask of detected step edges
-                        step_edges = auto_detect_edges(imgInfo, step_edge_input, show_plots=False)
-                        
+                            #detect step edges: returns binary mask of detected step edges
+                            step_edges = auto_detect_edges(imgInfo[1], step_edge_input, show_plots=True)
+
+                            first_scan = 0
+
+                        else:
+                            litho_detect_input = {
+                                "img_width": int( scan_settings["@pixelsX"] ),
+                                "img_height": int( scan_settings["@pixelsY"] ),
+                                "scan_settings_x": float( scan_settings["@x"] ),
+                                "scan_settings_y": float( scan_settings["@y"] ),
+                                "img_scale_x": float( scan_settings["@scaleX"] ),
+                                "img_scale_y": float( scan_settings["@scaleY"] ),
+                                "scan_settings_angle": float( scan_settings["@angle"] ),
+                                "litho_img": True,
+                                "gds_path": gds_path, 
+                                "patterned": patterned,
+                                "dzdx": dzdx,
+                                "dzdy": dzdy,
+                                "overlap": True
+                            }
+
+                            # ******** update patterned to earse gds array to be checked in detect litho function
+
+                             #detect litho: returns img array of where litho is detected & boolean pass/fail
+                            detected_litho, pass_litho, patterned, x_offset, y_offset = auto_detect_edges(imgInfo[1], litho_detect_input, show_plots=True)                      
+                            print("pass_litho:")
+                            print(pass_litho)
+                            print("x_offset:")
+                            print(x_offset)
+                            print("y_offset:")
+                            print(y_offset)
+                            
+                            if ( pass_litho ):
+                                #move scan region based on offset values
+                                xT = float( scan_settings["@x"] )
+                                yT = float( scan_settings["@y"] )
+                                r = R.from_rotvec( (theta*np.pi/180)*np.array([0.0,0.0,1.0]) )                  
+                                [x,y,z] = r.apply([xT+x_offset,yT-y_offset,0]) + np.array([x0,y0,0])
+                                #stm.setWindowPosition( (x+x_offset, y-y_offset) )
+                                print("new x,y:")
+                                print(x)
+                                print(y)
+                                print("settling...")
+                                time.sleep(60)
                         
                         #write the pattern
                         stm.ref_command(litho_control_ID, 'litho')
@@ -451,7 +603,7 @@ def handle_client(client_socket: socket.socket) -> None:
                 print('verify with GDS file?:')
                 print(input_data["verifyGDS"])
                 print('gds file path')
-                print(input_data["gds_path"])
+                #print(input_data["gds_path"])
                 print()
                 detect_steps(
                     np.array(input_data["img"]), 
@@ -470,9 +622,12 @@ def handle_client(client_socket: socket.socket) -> None:
                     verifyGDS=input_data["verifyGDS"],
                     scan_settings_x=input_data["scan_settings_x"],
                     scan_settings_y=input_data["scan_settings_y"],
+                    #scan_settings_x=0,
+                    #scan_settings_y=0,
                     img_rescale_x=input_data["img_rescale_x"],
                     img_rescale_y=input_data["img_rescale_y"],
                     scan_settings_angle=input_data["scan_settings_angle"]
+                    #scan_settings_angle=-183
                     )
                 print('all done')
 

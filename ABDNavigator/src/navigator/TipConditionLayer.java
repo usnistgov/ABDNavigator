@@ -226,7 +226,7 @@ public class TipConditionLayer extends NavigationLayer
         conditionScale = new Point2D( scale.getMxx()*scan.scale.getMxx(), scale.getMxx()*scan.scale.getMyy() );  
         
         //ScanSettingsLayer scan = (ScanSettingsLayer)getParent();
-        Point2D dz = SampleNavigator.getPlaneParameters(scan);
+        dz = SampleNavigator.getPlaneParameters(scan);
     }
     
     public void condition()
