@@ -101,7 +101,9 @@ public class NavigationLayer extends Group
 		//System.out.println(this.getClass().getName());
 		if (this.getClass().getName().equals("navigator.NavigationLayer"))
 		{
-			actions = new String[]{"testAngle","makeStandalone","clearTransforms","generateKeyFrame"};
+			actions = new String[]{"testAngle","makeStandalone","clearTransforms","generateKeyFrame","saveConfig"};
+			
+			tabs.put("config", new String[] {"saveConfig","stmImageFolder","gwyddionFolder"});
 		}
 		
 		tabs.put("main", new String[] {});
@@ -327,6 +329,8 @@ public class NavigationLayer extends Group
 	private boolean isXMLSetRoot = true;
 	public void setFromXML(Element xml, boolean deep)
 	{
+		
+		
 		String visible = xml.getAttribute("visible");
 		if (visible.length() > 0)
 			setVisible(Boolean.parseBoolean(visible));
@@ -339,6 +343,17 @@ public class NavigationLayer extends Group
 				int val = Integer.parseInt(s);
 				setID(val);
 			} catch (Exception ex) {};
+		}
+		
+		if (this.getClass().getName().equals("navigator.NavigationLayer"))
+		{
+			s = xml.getAttribute("stmImageFolder");
+			if (s.length() > 0)
+				stmImageFolder = new String(s);
+			
+			s = xml.getAttribute("gwyddionFolder");
+			if (s.length() > 0)
+				gwyddionFolder = new String(s);
 		}
 		
 		s = xml.getAttribute("controlID");
@@ -576,8 +591,17 @@ public class NavigationLayer extends Group
 		if (SampleNavigator.saving)
 			e.setAttribute("controlID", Integer.toString(getControlID()));
 		
+		if (this.getClass().getName().equals("navigator.NavigationLayer"))
+		{
+			e.setAttribute("stmImageFolder", stmImageFolder);
+			e.setAttribute("gwyddionFolder", gwyddionFolder);
+		}
+		
 		return e;
 	}
+	
+	public static String gwyddionFolder = "";
+	public static String stmImageFolder = "";
 	
 	public Thread actionThread = null;
 	public String thisAction = null;
@@ -1825,4 +1849,33 @@ public class NavigationLayer extends Group
 		
 		return idx;
 	}*/
+	
+	public void initConfig()
+	{
+		String s = SampleNavigator.settings.getProperty("stmImageFolder");
+		if ((s != null) && (s.length() > 0))
+			stmImageFolder = new String(s);
+		
+		s = SampleNavigator.settings.getProperty("gwyddionFolder");
+		if ((s != null) && (s.length() > 0))
+			gwyddionFolder = new String(s);
+	}
+	
+	public void saveConfig()
+	{
+		SampleNavigator.settings.setProperty( "stmImageFolder", stmImageFolder );
+		SampleNavigator.settings.setProperty( "gwyddionFolder", gwyddionFolder );
+		
+		try 
+		{
+			System.out.println("saving config file to: " + SampleNavigator.userDir);
+			FileOutputStream out = new FileOutputStream("config.xml");
+			SampleNavigator.settings.storeToXML(out, "ABDNavigator Settings"); 
+		    out.close();
+		} 
+		catch (Exception ex)
+		{
+			ex.printStackTrace();
+		}
+	}
 }

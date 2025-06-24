@@ -33,10 +33,10 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
-import org.apache.commons.math3.complex.Complex;
-import org.apache.commons.math3.transform.DftNormalization;
-import org.apache.commons.math3.transform.FastFourierTransformer;
-import org.apache.commons.math3.transform.TransformType;
+//import org.apache.commons.math3.complex.Complex;
+//import org.apache.commons.math3.transform.DftNormalization;
+//import org.apache.commons.math3.transform.FastFourierTransformer;
+//import org.apache.commons.math3.transform.TransformType;
 import org.w3c.dom.Element;
 
 import javafx.application.Platform;
@@ -109,10 +109,10 @@ public class MatrixSTMImageLayer extends ImageLayer
 		super();
 		//appendActions( new String[]{"imageLeftRight","imageUpDown","togglePlaneSubtract","toggleLineByLineFlatten","nextColorScheme","locateMaxima","locateLattice","addExample"} );
 		//appendActions( new String[]{"locateMaxima","locateLattice","altLocateLattice","addExample","clearExamples","checkTipQuality"} );
-		appendActions( new String[]{"altLocateLattice","addExample","clearExamples","checkTipQuality","detectStepEdges","linkScanSettingsRef","openInGwyddion"} );
+		appendActions( new String[]{"altLocateLattice","addExample","clearExamples","checkTipQuality","detectStepEdges","altDetectStepEdges","linkScanSettingsRef","openInGwyddion"} );
 		//tabs.put("maxima", new String[] {"locateMaxima","maximaExpectedDiameter","maximaPrecision","maximaThreshold"});
 		//tabs.put("lattice", new String[] {"locateLattice","altLocateLattice","latticeExpectedSpacing","latticeSpacingUncertainty"});
-		tabs.put("steps", new String[] {"detectStepEdges","stepBlur","zoomedIn","roughnessThreshold","lowResolution","findLithoMethod","thickness","verifyGDS"});
+		tabs.put("steps", new String[] {"detectStepEdges","altDetectStepEdges","stepBlur","zoomedIn","roughnessThreshold","lowResolution","findLithoMethod","thickness","verifyGDS"});
 		tabs.put("detection", new String[] {"checkTipQuality","latticeAngle", "detectionContrast", "predictionThreshold","minTipDetectHeight","maxTipDetectHeight"});
 		tabs.put("lattice", new String[] {"altLocateLattice","latticeExpectedSpacing","latticeSpacingUncertainty"});
 		//tabs.put("machine learning", new String[] {"addExample","clearExamples"});
@@ -1948,7 +1948,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 		latticeLayer.getChildren().clear();
 		SampleNavigator.addSegment(lambda/scaleR, theta, latticeLayer, 0, 0);
 	}
-	
+	/*
 	public void locateLattice() 
 	{
 		try
@@ -2326,7 +2326,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 			ex.printStackTrace();
 		}
 	}
-	
+	*/
 	
 	
 	
@@ -2371,6 +2371,40 @@ public class MatrixSTMImageLayer extends ImageLayer
 		
 		SampleNavigator.refreshTreeEditor();
 	}
+	
+	public void altDetectStepEdges()
+	{
+		setImageTo(currentImageData);
+		float[][] imgData = currentImageData;
+		
+		JSONObject jObj = new JSONObject();
+		jObj.put("command", "altDetectStepEdges");
+		
+		//minimum required info for any image sent to python: width and height in px, width and height in nm, captured lines start and end
+		jObj.put("img_height", imgData[0].length);
+		jObj.put("img_width", imgData.length);
+		
+		jObj.put("img_scale_x", scaleX0);
+		jObj.put("img_scale_y", scaleY0);
+		
+		jObj.put("captured_lines_start",capturedLinesStart);
+		jObj.put("captured_lines_end",capturedLinesEnd);
+		
+		//1D array with raw z values in nm
+		JSONArray img = new JSONArray();
+		for (int j = 0; j < imgData[0].length; j ++)
+			for (int i = 0; i < imgData.length; i ++)
+			{
+				float val = (float)(1E9)*imgData[i][imgData[0].length-j-1]/(float)zFactor;
+				img.add( Float.valueOf(val) );
+			}
+		jObj.put("img", img); 
+		
+		
+		
+		String result = ABDPythonAPIClient.command(jObj.toString());
+	}	
+	
 	
 	public void detectStepEdges()
 	{

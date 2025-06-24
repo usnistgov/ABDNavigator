@@ -156,6 +156,8 @@ public class GDSLayer extends NavigationLayer
 	{
 		Element e = super.getAsXML();
 		e.setAttribute("img", gdsName);
+		
+		e.setAttribute("absolutePath", gdsAbsPath);
 				
 		e.setAttribute("absolutePath", gdsAbsPath);
 		return e;

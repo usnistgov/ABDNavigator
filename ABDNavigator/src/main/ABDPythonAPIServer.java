@@ -160,7 +160,9 @@ public class ABDPythonAPIServer
 							if (SampleNavigator.scanner.autoOpenImages == true)
 							{
 								//SampleNavigator.addMostRecentSTMImageFile();
-								Thread.sleep(5000); //5 second wait for matrix to save the file, until we do this properly
+
+								Thread.sleep(5000);  //wait to avoid race condition with saving file - should do this better
+
 								SampleNavigator.addMostRecentSTMImageFileLater();
 								//SampleNavigator.addImageFile(File openFile, ExtensionFilter filter);
 							}
@@ -168,11 +170,10 @@ public class ABDPythonAPIServer
 							//populate the JSON image array with a 1D (flattened from 2D) array of the image data
 							float[][] scanImage = SampleNavigator.scanner.scan.getScanImage();
 							JSONArray img = new JSONArray();
-							//for (int j = scanImage[0].length-1; j >= 0; j --)//reverse order
 							for (int j = 0; j < scanImage[0].length; j ++)
 								for (int i = 0; i < scanImage.length; i ++)
 									img.add( Float.valueOf(scanImage[i][j]) );
-							//img.add( Double.valueOf(0.6) );
+							
 							outObj.put("img", img);
 							
 							ABDClient.waitForTip();

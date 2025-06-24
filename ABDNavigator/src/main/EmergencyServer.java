@@ -90,6 +90,8 @@ public class EmergencyServer
 		try
 		{
 			String request = in.readLine();
+			if (request == null)
+				return "\n";
 			
 			if (request.equals("shutdown"))
 			{
@@ -113,23 +115,13 @@ public class EmergencyServer
 	{
 		if (!serverRunning)
 			return;
-
-		try
-		{
-			Socket clientSocket = new Socket("localhost", port);
-			//(new DataOutputStream(clientSocket.getOutputStream())).writeBytes( (new JSONObject()).clone().toString() );
-			clientSocket.close();
-		}
-		catch (Exception ex)
-		{
-			ex.printStackTrace();
-		}
+		
+		serverRunning = false;
 		
 		try
 		{
 			Thread.sleep(10);
 			server.close();
-			serverRunning = false;
 		}
 		catch (Exception ex)
 		{

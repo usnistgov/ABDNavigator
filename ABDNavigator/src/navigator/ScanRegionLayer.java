@@ -41,7 +41,7 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 		super();
 		
 		//appendActions(new String[] {"save","toggleFlip"});
-		actions = new String[]{/*"moveScanRegion","refreshScanRegion",*/"startScan","stopScan","togglePlaneSubtract","toggleLineByLineFlatten","nextColorScheme","reportZRange","startSingleScan"};
+		actions = new String[]{/*"moveScanRegion","refreshScanRegion",*/"startScan","stopScan","togglePlaneSubtract","toggleLineByLineFlatten","nextColorScheme","reportZRange","startSingleScan","addMostRecentSTMImageFile"};
 		units.put("tipSpeed", "nm/s");
 		
 		categories.put("lineByLineFlatten", new String[] {"true","false"});
@@ -77,6 +77,11 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 			((ScannerLayer)getParent()).moveToFront();
 		}
 		ABDClient.command("startUpScan");
+	}
+	
+	public void addMostRecentSTMImageFile()
+	{
+		SampleNavigator.addMostRecentSTMImageFile();
 	}
 	
 	public boolean isScanning()

@@ -5,6 +5,8 @@ from skimage import filters, feature, morphology, segmentation
 from scipy import ndimage as ndi
 import random
 import gdstk
+from scipy.optimize import minimize
+from scipy.signal import find_peaks, peak_prominences, peak_widths
 
 import torch
 import open_clip
@@ -408,175 +410,211 @@ def detect_steps(img, img_width=None, img_height=None, show_plots=False, show_ou
         cv2.destroyAllWindows()
         
 
+#function to optimize with respect to dz=dzdx,dzdy with the raw image as the fixed argument 
+def bg_plane_quality(dz, args):
+    img,img_width_nm,img_height_nm = args
+    dzdx,dzdy = dz
+    
+    img_sub = sub_plane(img, img_width_nm, img_height_nm, dzdx, dzdy)
+    
+    #estimate of the proper vertical range of the image - should be close
+    delta_z = np.max(img_sub) - np.min(img_sub)
+    
+    #set bins to be enough to give a resolution of 0.005 nm
+    min_bin_dz = 0.001
+    num_bins = int(delta_z/min_bin_dz)
+       
+    #get the histogram    
+    hist, bin_edges = np.histogram(img_sub, bins=num_bins)
+    max_idx = np.argmax(hist)  #index of tallest "peak"
+    max_val = np.max(hist)  #height of tallest peak
+    
+    #get full-width half max of tallest peak
+    min_val = max_val/2
+    
+    right_idx = len(hist)-1
+    for idx in range(max_idx, len(hist)):
+        if hist[idx] < min_val:
+            right_idx = idx
+            break
+    
+    left_idx = 0
+    for idx in range(max_idx, 0,-1):
+        if hist[idx] < min_val:
+            left_idx = idx
+            break
+    
+    bin_width = right_idx-left_idx
+    width_fract = bin_width*min_bin_dz  #/num_bins
+    
+    return width_fract
 
 
-def detect_steps_alt(img, img_width=None, img_height=None, show_plots=False, show_each_mask=False, show_output=False, blur = 3, postprocessing = False, max_pxl=500, nm_from_z=1):
-    #print('it\'s working!')
-    #return
+def auto_bg_plane(img, img_width_nm=100, img_height_nm=100):
+    #estimate the background plane by getting the average slope
+    #resulting in an initial guess for dzdx and dzdy
+    dzdx,dzdy = get_bg_plane(img, img_width_nm, img_height_nm)
     
-    #gray = ((img - min) / (max - min) * 255)
-    #gray = ((img - min) / (max - min))
-	
+    #minimize the width of the sharpest peak in the image histogram when subtracting off bg plane
+    min_plane = minimize(bg_plane_quality, (dzdx,dzdy), args=[img, img_width_nm, img_height_nm], method='Nelder-Mead')
     
-    #return
-	#steps_deteced_img = img.copy()
-	
-    if img_width is None:
-        img_width = int( np.sqrt( len(img) ) )
-        img_height = img_width
-        print(img_height)
-	
-    print(img_width)
-    img = np.array(img).reshape(img_height, img_width)
-	
+    if not min_plane.success:
+        print('well that sucks')
+        print(min_plane.message)
+    
+    dzdx,dzdy = min_plane.x
+    return [dzdx,dzdy]
+
+def auto_bg(img, img_width_nm=100, img_height_nm=100):
+    num_x_px = len(img) #x pixels
+    num_y_px = len(img[0]) #y pixels
+    
+    
+    max_px_width = 50
+    px_per_x_step = 10
+    if num_x_px > max_px_width+2*px_per_x_step:
+        x_px_per_win = max_px_width
+    else:
+        x_px_per_win = num_x_px
+        
+    win_width_nm = img_width_nm*x_px_per_win/num_x_px
+    num_x_steps = 1 + int((num_x_px - x_px_per_win)/px_per_x_step)
+    nm_per_x_step = img_width_nm*px_per_x_step/num_x_px  
+    
+    
+    max_px_height = 50
+    px_per_y_step = 10
+    if num_y_px > max_px_height+2*px_per_y_step:
+        y_px_per_win = max_px_height
+    else:
+        y_px_per_win = num_y_px
+        
+    win_height_nm = img_height_nm*y_px_per_win/num_y_px
+    num_y_steps = 1 + int((num_y_px - y_px_per_win)/px_per_y_step)
+    nm_per_y_step = img_height_nm*px_per_y_step/num_y_px
+    
+    dz_array = []
+    
+    for x_idx in range(num_x_steps):
+        x_start = x_idx*px_per_x_step
+        x_end = x_start + x_px_per_win
+        x = (x_idx + 0.5)*nm_per_x_step
+        
+        dz_row = []
+        
+        for y_idx in range(num_y_steps):
+            y_start = y_idx*px_per_y_step
+            y_end = y_start + y_px_per_win
+            y = (y_idx + 0.5)*nm_per_y_step
+            
+            win = img[x_start:x_end, y_start:y_end]
+            dzdx,dzdy = auto_bg_plane(win, win_width_nm, win_height_nm)
+            
+            dz_row.append([x, y, dzdx, dzdy])
+            
+        dz_array.append(dz_row)
+        
+    print('dz_array' + str(dz_array))
+        
+    
+def detect_steps_alt(img, img_width_nm=100, img_height_nm=100 ):
+    
+    #run auto_bg
+    auto_bg(img, img_width_nm, img_height_nm)
+    
+    #determine background plane
+    dzdx,dzdy = auto_bg_plane(img, img_width_nm, img_height_nm)
+    
+        
+
+    
+    
+    '''
+    peaks,_ = find_peaks(hist,distance=bin_dist)
+    
+    
+    #use the max peak height to determine height (prominence) cutoffs for other peaks
+    cut_fract = 0.1
+    max_pk = np.max( peak_prominences(hist, peaks, wlen=bin_dist) )
+    height_cut = int(cut_fract*max_pk)
+    
+    print('height_cut: ' + str(height_cut))
+    peaks,pk_info = find_peaks(hist,distance=bin_dist,prominence=height_cut) 
+    
+    heights = pk_info['prominences']
+    right_bases = pk_info['right_bases']
+    left_bases = pk_info['left_bases']
+    print('heights: ' + str(heights))
+    
+    #get peak_widths from full width half max
+    widths,width_heights,left_ips,right_ips = peak_widths(hist, peaks, rel_height=0.5, prominence_data=(heights,left_bases,right_bases))
+    
+    print('widths: ' + str(widths))
+    plt.plot(peaks, hist[peaks], "x", color='red', label='Detected Peaks')
+    '''
+    
+    '''
+    plt.plot(hist)
+    plt.axvline(x=left_idx, color='r', linestyle='--')
+    plt.axvline(x=right_idx, color='r', linestyle='--')
+    plt.show()
+    '''
+    
+    
+    #convert to grayscale image
+    #img = img_sub
+    img = sub_plane(img, img_width_nm, img_height_nm, dzdx, dzdy)
+    
     min = np.min(img)
     max = np.max(img)
-    
-    print('max dz: ' + str(nm_from_z*(max-min)))
-    
     gray = ((img - min) / (max - min) * 255).astype(np.uint8)
-    print(gray.shape)
-    print(gray)
-    #gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    #print(np.array(gray))
-
-    # Create a smoothed histogram and determine the maximas
-    #smooth_hist = smooth_histogram(create_histogram(gray), smoothing_factor=25)
-    smooth_hist = smooth_histogram(create_histogram(gray), smoothing_factor=1)
-    maximas = determine_maximas(
-        smooth_hist, side_increase_min=10
-    )  # x values of the maximas
-    print(f"Maximas/Layers Detected: {len(maximas)}")
-
-    # Determine the minimas between the maximas for layer thresholding
-    minimas = []
-    for m in range(len(maximas) - 1):
-        minimas.append(
-            determine_minimum_between_points(smooth_hist, maximas[m], maximas[m + 1])
-        )
-    minimas = sorted(minimas)
-
-    if show_plots:
-        plt.plot(smooth_hist)
-        for maxima in maximas:
-            plt.axvline(x=maxima, color="g", linestyle="--")
-        for x_val in minimas:
-            plt.plot(x_val, smooth_hist[x_val], "ro")
-        plt.show()
-
-    # Create a mask based on the threshold values
-    #masked_areas = None
-    #masks = []
-    #for color_val in minimas + [256]:
-    #    mask = np.zeros_like(gray)
-    #    mask[gray < color_val] = 255
-
-        # Subtract the previous masked areas from the current mask to display only the current layer
-    #    if masked_areas is not None:
-    #        mask = cv2.bitwise_and(mask, cv2.bitwise_not(masked_areas))
-    #        masked_areas = cv2.bitwise_or(masked_areas, mask)
-    #    else:
-    #        masked_areas = mask
-
-    #    masks.append(mask)
-
-        # Apply edge detection
-    #    blur = cv2.GaussianBlur(mask, (5, 5), 25)
-    #    edges = cv2.Canny(blur, 50, 150)
-   #     contours, _ = cv2.findContours(
-   #         edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-   #     )
-   #     contours, _ = cv2.findContours(
-   #         edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-   #     )
-
-
-        # Show the mask and edges
-    #    if show_each_mask:
-    #        cv2.imshow("mask", mask)
-    #        cv2.imshow("contours", edges)
-    #        cv2.moveWindow("mask", CV2_WINDOW_OFFSETS[0], CV2_WINDOW_OFFSETS[1])
-    #        cv2.moveWindow(
-    #            "contours", CV2_WINDOW_OFFSETS[0] + mask.shape[1], CV2_WINDOW_OFFSETS[1]
-    #        )
-    #        cv2.waitKey(0)
-    #        cv2.destroyAllWindows()
-
-        # Draw line over the detected edge
-    #    cv2.drawContours(steps_deteced_img, contours, -1, (25, 255, 25), 2)
-    print('before plot stuff')
     
-    fig, ax = plt.subplots(1, 5, figsize=(15, 5))
-    #fig, ax = plt.subplots(1, 1, figsize=(15, 5))
-    ax[0].imshow(gray, cmap='gray')
-    ax[0].set_title('Original Image')
-    ax[0].axis("off")
-    #plt.show()
+    cv2.namedWindow("gray")
+    cv2.imshow("gray", cv2.resize(gray,(400,400)))
+    #cv2.imshow("gray", cv2.resize(gray,(400,400)))
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+
+def sub_plane(img0, width_nm, height_nm, dzdx, dzdy):
+    img = np.copy(img0)
+    num_cols = len(img[0])
+    num_rows = len(img)
     
-    cleaned = find_contours(gray, blur, max_pxl)
-    ax[1].imshow(cleaned, cmap='gray')
-    ax[1].set_title('Contours')
-    ax[1].axis("off")
+    for xIdx in range(num_rows):
+        x = width_nm*xIdx/(num_rows-1)        
+        for yIdx in range(num_cols):
+            y = height_nm*yIdx/(num_cols-1)
+            
+            z = img[xIdx][yIdx] - (dzdx*x + dzdy*y)
+            img[xIdx][yIdx] = z
     
-    print('after contours')
-	
-    # White Tophat Postprocessing
-    if(postprocessing):
-        cleaned = white_tophat(cleaned, max_pxl)
-        ax[2].imshow(cleaned, cmap='gray')
-        ax[2].set_title('Post-processing')
-        ax[2].axis("off")
-    else:
-        ax[2].remove()
-
-    print('after postprocessing')
-    plt.show()
-    return
-	
-    # Create a colored overlay 
-    overlay = np.zeros_like(img)
-    overlay[cleaned] = [0, 255, 0]  # Set the color for True values (green in this case)
-    result = cv2.addWeighted(img, 1, overlay, 0.5, 0)
-    ax[3].imshow(result)
-    ax[3].set_title('Detected Step Edges')
-    ax[3].axis("off")
-
-    # Labelling
-    labels = color_layers(overlay, cleaned, len(maximas))
-    ax[4].imshow(labels)
-    ax[4].set_title('Color Coded Regions')
-    ax[4].axis("off")
-
-    print('before show output')
-    # Display the output
-    if show_output:
-        plt.show()
-        print('done showing plot')
-        cv2.waitKey(0) 
-        cv2.destroyAllWindows()
+    return img
+            
+    
+def get_bg_plane(img, width_nm, height_nm):
+    dzdx_ave = 0
+    dzdy_ave = 0
+    
+    num_cols = len(img[0])
+    num_rows = len(img)
+    
+    for yIdx in range(num_cols):
+        dzdx_ave += img[num_rows-1][yIdx] - img[0][yIdx]
+    
+    for xIdx in range(num_rows):
+        dzdy_ave += img[xIdx][num_cols-1] - img[xIdx][0]
         
-        # Create a debug mask to display the combined masks
-        #debug_mask = np.zeros_like(img)
-        #for i, mask in enumerate(masks):
-        #    debug_mask[mask == 255] = COLORS[i % len(COLORS)]
+    dzdx_ave /= num_cols*(num_rows-1)
+    dzdy_ave /= (num_cols-1)*num_rows
+    
+    #convert from nm(dz)/px to nm(dz)/nm(dx or dy)
+    dzdx_ave *= (num_rows-1)/width_nm
+    dzdy_ave *= (num_cols-1)/height_nm
+    
+    return dzdx_ave, dzdy_ave
 
-        # Display the images in a looped window
-        #curr = 0
-        #windows = [img, debug_mask, steps_deteced_img]
-        #cv2.imshow("image", windows[curr])
-        #cv2.moveWindow("image", CV2_WINDOW_OFFSETS[0], CV2_WINDOW_OFFSETS[1])
-        #while True:
-        #    cv2.imshow("image", windows[curr])
-        #    key = cv2.waitKey(0)
-        #    if key == ord("q"):
-        #        break
-        #    # If a key is pressed, increment the current window
-        #    elif key == ord("a"):
-        #        curr = (curr - 1) % len(windows)
-        #    elif key == ord("d"):
-        #        curr = (curr + 1) % len(windows)
 
-       # cv2.destroyAllWindows()
 
 def auto_detect_edges(img, input_data, show_plots=False):
     
@@ -1207,6 +1245,5 @@ def auto_detect_creep(litho_error, input_data):
 
 
     return x_offset, y_offset
-
 
 

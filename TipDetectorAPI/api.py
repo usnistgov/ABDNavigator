@@ -568,19 +568,13 @@ def handle_client(client_socket: socket.socket) -> None:
                 condition_tip(input_data, model, config)
             case "detectStepEdges":
                 print()
-                print(input_data["blur"])
                 print(np.array(input_data["img"]))
                 print('height and width in pixels:')
                 print(input_data["img_width"])
                 print(input_data["img_height"])
-                print('zoomed in?:')
-                print(input_data["zoomedIn"])
                 print('image size in nm:')
                 print(input_data["img_scale_x"])
                 print(input_data["img_scale_y"])
-                print('image size in nm after possible user rescaling:')
-                print(input_data["img_rescale_x"])
-                print(input_data["img_rescale_y"])
                 print('captured lines start and end:')
                 print(input_data["captured_lines_start"])
                 print(input_data["captured_lines_end"])
@@ -605,9 +599,10 @@ def handle_client(client_socket: socket.socket) -> None:
                 print('gds file path')
                 #print(input_data["gds_path"])
                 print()
+
                 detect_steps(
                     np.array(input_data["img"]), 
-					img_width=int(input_data["img_width"]),
+					          img_width=int(input_data["img_width"]),
                     img_height=int(input_data["img_height"]),
                     show_plots=False, 
                     show_output=True, 
@@ -629,6 +624,31 @@ def handle_client(client_socket: socket.socket) -> None:
                     scan_settings_angle=input_data["scan_settings_angle"]
                     #scan_settings_angle=-183
                     )
+                
+                print('all done')
+
+            case "altDetectStepEdges":
+                print()
+                print(np.array(input_data["img"]))
+                print('height and width in pixels:')
+                print(input_data["img_width"])
+                print(input_data["img_height"])
+                print('image size in nm:')
+                print(input_data["img_scale_x"])
+                print(input_data["img_scale_y"])
+                print('captured lines start and end:')
+                print(input_data["captured_lines_start"])
+                print(input_data["captured_lines_end"])
+                                
+                img = np.array(input_data["img"])
+                img = img.reshape( int(input_data["img_height"]), int(input_data["img_width"]) )
+                
+                detect_steps_alt(
+                    img, 
+                    img_width_nm=float(input_data["img_scale_x"]), 
+                    img_height_nm=float(input_data["img_scale_x"]) 
+                    )
+                
                 print('all done')
 
         # Send the result back to the client
