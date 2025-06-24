@@ -203,7 +203,7 @@ def condition_tip(data: dict, model, config):
             
             stm.reportTipQuality( convert_to_serializable(tip_data) )
             
-            if num_sharp/num_total > majority_threshold:
+            if num_sharp/num_total >= majority_threshold:
                 print('done conditioning tip')
                 return
             

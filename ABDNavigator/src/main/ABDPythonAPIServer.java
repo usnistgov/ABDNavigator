@@ -160,7 +160,9 @@ public class ABDPythonAPIServer
 							if (SampleNavigator.scanner.autoOpenImages == true)
 							{
 								//SampleNavigator.addMostRecentSTMImageFile();
+
 								Thread.sleep(5000);  //wait to avoid race condition with saving file - should do this better
+
 								SampleNavigator.addMostRecentSTMImageFileLater();
 								//SampleNavigator.addImageFile(File openFile, ExtensionFilter filter);
 							}

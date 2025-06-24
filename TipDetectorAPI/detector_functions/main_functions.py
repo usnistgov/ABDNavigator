@@ -277,7 +277,18 @@ def detect_tip(
         cv2.destroyAllWindows()
 
     if total_bonds == 0:
-        raise ValueError("No bonds detected in the image.")
+        print('No bonds detected in image.  But who cares?')
+        output = {
+            "sharp": 0,
+            "dull": -1,
+            "total": -1,
+            "roi_data": {
+                "constants": {"nm_size": 0, "pixel_size": 0},
+                "locations": [],
+            },
+        }
+        #raise ValueError("No bonds detected in the image.")
+        return output
 
     output = {
         "sharp": total_cls[1],

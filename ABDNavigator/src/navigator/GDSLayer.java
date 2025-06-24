@@ -159,6 +159,7 @@ public class GDSLayer extends NavigationLayer
 		
 		e.setAttribute("absolutePath", gdsAbsPath);
 				
+		e.setAttribute("absolutePath", gdsAbsPath);
 		return e;
 	}
 	
