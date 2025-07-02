@@ -74,7 +74,8 @@ qry = {"WINSIZE": 0,
        "ANGLE": 9,
        "WORLDPOS": 10,
        "RESOLUTION": 11,
-       "TIPSPEED": 12}
+       "TIPSPEED": 12,
+       "XML": 13}
 
 # default ip address and port number
 def_host : str = 'localhost'
@@ -288,7 +289,8 @@ def ref_command(ref: int, cmd: str):
     _json = {"type": pkg["ACTION"], "seq": seq, "op": op["REFCMD"], "data": _data}
     seq += 1
     send_json_to_server(_json)
-    
+
+
 # do V pulse
 def vPulse(v: float):
     global seq
@@ -454,6 +456,16 @@ def getResolution() -> np.ndarray:
 	#result = json.loads(result1)
 	print(result)
 	return np.array([result['points'], result['lines']])
+
+#get xml data associated with a given reference index
+def get_xml_for(ref: int) -> str:
+    global seq
+    _data = {"ref": ref}
+    _json = {"type": pkg["QUERY"], "seq": seq, "op": qry["XML"], "data": _data}
+    seq += 1
+    result = send_and_receive_json(_json)
+    print(result)
+    return result['xml']
 
 
 if __name__ == "__main__":

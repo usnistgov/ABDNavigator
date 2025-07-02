@@ -774,7 +774,7 @@ def bg_poly_step(img, img_width_nm=100, img_height_nm=100, x0_coefs=[], y0_coefs
     print('params: ' + str(params))
     
     #minimize the width of the sharpest peak in the image histogram when subtracting off background
-    min_plane = minimize(bg_poly_quality, params, args=[img, img_width_nm, img_height_nm,N_x,N_y], method='trust-constr')#method='Nelder-Mead')
+    min_plane = minimize(bg_poly_quality, params, args=[img, img_width_nm, img_height_nm,N_x,N_y], method='Nelder-Mead')
     
     if not min_plane.success:
         print('well that sucks')
@@ -808,7 +808,7 @@ def auto_bg_poly(img, img_width_nm=100, img_height_nm=100, N_x=1, N_y=1):
     return [x_coefs, y_coefs]#bg_poly_step(img, img_width_nm=100, img_height_nm=100, x0_coefs=x_coefs, y0_coefs=y_coefs)
     
 
-def bg_model_function(x, p0):
+def bg_model_function(x, *p0):
     val = 0
     for n in range(len(p0)):
         val += (n+1)*p0[n]*x**n
@@ -903,26 +903,20 @@ def detect_steps_alt(img, img_width_nm=100, img_height_nm=100 ):
     quality(img_plane, img_width_nm, img_height_nm, display_hist=True, name='plane')
     
     
-    #min = np.min(img)
-    #max = np.max(img)
-    #line_by_line = ((img - min) / (max - min) * 255).astype(np.uint8)
-    #cv2.namedWindow("gray_line_by_line")
-    #cv2.imshow("gray_line_by_line", cv2.resize(line_by_line,(400,400)))
-    
-    
     #run auto_bg
-    x_coefs, y_coefs = auto_bg_poly(img, img_width_nm, img_height_nm, N_x=2, N_y=3)
+    #x_coefs, y_coefs = auto_bg_poly(img, img_width_nm, img_height_nm, N_x=2, N_y=3)
+    x_coefs, y_coefs = auto_bg_prev(img, img_width_nm, img_height_nm)
     img = sub_poly_bg(img, img_width_nm, img_height_nm, x_coefs, y_coefs)
     quality(img, img_width_nm, img_height_nm, display_hist=True, name='poly')
     
     
+        
     min = np.min(img_plane)
     max = np.max(img_plane)
     gray_plane = ((img_plane - min) / (max - min) * 255).astype(np.uint8)
     cv2.namedWindow("gray_plane")
     cv2.imshow("gray_plane", cv2.resize(gray_plane,(400,400)))
-    
-    
+        
     min = np.min(img)
     max = np.max(img)
     gray = ((img - min) / (max - min) * 255).astype(np.uint8)
@@ -933,33 +927,40 @@ def detect_steps_alt(img, img_width_nm=100, img_height_nm=100 ):
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
+
 def auto_bg_prev(img, img_width_nm=100, img_height_nm=100):
-    num_x_px = len(img) #x pixels
-    num_y_px = len(img[0]) #y pixels
+    num_x_px = len(img[0]) #x pixels
+    num_y_px = len(img) #y pixels
+    
+    x_nm_per_px = img_width_nm/num_x_px
+    y_nm_per_px = img_height_nm/num_y_px
+    
     
     #create a grid of dzdx(x,y) and dzdy(x,y) values to fit a polynomial background to
-    max_px_width = 150
+    max_nm_width = 100
+    max_px_width = int( max_nm_width/x_nm_per_px )
     px_per_x_step = 10
     if num_x_px > max_px_width+2*px_per_x_step:
         x_px_per_win = max_px_width
     else:
         x_px_per_win = num_x_px
         
-    win_width_nm = img_width_nm*x_px_per_win/num_x_px
+    win_width_nm = x_nm_per_px*x_px_per_win#img_width_nm*x_px_per_win/num_x_px
     num_x_steps = 1 + int((num_x_px - x_px_per_win)/px_per_x_step)
-    nm_per_x_step = img_width_nm*px_per_x_step/num_x_px  
+    nm_per_x_step = px_per_x_step*x_nm_per_px  
     
     
-    max_px_height = 150
+    max_nm_height = 100
+    max_px_height = int( max_nm_height/y_nm_per_px )
     px_per_y_step = 10
     if num_y_px > max_px_height+2*px_per_y_step:
         y_px_per_win = max_px_height
     else:
         y_px_per_win = num_y_px
         
-    win_height_nm = img_height_nm*y_px_per_win/num_y_px
+    win_height_nm = y_nm_per_px*y_px_per_win#img_height_nm*y_px_per_win/num_y_px
     num_y_steps = 1 + int((num_y_px - y_px_per_win)/px_per_y_step)
-    nm_per_y_step = img_height_nm*px_per_y_step/num_y_px
+    nm_per_y_step = px_per_y_step*y_nm_per_px
     
     dz_array = []
     x_data = []
@@ -978,7 +979,7 @@ def auto_bg_prev(img, img_width_nm=100, img_height_nm=100):
             y_end = y_start + y_px_per_win
             y = (y_idx + 0.5)*nm_per_y_step
             
-            win = img[x_start:x_end, y_start:y_end]
+            win = img[y_start:y_end,x_start:x_end]
             dzdx,dzdy = auto_bg_plane(win, win_width_nm, win_height_nm)
             
             dz_row.append([dzdx, dzdy])
@@ -1010,14 +1011,14 @@ def auto_bg_prev(img, img_width_nm=100, img_height_nm=100):
     print('dzdy_data: ' + str(dzdy_data))
     
     #now fit the data
-    x_params, pcov = curve_fit(bg_model_function, x_data, dzdx_data,p0=[1,1,1])
+    x_params, pcov = curve_fit(bg_model_function, np.array(x_data), dzdx_data,p0=(1,1))
     print('x_params: ' + str(x_params))
     
-    '''
-    y_params, pcov = curve_fit(bg_model_function, y_data, dzdy_data,p0=[1,1,1])
+    
+    y_params, pcov = curve_fit(bg_model_function, np.array(y_data), dzdy_data,p0=(1,1,1))
     print('y_params: ' + str(y_params))
     
-    
+    '''
     #print('y_data length: ' + str(len(y_data)))
     #print('dzdy_data length: ' + str(len(dzdy_data)))
     

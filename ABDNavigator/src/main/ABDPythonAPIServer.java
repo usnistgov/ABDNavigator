@@ -196,8 +196,24 @@ public class ABDPythonAPIServer
 							}
 							
 							break;
+							
+						case 13: //get xml for reference ID
+							System.out.println("get xml");
+							
+							s = data.get("ref");
+							int ref = Integer.parseInt((String)s);
+							
+							NavigationLayer l = NavigationLayer.registry.get(ref);
+							
+							SampleNavigator.saving = true;//need the controlIDs of everything
+							String xml = SampleNavigator.xmlToString( l.getAsXML() );
+							SampleNavigator.saving = false;
+							
+							System.out.println("sending xml to python: " + xml);
+							outObj.put( "xml", xml );
+							
+							break;
 					}
-					
 					break;
 					
 				case 1: // perform an action
@@ -419,6 +435,7 @@ public class ABDPythonAPIServer
 					
 					break;
 			}
+			
 		}
 		catch (Exception ex)
 		{

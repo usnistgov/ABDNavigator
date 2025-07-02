@@ -22,7 +22,7 @@ public class TipConditionLayer extends NavigationLayer
 {
     public TipConditionLayer()
     {
-        actions = new String[]{"condition","abort"};
+        actions = new String[]{"condition","abort","testXML"};
         categories.put("autoOpenImages", new String[] {"true","false"});
         categories.put("imageFirst", new String[] {"true","false"});
         units.put("minHeight", "nm");
@@ -34,6 +34,17 @@ public class TipConditionLayer extends NavigationLayer
         //units.put("maxDBsPer25x25nmSq", "nm^-2");
         
         displayRootScale = true;
+    }
+    
+    public void testXML()
+    {
+    	JSONObject jObj = new JSONObject();
+		jObj.put("command", "test");
+		
+		//minimum required info for any image sent to python: width and height in px, width and height in nm, captured lines start and end
+		jObj.put("ref", getControlID());
+		
+		String result = ABDPythonAPIClient.command(jObj.toString());
     }
 
     public Rectangle r = null;

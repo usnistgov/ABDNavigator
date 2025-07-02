@@ -206,6 +206,18 @@ def handle_client(client_socket: socket.socket) -> None:
         print(command)
         result = ""
         match command:
+            case "test":
+                print('testing xml ref...')
+                ref = input_data['ref']
+                xml_string = stm.get_xml_for(str(ref))
+                
+                print(xml_string)
+                dict = xmltodict.parse(xml_string)
+                print(dict)
+                condition_settings = dict["TipConditionLayer"]
+                print(condition_settings)        
+                
+                
             case "autoFab":
                 xml = input_data["xml"]
                 
@@ -284,11 +296,15 @@ def handle_client(client_socket: socket.socket) -> None:
                     
                     if "LithoRasterLayer" not in scan_settings:
                         condition_settings = scan_settings["TipConditionLayer"]
-                        #condition_control_ID = condition_settings["@controlID"]
-                        #print('condition control ID:')
-                        #print(condition_control_ID)
+                        condition_control_ID = condition_settings["@controlID"]
+                        
+                        print('updating condition_settings for condition control ID: ' + str(condition_control_ID))
+                        xml_string = stm.get_xml_for(condition_control_ID)
                         
                         #stm.ref_command(condition_control_ID, 'condition')
+                        
+                        dict = xmltodict.parse(xml_string)
+                        condition_settings = dict["TipConditionLayer"]
                         
                         
                         '''
