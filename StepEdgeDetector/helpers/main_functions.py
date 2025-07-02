@@ -23,6 +23,7 @@ from sympy.logic.boolalg import false
 from matplotlib.streamplot import _euler_step
 from tensorflow.python.keras.engine.training_arrays_v1 import _get_num_samples_or_steps
 
+
 CV2_WINDOW_OFFSETS = 100, 100
 COLORS = [
     (0, 0, 255),  # Red
@@ -420,7 +421,9 @@ def bg_plane_quality(dz, args):
     
     img_sub = sub_plane(img, img_width_nm, img_height_nm, dzdx, dzdy)
     
-    return quality(img_sub, img_width_nm, img_height_nm)
+    #return quality(img_sub, img_width_nm, img_height_nm)
+    return quality_prev(img_sub, img_width_nm, img_height_nm)
+    
     '''
     #estimate of the proper vertical range of the image - should be close
     delta_z = np.max(img_sub) - np.min(img_sub)
@@ -598,6 +601,116 @@ def quality_alt(img, img_width_nm, img_height_nm, max_fract=0.5, display_hist=Fa
                     
     return peak_width
 
+
+def quality_peak_widths(img, img_width_nm, img_height_nm, max_fract=0.5, display_hist=False, name=''):
+    #estimate of the proper vertical range of the image - should be close
+    delta_z = np.max(img) - np.min(img)
+    
+    #set bins to be enough to give a resolution of 0.005 nm
+    min_bin_dz = 0.001
+    num_bins = int(delta_z/min_bin_dz)
+    bin_dz = delta_z/num_bins
+       
+    #get the histogram    
+    hist, bin_edges = np.histogram(img, bins=num_bins)
+    max_idx = np.argmax(hist)  #index of tallest "peak"
+    
+    #determine where other peak locations should be relative to the max peak based on known step height
+    dz_step_nm = 0.08
+    r_step_nm = 0.02
+    r_step = int(r_step_nm/bin_dz)
+    width_step_nm = 0.04
+    width_step = int(width_step_nm/bin_dz) 
+    
+    peak_idxs = [max_idx]
+    peak_idx = max_idx
+    L_idx = max(peak_idx - r_step, 0)
+    R_idx = min(peak_idx + r_step, len(hist))
+    L_idxs = [L_idx]
+    R_idxs = [R_idx]
+    
+    #figure out what bins each peak should be at
+    n = 1
+    while peak_idx > 0:
+        dist = n*dz_step_nm
+        peak_idx = int(max_idx - dist/bin_dz)
+        if peak_idx > 0:
+            L_idx = max(peak_idx - r_step, 0)
+            R_idx = min(peak_idx + r_step, len(hist))
+            
+            sub_hist = hist[L_idx:R_idx]
+            peak_idx = np.argmax(sub_hist) + L_idx
+            peak_idxs.insert(0,peak_idx)
+            
+            L_idx = max(peak_idx - width_step, 0)
+            R_idx = min(peak_idx + width_step, len(hist))
+            
+            L_idxs.insert(0, L_idx)
+            R_idxs.insert(0, R_idx)
+        n += 1
+    
+    n = 1
+    while peak_idx < len(hist):
+        dist = n*dz_step_nm
+        peak_idx = int(max_idx + dist/bin_dz)
+        if peak_idx < len(hist):
+            L_idx = max(peak_idx - r_step, 0)
+            R_idx = min(peak_idx + r_step, len(hist))
+            
+            sub_hist = hist[L_idx:R_idx]
+            peak_idx = np.argmax(sub_hist) + L_idx
+            peak_idxs.append(peak_idx)
+            
+            L_idx = max(peak_idx - width_step, 0)
+            R_idx = min(peak_idx + width_step, len(hist))
+            
+            L_idxs.append(L_idx)
+            R_idxs.append(R_idx)
+        n += 1
+    
+    width_sum = 0
+    for peak_idx in peak_idxs:
+        width_sum += full_width_fract_max(hist, peak_idx, max_fract=max_fract)
+        
+    width_fract = width_sum*min_bin_dz
+    
+    
+    if display_hist:
+        
+        plt.plot(hist)
+        plt.title(name)
+        
+        for peak_idx in peak_idxs:
+            plt.axvline(x=peak_idx, linestyle='--', color='red', linewidth=2)
+        
+        plt.show()
+        
+        
+    return width_fract
+
+
+
+def full_width_fract_max(hist, peak_idx, max_fract=0.5):
+    max_val = hist[peak_idx]  #height of tallest peak
+    
+    #get full-width at fractional max of tallest peak
+    min_val = max_val*max_fract
+    
+    right_idx = len(hist)-1
+    for idx in range(peak_idx, len(hist)):
+        if hist[idx] < min_val:
+            right_idx = idx
+            break
+    
+    left_idx = 0
+    for idx in range(peak_idx, 0,-1):
+        if hist[idx] < min_val:
+            left_idx = idx
+            break
+    
+    bin_width = right_idx-left_idx
+    return bin_width
+    
 def quality_prev(img, img_width_nm, img_height_nm, max_fract=0.5, display_hist=False, name=''):
     #estimate of the proper vertical range of the image - should be close
     delta_z = np.max(img) - np.min(img)
@@ -609,7 +722,10 @@ def quality_prev(img, img_width_nm, img_height_nm, max_fract=0.5, display_hist=F
     #get the histogram    
     hist, bin_edges = np.histogram(img, bins=num_bins)
     max_idx = np.argmax(hist)  #index of tallest "peak"
-    max_val = np.max(hist)  #height of tallest peak
+    
+    bin_width = full_width_fract_max(hist, max_idx, max_fract=max_fract)
+    '''
+    #max_val = np.max(hist)  #height of tallest peak
     
     #get full-width at fractional max of tallest peak
     min_val = max_val*max_fract
@@ -627,6 +743,8 @@ def quality_prev(img, img_width_nm, img_height_nm, max_fract=0.5, display_hist=F
             break
     
     bin_width = right_idx-left_idx
+    '''
+    
     width_fract = bin_width*min_bin_dz  #/num_bins
     
     if display_hist:
@@ -637,6 +755,7 @@ def quality_prev(img, img_width_nm, img_height_nm, max_fract=0.5, display_hist=F
         
     return width_fract
     
+    
 def bg_poly_quality(params, args):
     img,img_width_nm,img_height_nm,N_x,N_y = args
     x_coefs = params[0:N_x]
@@ -645,40 +764,8 @@ def bg_poly_quality(params, args):
     img_sub = sub_poly_bg(img, img_width_nm, img_height_nm, x_coefs, y_coefs)
     
     return quality(img_sub, img_width_nm, img_height_nm, max_fract=0.5)
-    '''
-    #estimate of the proper vertical range of the image - should be close
-    delta_z = np.max(img_sub) - np.min(img_sub)
     
-    #set bins to be enough to give a resolution of 0.005 nm
-    min_bin_dz = 0.001
-    num_bins = int(delta_z/min_bin_dz)
-       
-    #get the histogram    
-    hist, bin_edges = np.histogram(img_sub, bins=num_bins)
-    max_idx = np.argmax(hist)  #index of tallest "peak"
-    max_val = np.max(hist)  #height of tallest peak
     
-    #get full-width half max of tallest peak
-    min_val = max_val/2
-    
-    right_idx = len(hist)-1
-    for idx in range(max_idx, len(hist)):
-        if hist[idx] < min_val:
-            right_idx = idx
-            break
-    
-    left_idx = 0
-    for idx in range(max_idx, 0,-1):
-        if hist[idx] < min_val:
-            left_idx = idx
-            break
-    
-    bin_width = right_idx-left_idx
-    width_fract = bin_width*min_bin_dz  #/num_bins
-    
-    return width_fract
-    '''
-
 def bg_poly_step(img, img_width_nm=100, img_height_nm=100, x0_coefs=[], y0_coefs=[]):
     N_x = len(x0_coefs)
     N_y = len(y0_coefs)
@@ -687,7 +774,7 @@ def bg_poly_step(img, img_width_nm=100, img_height_nm=100, x0_coefs=[], y0_coefs
     print('params: ' + str(params))
     
     #minimize the width of the sharpest peak in the image histogram when subtracting off background
-    min_plane = minimize(bg_poly_quality, params, args=[img, img_width_nm, img_height_nm,N_x,N_y], method='Nelder-Mead')
+    min_plane = minimize(bg_poly_quality, params, args=[img, img_width_nm, img_height_nm,N_x,N_y], method='trust-constr')#method='Nelder-Mead')
     
     if not min_plane.success:
         print('well that sucks')
@@ -715,27 +802,11 @@ def auto_bg_poly(img, img_width_nm=100, img_height_nm=100, N_x=1, N_y=1):
     for n in range(N_y-1):
         y_coefs.append(0)
         x_coefs,y_coefs = bg_poly_step(img, img_width_nm, img_height_nm, x0_coefs=x_coefs, y0_coefs=y_coefs)
-        
+    
+    #x_coefs,y_coefs = bg_poly_step(img, img_width_nm, img_height_nm, x0_coefs=x_coefs, y0_coefs=y_coefs)
+    
     return [x_coefs, y_coefs]#bg_poly_step(img, img_width_nm=100, img_height_nm=100, x0_coefs=x_coefs, y0_coefs=y_coefs)
-    '''
-    params = x_coefs + y_coefs
     
-    print('params: ' + str(params))
-    
-    #minimize the width of the sharpest peak in the image histogram when subtracting off background
-    min_plane = minimize(bg_poly_quality, params, args=[img, img_width_nm, img_height_nm,N_x,N_y], method='Nelder-Mead')
-    
-    if not min_plane.success:
-        print('well that sucks')
-        print(min_plane.message)
-    
-    params = min_plane.x
-    print(' out params: ', str(params))
-    x_coefs = params[0:N_x]
-    y_coefs = params[N_x:N_x+N_y]
-    
-    return [x_coefs,y_coefs]
-    '''
 
 def bg_model_function(x, p0):
     val = 0
@@ -764,6 +835,23 @@ def sub_poly_bg(img0, width_nm, height_nm, x_coefs, y_coefs):
             img[yIdx][xIdx] = z
     
     return img            
+
+def sub_line_by_line(img0):
+    img = np.copy(img0)
+    num_rows = len(img)
+    num_cols = len(img[0])
+    
+    for y_idx in range(num_rows - 1):
+        diffs = []
+        for x_idx in range(num_cols):
+            diffs.append( img[y_idx+1][x_idx] - img[y_idx][x_idx] )
+        
+        median = np.median(diffs)
+        
+        for x_idx in range(num_cols):
+            img[y_idx+1][x_idx] -= median
+    
+    return img
 
 
 def sub_plane(img0, width_nm, height_nm, dzdx, dzdy):
@@ -806,54 +894,40 @@ def get_bg_plane(img, width_nm, height_nm):
     return dzdx_ave, dzdy_ave
 
 def detect_steps_alt(img, img_width_nm=100, img_height_nm=100 ):
+    #do line by line flattening
+    #img = sub_line_by_line(img)
+    
     #get bg plane for comparison
     dzdx,dzdy = auto_bg_plane(img, img_width_nm, img_height_nm)
-    print('bg plane dzdx,dzdy: ' + str([dzdx,dzdy]))
+    img_plane = sub_plane(img, img_width_nm, img_height_nm, dzdx, dzdy)
+    quality(img_plane, img_width_nm, img_height_nm, display_hist=True, name='plane')
+    
+    
+    #min = np.min(img)
+    #max = np.max(img)
+    #line_by_line = ((img - min) / (max - min) * 255).astype(np.uint8)
+    #cv2.namedWindow("gray_line_by_line")
+    #cv2.imshow("gray_line_by_line", cv2.resize(line_by_line,(400,400)))
+    
     
     #run auto_bg
-    #x_coefs,y_coefs = auto_bg(img, img_width_nm, img_height_nm)
     x_coefs, y_coefs = auto_bg_poly(img, img_width_nm, img_height_nm, N_x=2, N_y=3)
-    
-        
-    print('final x_coefs: ' + str(x_coefs))
-    print('final y_coefs: ' + str(y_coefs))
-    
-    
-    qual_poly = bg_poly_quality([dzdx,dzdy], [img, img_width_nm, img_height_nm,1,1])
-    qual_plane = bg_plane_quality([dzdx,dzdy], [img, img_width_nm, img_height_nm])
-    print('qual_poly: ' + str(qual_poly))
-    print('qual_plane: ' + str(qual_plane))
-       
-    
-    img_plane = sub_plane(img, img_width_nm, img_height_nm, dzdx, dzdy)
-    img_alt_plane = sub_poly_bg(img, img_width_nm, img_height_nm, [dzdx], [dzdy])
     img = sub_poly_bg(img, img_width_nm, img_height_nm, x_coefs, y_coefs)
-    
-    quality(img_plane, img_width_nm, img_height_nm, display_hist=True, name='plane')
     quality(img, img_width_nm, img_height_nm, display_hist=True, name='poly')
+    
+    
+    min = np.min(img_plane)
+    max = np.max(img_plane)
+    gray_plane = ((img_plane - min) / (max - min) * 255).astype(np.uint8)
+    cv2.namedWindow("gray_plane")
+    cv2.imshow("gray_plane", cv2.resize(gray_plane,(400,400)))
     
     
     min = np.min(img)
     max = np.max(img)
     gray = ((img - min) / (max - min) * 255).astype(np.uint8)
-    
-    min = np.min(img_plane)
-    max = np.max(img_plane)
-    gray_plane = ((img_plane - min) / (max - min) * 255).astype(np.uint8)
-    
-    min = np.min(img_alt_plane)
-    max = np.max(img_alt_plane)
-    gray_alt = ((img_alt_plane - min) / (max - min) * 255).astype(np.uint8)
-    
-    
     cv2.namedWindow("gray")
     cv2.imshow("gray", cv2.resize(gray,(400,400)))
-    
-    cv2.namedWindow("gray_plane")
-    cv2.imshow("gray_plane", cv2.resize(gray_plane,(400,400)))
-    
-    cv2.namedWindow("gray_alt")
-    cv2.imshow("gray_alt", cv2.resize(gray_alt,(400,400)))
     
     
     cv2.waitKey(0)
