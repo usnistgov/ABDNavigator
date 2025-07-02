@@ -295,6 +295,8 @@ def handle_client(client_socket: socket.socket) -> None:
                     print(y)
                     
                     if "LithoRasterLayer" not in scan_settings:
+                        stm.ref_command(scan_control_ID, 'apply')
+                        
                         condition_settings = scan_settings["TipConditionLayer"]
                         condition_control_ID = condition_settings["@controlID"]
                         
