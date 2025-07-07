@@ -103,6 +103,7 @@ public class ScanSettingsLayer extends ScanRegionLayer
 		}
 	}
 	
+	//public boolean refreshed = false;
 	public void applyNoThread()
 	{
 		System.out.println("applying scan settings...");
@@ -139,6 +140,9 @@ public class ScanSettingsLayer extends ScanRegionLayer
 		SampleNavigator.scanner.scan.refreshScanData();
 		
 		SampleNavigator.scanner.scan.currentSettings = this;
+		
+		SampleNavigator.scanner.scan.executeAction( "refreshScanRegion" );
+		/*
 		Platform.runLater( new Runnable()
 		{
 			public void run()
@@ -146,6 +150,8 @@ public class ScanSettingsLayer extends ScanRegionLayer
 				SampleNavigator.scanner.scan.refreshScanRegion();
 			}
 		} );
+		*/
+		
 	}
 	
 	public void apply()

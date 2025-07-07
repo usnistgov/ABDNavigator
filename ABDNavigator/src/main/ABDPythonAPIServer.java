@@ -421,12 +421,13 @@ public class ABDPythonAPIServer
 							NavigationLayer layer = NavigationLayer.registry.get(ref);
 							
 							layer.executeAction(command);
-							
+							System.out.println("done executing reference command: " + command);
+							/*
 							while ( (layer.actionThread != null) && (layer.actionThread.isAlive()) )
 							{
 								Thread.sleep(200);
 								System.out.print(".");
-							}
+							}*/
 							
 							//AttributeEditor.executeAction(layer, command);
 							
