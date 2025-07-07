@@ -887,7 +887,7 @@ def get_bg_plane(img, width_nm, height_nm):
         dzdx_ave += img[yIdx][num_cols-1] - img[yIdx][0]
     
     for xIdx in range(num_cols):
-        dzdy_ave += img[num_cols-1][xIdx] - img[0][xIdx]
+        dzdy_ave += img[num_rows-1][xIdx] - img[0][xIdx]
         
     dzdx_ave /= num_rows*(num_cols-1)
     dzdy_ave /= (num_rows-1)*num_cols
