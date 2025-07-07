@@ -154,6 +154,23 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 		return scale.getMyy();
 	}
 	
+	public void refreshScanData()
+	{
+		System.out.println("** Refreshing Scan Data");
+		
+		String s = ABDClient.command("getPixelsX");
+		if (s != null)
+			xPixels = Integer.parseInt(s);
+		
+		s = ABDClient.command("getPixelsY");
+		if (s != null)
+			yPixels = Integer.parseInt(s);
+		
+		s = ABDClient.command("getTipSpeed");
+		if (s != null)
+			tipSpeed = Double.parseDouble(s);
+	}
+	
 	public void refreshScanRegion()
 	{
 		System.out.println("** Refreshing Scan Region");

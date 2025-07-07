@@ -136,6 +136,8 @@ public class ScanSettingsLayer extends ScanRegionLayer
 		ABDClient.command("moveTo 0,0");
 		ABDClient.waitForTip();
 		
+		SampleNavigator.scanner.scan.refreshScanData();
+		
 		SampleNavigator.scanner.scan.currentSettings = this;
 		Platform.runLater( new Runnable()
 		{
