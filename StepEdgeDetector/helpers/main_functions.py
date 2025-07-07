@@ -7,6 +7,7 @@ import random
 import gdstk
 from scipy.optimize import minimize, curve_fit
 from scipy.signal import find_peaks, peak_prominences, peak_widths
+from scipy.ndimage import gaussian_filter
 
 import torch
 import open_clip
@@ -790,8 +791,12 @@ def bg_poly_step(img, img_width_nm=100, img_height_nm=100, x0_coefs=[], y0_coefs
 
 def auto_bg_poly(img, img_width_nm=100, img_height_nm=100, N_x=1, N_y=1):
     #initial guess for dzdx and dzdy
-    dzdx,dzdy = auto_bg_plane(img, img_width_nm, img_height_nm) 
+    #dzdx,dzdy = auto_bg_plane(img, img_width_nm, img_height_nm) 
     #get_bg_plane(img, img_width_nm, img_height_nm)
+    
+    #dzdx,dzdy = auto_bg_slopes(img, img_width_nm, img_height_nm)    
+    #img = sub_plane(img, img_width_nm, img_height_nm, dzdx, dzdy)
+    
     x_coefs = [dzdx]
     y_coefs = [dzdy]
     
@@ -893,29 +898,113 @@ def get_bg_plane(img, width_nm, height_nm):
     
     return dzdx_ave, dzdy_ave
 
-def detect_steps_alt(img, img_width_nm=100, img_height_nm=100 ):
-    #do line by line flattening
-    #img = sub_line_by_line(img)
+def dz_from_diffs(diffs, num_px, size_nm, num_bins=256, display_hist=False):
+    hist, bin_edges = np.histogram(diffs, bins=num_bins)
+    max_idx = np.argmax(hist)
+    
+    min = np.min(diffs)
+    max = np.max(diffs)
+    idx_fract = max_idx/(num_bins-1)
+    dz_idx = min + idx_fract*(max - min)
+    nm_per_idx = size_nm/(num_px-1)
+    dz_nm = dz_idx/nm_per_idx
+    
+    if display_hist:
+        
+        plt.plot(hist)
+        plt.show()
+        
+    return dz_nm
+    
+def auto_bg_slopes(img, img_width_nm, img_height_nm, display_hist=True):
+    num_cols = len(img[0])
+    num_rows = len(img)
+    
+    nm_per_x_px = img_width_nm/(num_cols-1)
+    nm_per_y_px = img_height_nm/(num_rows-1)
+    
+    smear_nm = 4
+    
+    sigma_x = smear_nm/nm_per_x_px
+    sigma_y = smear_nm/nm_per_y_px
+    
+    #avoid image borders where gaussian blur will misrepresent the slopes
+    skip_x = 2*int(sigma_x)
+    skip_y = 2*int(sigma_y)
+    
+    img = np.copy(img)
+    img = gaussian_filter(img, sigma=[sigma_y,sigma_x])
+    
+    dzdx_diffs = []
+    dzdy_diffs = []
+    
+    for yIdx in range(num_rows):
+        for xIdx in range(num_cols-1):
+            if xIdx > skip_x and yIdx > skip_y and xIdx < (num_cols-1 - skip_x) and yIdx < (num_rows-1 - skip_y):
+                dzdx_diffs.append(img[yIdx,xIdx+1] - img[yIdx,xIdx])
+
+    for xIdx in range(num_cols):
+        for yIdx in range(num_rows-1):
+            if xIdx > skip_x and yIdx > skip_y and xIdx < (num_cols-1 - skip_x) and yIdx < (num_rows-1 - skip_y):
+                dzdy_diffs.append(img[yIdx+1,xIdx] - img[yIdx,xIdx])
+    
+    
+    #dzdx_ave *= (num_cols-1)/width_nm
+    #dzdy_ave *= (num_rows-1)/height_nm
+    
+    dzdx = dz_from_diffs(dzdx_diffs, num_cols, img_width_nm, num_bins=256, display_hist=display_hist)
+    dzdy = dz_from_diffs(dzdy_diffs, num_rows, img_height_nm, num_bins=256, display_hist=display_hist)
+    
+    print('dzdx,dzdy: ' + str([dzdx,dzdy]))
+    
+    if display_hist:
+        dzdx_blur,dzdy_blur = get_bg_plane(img, img_width_nm, img_height_nm)
+        img = sub_plane(img, img_width_nm, img_height_nm, dzdx_blur, dzdy_blur)
+        
+        #if xIdx > skip_x and yIdx > skip_y and xIdx < (num_cols-1 - skip_x) and yIdx < (num_rows-1 - skip_y):
+        img = img[skip_y:(num_rows-1-skip_y),skip_x:(num_cols-1-skip_x)]    
+    
+        min = np.min(img)
+        max = np.max(img)
+        gray = ((img - min) / (max - min) * 255).astype(np.uint8)
+        cv2.namedWindow("gauss")
+        cv2.imshow("gauss", cv2.resize(gray,(400,400)))
+                
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+    
+    return dzdx,dzdy
+    
+        
+    
+
+def detect_steps_alt(img, img_width_nm=100, img_height_nm=100, line_by_line_flatten=True ):
+    if line_by_line_flatten:
+        #do line by line flattening
+        img = sub_line_by_line(img)
     
     #get bg plane for comparison
-    dzdx,dzdy = auto_bg_plane(img, img_width_nm, img_height_nm)
-    img_plane = sub_plane(img, img_width_nm, img_height_nm, dzdx, dzdy)
-    quality(img_plane, img_width_nm, img_height_nm, display_hist=True, name='plane')
+    #dzdx,dzdy = auto_bg_plane(img, img_width_nm, img_height_nm)
+    #img_plane = sub_plane(img, img_width_nm, img_height_nm, dzdx, dzdy)
+    #quality(img_plane, img_width_nm, img_height_nm, display_hist=True, name='plane')
     
+    dzdx,dzdy = auto_bg_slopes(img, img_width_nm, img_height_nm)    
+    img = sub_plane(img, img_width_nm, img_height_nm, dzdx, dzdy)
     
     #run auto_bg
     #x_coefs, y_coefs = auto_bg_poly(img, img_width_nm, img_height_nm, N_x=2, N_y=3)
-    x_coefs, y_coefs = auto_bg_prev(img, img_width_nm, img_height_nm)
-    img = sub_poly_bg(img, img_width_nm, img_height_nm, x_coefs, y_coefs)
-    quality(img, img_width_nm, img_height_nm, display_hist=True, name='poly')
+    #x_coefs, y_coefs = auto_bg_prev(img, img_width_nm, img_height_nm)
+    #img = sub_poly_bg(img, img_width_nm, img_height_nm, x_coefs, y_coefs)
+    #quality(img, img_width_nm, img_height_nm, display_hist=True, name='poly')
     
     
         
-    min = np.min(img_plane)
-    max = np.max(img_plane)
-    gray_plane = ((img_plane - min) / (max - min) * 255).astype(np.uint8)
-    cv2.namedWindow("gray_plane")
-    cv2.imshow("gray_plane", cv2.resize(gray_plane,(400,400)))
+    #min = np.min(img_plane)
+    #max = np.max(img_plane)
+    #gray_plane = ((img_plane - min) / (max - min) * 255).astype(np.uint8)
+    #cv2.namedWindow("gray_plane")
+    #cv2.imshow("gray_plane", cv2.resize(gray_plane,(400,400)))
         
     min = np.min(img)
     max = np.max(img)
@@ -980,9 +1069,22 @@ def auto_bg_prev(img, img_width_nm=100, img_height_nm=100):
             y = (y_idx + 0.5)*nm_per_y_step
             
             win = img[y_start:y_end,x_start:x_end]
-            dzdx,dzdy = auto_bg_plane(win, win_width_nm, win_height_nm)
+            #dzdx,dzdy = auto_bg_plane(win, win_width_nm, win_height_nm)
+            #[dzdx,dummy_x],[dzdy,dummy_y] = auto_bg_poly(win, win_width_nm, win_height_nm, N_x=2, N_y=2)
+            dzdx,dzdy = auto_bg_slopes(win, win_width_nm, win_height_nm,display_hist=False)    
+            #img = sub_plane(img, img_width_nm, img_height_nm, dzdx, dzdy)
+    
             
             dz_row.append([dzdx, dzdy])
+            #sub_plane(img0, width_nm, height_nm, dzdx, dzdy)
+            img_sub = sub_plane(win, win_width_nm, win_height_nm, dzdx, dzdy)    
+            min = np.min(img_sub)
+            max = np.max(img_sub)
+            gray_plane = ((img_sub - min) / (max - min) * 255).astype(np.uint8)
+            win_name = str("gray_plane " + str(x) + ',' + str(y))
+            #cv2.namedWindow(win_name)
+            #cv2.imshow(win_name, cv2.resize(gray_plane,(400,400)))
+            
             
             if x_idx == 0:
                 y_data.append(y)
@@ -1011,13 +1113,18 @@ def auto_bg_prev(img, img_width_nm=100, img_height_nm=100):
     print('dzdy_data: ' + str(dzdy_data))
     
     #now fit the data
-    x_params, pcov = curve_fit(bg_model_function, np.array(x_data), dzdx_data,p0=(1,1))
+    x_params, pcov = curve_fit(bg_model_function, np.array(x_data), dzdx_data,p0=(1,0))
     print('x_params: ' + str(x_params))
     
     
-    y_params, pcov = curve_fit(bg_model_function, np.array(y_data), dzdy_data,p0=(1,1,1))
+    y_params, pcov = curve_fit(bg_model_function, np.array(y_data), dzdy_data,p0=(1,0))
     print('y_params: ' + str(y_params))
     
+    
+    
+    #cv2.waitKey(0)
+    #cv2.destroyAllWindows()
+
     '''
     #print('y_data length: ' + str(len(y_data)))
     #print('dzdy_data length: ' + str(len(dzdy_data)))
