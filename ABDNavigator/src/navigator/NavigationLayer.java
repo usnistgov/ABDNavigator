@@ -603,7 +603,7 @@ public class NavigationLayer extends Group
 	public static String gwyddionFolder = "";
 	public static String stmImageFolder = "";
 	
-	//public Thread actionThread = null;
+	public Thread actionThread = null;
 	public String thisAction = null;
 	public boolean actionExecuted = false;
 	public void executeAction(String thisAction)
