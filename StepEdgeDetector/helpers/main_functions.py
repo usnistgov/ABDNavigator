@@ -979,10 +979,11 @@ def auto_bg_slopes(img, img_width_nm, img_height_nm, display_hist=True):
         
     
 
-def detect_steps_alt(img, img_width_nm=100, img_height_nm=100, line_by_line_flatten=True ):
-    if line_by_line_flatten:
-        #do line by line flattening
-        img = sub_line_by_line(img)
+def detect_steps_alt(img, img_width_nm=100, img_height_nm=100, line_by_line_flatten=True, display_hist=True ):
+    img0 = img
+    #if line_by_line_flatten:
+    #do line by line flattening
+    img = sub_line_by_line(img)
     
     #get bg plane for comparison
     #dzdx,dzdy = auto_bg_plane(img, img_width_nm, img_height_nm)
@@ -991,6 +992,50 @@ def detect_steps_alt(img, img_width_nm=100, img_height_nm=100, line_by_line_flat
     
     dzdx,dzdy = auto_bg_slopes(img, img_width_nm, img_height_nm)    
     img = sub_plane(img, img_width_nm, img_height_nm, dzdx, dzdy)
+    
+    img_diff = img - img0
+    lin_z_sub = []
+    
+    num_cols = len(img[0])
+    num_rows = len(img)
+    
+    indep_data = range(num_rows)
+    for y_idx in indep_data:
+        lin_z_sub.append( np.mean(img_diff[y_idx]) )
+    
+    y_params, pcov = curve_fit(bg_model_function, np.array(indep_data), np.array(lin_z_sub), p0=(1,0,0,0,0))
+    
+    fit_z = []
+    diff_z = []
+    for y_idx in indep_data:
+        fit_z.append( bg_model_function(y_idx, y_params[0],y_params[1],y_params[2],y_params[3],y_params[4]) )
+        diff_z.append( fit_z[y_idx]-lin_z_sub[y_idx] )
+        img[y_idx] += diff_z[y_idx]
+    
+        
+    if display_hist:
+            
+        plt.plot(lin_z_sub)
+        plt.plot(fit_z)
+        plt.show()
+    
+    dzdx,dzdy = auto_bg_slopes(img, img_width_nm, img_height_nm)    
+    img = sub_plane(img, img_width_nm, img_height_nm, dzdx, dzdy)
+    
+    hist, bin_edges = np.histogram(img, bins=256)
+    corr = np.correlate(hist,hist,mode='full')
+    
+    if display_hist:
+        plt.plot(hist)
+        #plt.show()
+        
+        s = (np.max(hist)/np.max(corr))
+        for idx in range( len(corr) ):
+            corr[idx] *= s
+        
+        plt.plot(corr[256:])
+        plt.show()
+        
     
     #run auto_bg
     #x_coefs, y_coefs = auto_bg_poly(img, img_width_nm, img_height_nm, N_x=2, N_y=3)
