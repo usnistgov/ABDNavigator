@@ -75,7 +75,8 @@ qry = {"WINSIZE": 0,
        "WORLDPOS": 10,
        "RESOLUTION": 11,
        "TIPSPEED": 12,
-       "XML": 13}
+       "XML": 13,
+       "LITHO": 14}
 
 # default ip address and port number
 def_host : str = 'localhost'
@@ -466,6 +467,16 @@ def get_xml_for(ref: int) -> str:
     result = send_and_receive_json(_json)
     print(result)
     return result['xml']
+
+# check if litho is in progress:
+def isPerformingLitho() -> np.ndarray:
+    global seq
+    _json = {"type": pkg["QUERY"], "seq": seq, "op": qry["LITHO"]}
+    seq += 1
+    result = send_and_receive_json(_json)
+    
+    print(result)
+    return result['litho']
 
 
 if __name__ == "__main__":

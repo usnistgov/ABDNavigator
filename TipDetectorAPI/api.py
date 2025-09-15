@@ -574,6 +574,13 @@ def handle_client(client_socket: socket.socket) -> None:
                         #write the pattern
                         stm.ref_command(litho_control_ID, 'litho')
                         
+                        #wait for litho to complete
+                        while ( stm.isPerformingLitho() ):
+                            time.sleep(0.1)
+                            print('$')
+                        
+                        print('done with litho')
+                        
                         #acquire the post-litho image
                         #imgInfo = util.getNewImage()
                         prev_scan_settings = scan_settings

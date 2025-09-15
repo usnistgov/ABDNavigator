@@ -213,6 +213,13 @@ public class ABDPythonAPIServer
 							outObj.put( "xml", xml );
 							
 							break;
+							
+						case 14: //check if currently performing litho
+							System.out.println("litho performance check");
+							
+							outObj.put("litho", Boolean.parseBoolean(ABDClient.command("isLithoOn")) );
+							
+							break;
 					}
 					break;
 					
