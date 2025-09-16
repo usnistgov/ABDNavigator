@@ -11,12 +11,14 @@ import main.SampleNavigator;
 public class ControlGroupLayer extends GroupLayer
 {
 	public boolean isLive = true;
+	public boolean testMode = false;
 	
 	public ControlGroupLayer()
 	{
 		super();
 		actions = new String[]{"addScanSettings","saveControlGroup","openControlGroup","executeAll"};
 		categories.put("live", new String[] {"true","false"});
+		categories.put("testMode", new String[] {"true","false"});
 		
 		name = "ControlGroup";
 		
@@ -85,7 +87,9 @@ public class ControlGroupLayer extends GroupLayer
 		if (s != null)
 			isLive = Boolean.parseBoolean(s);
 		
-		
+		s = xml.getAttribute("testMode");
+		if (s != null)
+			testMode = Boolean.parseBoolean(s);
 		
 		super.setFromXML(xml, deep);
 	}
@@ -96,7 +100,7 @@ public class ControlGroupLayer extends GroupLayer
 	{
 		Element e = super.getAsXML();
 		e.setAttribute( "live", Boolean.toString(isLive) );
-		
+		e.setAttribute( "testMode", Boolean.toString(testMode) );
 		
 		return e;
 	}

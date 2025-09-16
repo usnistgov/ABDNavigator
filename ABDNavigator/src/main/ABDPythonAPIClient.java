@@ -99,6 +99,8 @@ public class ABDPythonAPIClient
 	
 	public static synchronized String command(String out)
 	{
+		//System.out.println("ABDPythonAPIClient command: " + out);
+		
 		if (!ABDPythonAPIServer.serverRunning)
 		{
 			//try restarting the PythonAPI server

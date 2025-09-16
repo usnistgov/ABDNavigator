@@ -50,7 +50,7 @@ def subtract_bg_plane(img, width_nm, height_nm, dzdx = 0, dzdy = 0):
     return img, z_range
     
 
-def condition_tip(data: dict, model, config):
+def condition_tip(data: dict, model, config, test_mode=False):
     print('conditioning tip...')
     print(data)
     
@@ -75,6 +75,9 @@ def condition_tip(data: dict, model, config):
     manip_V = data["manipV"]
     settle_time = data["settleTime"]
     
+    if test_mode:
+        settle_time = 0
+        
     print('scales:')
     print(scan_scale_x)
     print(scan_scale_y)
@@ -172,6 +175,12 @@ def condition_tip(data: dict, model, config):
             print('conditioning z_range: ')
             print(z_range)
             
+            if z_range == 0:
+                if test_mode:
+                    return 
+                else:
+                    print('z_range failure...')
+                    
             #plt.imshow(npImg)
             #plt.gray()
             #plt.show()

@@ -93,6 +93,7 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 	public void moveScanRegion()
 	{
 		SampleNavigator.scanner.scanRegionIsMoving = true;
+		System.out.println("starting movingScanRegion: " + SampleNavigator.scanner.scanRegionIsMoving);
 		
 		try
 		{
@@ -127,11 +128,14 @@ public class ScanRegionLayer extends ImageLayer//NavigationLayer
 					ABDClient.command("setScanAngle " + Double.toString(-rotation.getAngle()));
 					
 					ABDClient.command("moveTo " + Double.toString(x) + "," + Double.toString(y));
+					System.out.println("moving tip after moving scan window...");
 					ABDClient.waitForTip();
+					System.out.println("done moving tip after moving scan window");
 					
 					//currentSettings = null;
 					resetScanRepresentation();
 					
+					System.out.println("finishing movingScanRegion: " + SampleNavigator.scanner.scanRegionIsMoving);
 					SampleNavigator.scanner.scanRegionIsMoving = false;
 				}
 			};

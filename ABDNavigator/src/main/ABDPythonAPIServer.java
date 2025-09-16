@@ -299,13 +299,14 @@ public class ABDPythonAPIServer
 							SampleNavigator.scanner.scan.scale.setY(h);
 							SampleNavigator.scanner.scan.fireTransforming();
 							SampleNavigator.scanner.scan.moveScanRegion();
+							System.out.println("just called moveScanRegion: " + SampleNavigator.scanner.scanRegionIsMoving);
 							
 							//make sure previous ScanSettings no longer thinks it is current
 							SampleNavigator.scanner.scan.currentSettings = null;
 							
 							SampleNavigator.refreshAttributeEditorLater();
 							
-							while (SampleNavigator.scanner.tipIsMoving)
+							while ((SampleNavigator.scanner.tipIsMoving) || (SampleNavigator.scanner.scanRegionIsMoving))
 							{
 								Thread.sleep(5);
 								System.out.print(".tipIsMoving.");
@@ -361,7 +362,7 @@ public class ABDPythonAPIServer
 							SampleNavigator.refreshAttributeEditorLater();
 							System.out.println("done refreshing attribute editor");
 							
-							while (SampleNavigator.scanner.tipIsMoving)
+							while ((SampleNavigator.scanner.tipIsMoving) || (SampleNavigator.scanner.scanRegionIsMoving))
 							{
 								Thread.sleep(5);
 								System.out.print(".tipIsMoving.");

@@ -132,6 +132,9 @@ def send_and_receive_json(j: dict, timeout=None) -> dict:
             
 # send all steps as json to Monitor
 def send_json_to_server(j: dict, chunk: bool = False):
+    send_and_receive_json(j)
+    
+def send_json_to_server_prev(j: dict, chunk: bool = False):
     # connect to the server first
     s = connect_to_Monitor()
     # assemble bytestring and send to server
@@ -475,7 +478,7 @@ def isPerformingLitho() -> np.ndarray:
     seq += 1
     result = send_and_receive_json(_json)
     
-    print(result)
+    #print(result)
     return result['litho']
 
 

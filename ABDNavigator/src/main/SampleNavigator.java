@@ -193,6 +193,8 @@ public class SampleNavigator extends Application
 		try
 		{
 			File f = new File("config.xml");
+			System.out.println( "settings file from: " + f.getAbsolutePath() );
+			
 			if (f.exists())
 			{
 				FileInputStream in = new FileInputStream(f);
@@ -2372,7 +2374,11 @@ public class SampleNavigator extends Application
 			return;
 		
 		File imageFolder = new File(NavigationLayer.stmImageFolder);
+		System.out.println("imageFolder name: " + NavigationLayer.stmImageFolder);
+		System.out.println("imageFolder: " + imageFolder );
+		
 		File[] files = imageFolder.listFiles();
+		System.out.println("files: " + files);
 		if ((files != null) && (files.length > 0))
 		{
 			if (files[0].isDirectory())

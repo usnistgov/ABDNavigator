@@ -1857,6 +1857,8 @@ public class NavigationLayer extends Group
 		if ((s != null) && (s.length() > 0))
 			stmImageFolder = new String(s);
 		
+		System.out.println("stmImageFolder: " + stmImageFolder);
+		
 		s = SampleNavigator.settings.getProperty("gwyddionFolder");
 		if ((s != null) && (s.length() > 0))
 			gwyddionFolder = new String(s);
