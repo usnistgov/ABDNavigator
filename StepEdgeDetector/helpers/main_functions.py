@@ -5,8 +5,10 @@ from skimage import filters, feature, morphology, segmentation
 from scipy import ndimage as ndi
 import random
 import gdstk
+import datetime
 from scipy.optimize import minimize, curve_fit
 from scipy.signal import find_peaks, peak_prominences, peak_widths
+from scipy.fft import fft2, ifft2
 from scipy.ndimage import gaussian_filter
 
 import torch
@@ -68,8 +70,9 @@ def white_tophat(contours, max_pxl, post):
 def color_layers(overlay, cleaned, maximas, numbered):
     labels = np.zeros_like(overlay)
     layers = 0
+    error_msg = 0
     for i in range(len(cleaned)):
-        for j in range(len(cleaned[1])):
+        for j in range(len(cleaned[0])):
             r, g, b = labels[i,j]
             if r == 0 and g == 0 and b == 0 and cleaned[i,j] == False:
                 filled = segmentation.flood_fill(cleaned, (i,j), 127)
@@ -119,62 +122,100 @@ def color_layers(overlay, cleaned, maximas, numbered):
                     numbered[filled] = layers
                     #print("ERROR: Too many layers, ran out of colors")
                     layers = layers + 1
+                    if (layers == 256):
+                        layers = 255
+                        error_msg = 1
                     #return labels, numbered
-    if layers != maximas:
-        print("WARNING: Number of layers does not match local maximas detected. Consider updating blur parameter")
+    #if layers != maximas:
+    #    print("WARNING: Number of layers does not match local maximas detected. Consider updating blur parameter")
+    if error_msg == 1:
+        print("WARNING: Too many layers")
+    
     return labels, numbered
 
-def detect_litho(labels, img, numbered, blur, threshold, method):
+def detect_litho(labels, img, numbered, blur, threshold, method, neg):
     litho = np.zeros_like(labels)
-    img = cv2.convertScaleAbs(img, alpha=1.3, beta=0)
-    edges = feature.canny(img)
+    contrast_img = cv2.convertScaleAbs(img, alpha=1.3, beta=0)
+    edges = feature.canny(contrast_img)
     layers = np.max(numbered)+1
     roughness = [0]*(layers)
     pxl = [0]*(layers)
+    height = [0]*(layers)
+    height = np.array(height, dtype=np.float64)
+    avg_height = [0]*(layers)
     #roughness_score = np.sum(edges > 0)
     #print(roughness_score)
     for i in range(len(numbered)):
-        for j in range(len(numbered)):
+        for j in range(len(numbered[0])):
             for k in range(layers):
                 if numbered[i,j] == k:
                     pxl[k] = pxl[k]+1
+                    height[k] = height[k] + img[i,j]
                     if edges[i,j] > 0:
                         roughness[k] = roughness[k] + 1
     if(method == "minorityLitho"):
         roughness_score = roughness
         max_roughness = np.max(roughness_score)
         for k in range(layers):
+            avg_height[k] = height[k]/pxl[k] 
             if pxl[k] < 50:
                 roughness_score[k] = 100*max_roughness
     elif(method == "majorityLitho"):
         roughness_score = roughness
         max_roughness = np.max(roughness_score)  
         for k in range(layers):
+            avg_height[k] = height[k]/pxl[k] 
             if pxl[k] < 50:
                 roughness_score[k] = 0
     else:
         roughness_score = np.divide(roughness, pxl)       
         max_roughness = np.max(roughness_score)
         for k in range(layers):
+            avg_height[k] = height[k]/pxl[k] 
             if pxl[k] < 50:
                 if(method == "rough"):
                     roughness_score[k] = 0
                 else:
                     roughness_score[k] = 100*max_roughness
     #print(roughness_score)
+    min_height_avg = np.min(avg_height)
+    max_height_avg = np.max(avg_height)
     for i in range(len(labels)):
-        for j in range(len(labels[1])):
+        for j in range(len(labels[0])):
             r, g, b = labels[i,j]
             if r == 0 and g == 0 and b == 0:
                 litho[i,j] = [0, 0, 0]
             else:
                 layer = numbered[i,j]
                 if (method == "majorityLitho" or method == "rough"):
-                    if roughness_score[layer]/max_roughness > threshold: 
-                        litho[i,j] = [255, 255, 0]
+                    if roughness_score[layer]/max_roughness > threshold:
+                        if(neg == 0):
+                            if (avg_height[layer] != min_height_avg):
+                                litho[i,j] = [255, 255, 0]
+                        else:
+                            if (avg_height[layer] != max_height_avg):
+                                litho[i,j] = [255, 255, 0]
                 else:
-                    if roughness_score[layer]/max_roughness < threshold: 
-                        litho[i,j] = [255, 255, 0]
+                    if roughness_score[layer]/max_roughness < threshold:
+                        if(neg == 0):
+                            if (avg_height[layer] != min_height_avg):
+                                litho[i,j] = [255, 255, 0]
+                        else:
+                            if (avg_height[layer] != max_height_avg):
+                                litho[i,j] = [255, 255, 0]
+   
+    return litho
+    
+def detect_dual_litho(labels, img, numbered, blur, threshold, method):
+    litho = np.zeros_like(labels)
+    litho_grayscale = detect_litho(labels, img, numbered, blur, threshold, method, 0)
+    neg_img = 255 - img
+    litho_neg_scale = detect_litho(labels, neg_img, numbered, blur, threshold, method, 1)
+    for i in range(len(litho)):
+        for j in range(len(litho[0])):
+            if ((litho_grayscale[i,j,0] == 255) or (litho_neg_scale[i,j,0] == 255)):
+                litho[i,j] = [255, 255, 0]
+                
     return litho
 
 def detect_steps(img, img_width=None, img_height=None, show_plots=False, show_output=False, blur=2, postprocessing =False, max_pxl=400, nm_from_z=1, roughnessThreshold=0.12, lowResolution=False, find_litho="default", thickness=1.0, verifyGDS=False, scan_settings_x=None,
@@ -196,16 +237,44 @@ def detect_steps(img, img_width=None, img_height=None, show_plots=False, show_ou
 	
     print(img_width)
     img = np.array(img).reshape(img_height, img_width)
+    
+    # *** Start plane subtract
+    dzdx,dzdy = get_bg_plane(img, img_rescale_x, img_rescale_y)
+    
+    nm_px_x = img_rescale_x/(len(img[0])-1)
+    nm_px_y = img_rescale_y/(len(img)-1)
+    img_sub = np.empty((len(img), len(img[0])))
+    for x_idx in range(len(img[0])):
+        for y_idx in range(len(img)):
+            x = nm_px_x*x_idx
+            y = nm_px_y*y_idx#(len(img)-1-y_idx)
+            dz = x*dzdx + y*dzdy
+            img_sub[y_idx][x_idx] = img[y_idx][x_idx] - dz
+    
+    img = img_sub
+    z_range = np.max(img) - np.min(img)
+    img = (img - np.min(img)) / z_range * 255
+    #img = np.flipud(img)
+
+    # Convert the image into a cv2 image
+    #img = np.array(img, dtype=np.uint8)
+
+    # Convert the image to a 3 channel image
+    #img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    # *** End plane subtract
 	
     min = np.min(img)
     max = np.max(img)
     
     gray = ((img - min) / (max - min) * 255).astype(np.uint8)
-    #gray = ((img - min) / (max - min) * 255)
-    #gray = (255 - gray)*gray
-    #min = np.min(gray)
-    #max = np.max(gray)
-    #gray = ((gray - min) / (max - min) * 255).astype(np.uint8)
+    '''
+    gray = ((img - min) / (max - min) * 255)
+    gray = (255 - gray)*gray
+    min = np.min(gray)
+    max = np.max(gray)
+    gray = ((gray - min) / (max - min) * 255).astype(np.uint8)
+    '''
+    #gray = cv2.convertScaleAbs(gray, alpha=1.3, beta=0)
     #gray = np.log(gray + 1)
     #gray = ((gray / np.log(256)) * 255).astype(np.uint8)
     img = cv2.cvtColor(gray, cv2.COLOR_GRAY2RGB)
@@ -333,7 +402,8 @@ def detect_steps(img, img_width=None, img_height=None, show_plots=False, show_ou
     if find_litho == "off": 
         ax[1,1].remove()
     else:
-        litho = detect_litho(labels, gray, numbered, blur, roughnessThreshold, find_litho)
+        litho = detect_litho(labels, gray, numbered, blur, roughnessThreshold, find_litho, 0)
+        #litho = detect_dual_litho(labels, gray, numbered, blur, roughnessThreshold, find_litho)
         ax[1,1].imshow(litho)
         ax[1,1].set_title('Detected Lithography')
         ax[1,1].axis("off")
@@ -373,6 +443,46 @@ def detect_steps(img, img_width=None, img_height=None, show_plots=False, show_ou
             if find_litho == "off":
                 ax[1,3].remove()
             else:
+                image_gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+                litho = cv2.cvtColor(litho, cv2.COLOR_RGB2GRAY)
+                x_offset, y_offset, x_offset_0, y_offset_0, zero_score = auto_detect_creep_fft(litho, image_gray, img_width, img_height, img_rescale_x, img_rescale_y, scan_settings_angle, 0)
+                curr_x_pxl_offset = int(x_offset_0*(img_width/img_rescale_x))
+                curr_y_pxl_offset = int(y_offset_0*(img_height/img_rescale_y))
+                
+                
+                curr_litho_offset = np.zeros_like(litho)
+                for i in range(len(litho)):
+                    for j in range(len(litho[0])):
+                        if(litho[i,j] != 0):
+                            if( (j + curr_x_pxl_offset < img_width) and (i + curr_y_pxl_offset < img_height) ):
+                                if( (j + curr_x_pxl_offset > 0) and (i + curr_y_pxl_offset > 0) ):
+                                    curr_litho_offset[i + curr_y_pxl_offset, j + curr_x_pxl_offset] = litho[i,j]
+                
+                error_gray = np.abs(image_gray - curr_litho_offset)*2  
+
+                #curr_cleaned = np.flipud(curr_cleaned)
+                curr_error = np.zeros_like(image)
+                total_error = 0
+
+                for i in range(len(error_gray)):
+                    for j in range(len(error_gray[0])):                      
+                        if error_gray[i,j] == 60:
+                            curr_error[i,j] = (150,0,0)
+                            total_error = total_error + 1
+                        elif error_gray[i,j] == 196:
+                            curr_error[i,j] = (255,0,0)
+                            total_error = total_error + 1
+                        if( (j + curr_x_pxl_offset < img_width) and (i + curr_y_pxl_offset < img_height) ):
+                            if( (j + curr_x_pxl_offset > 0) and (i + curr_y_pxl_offset > 0) ):
+                                if cleaned[i+curr_y_pxl_offset,j+curr_x_pxl_offset]:
+                                    if (curr_error[i,j,0] != 0):
+                                        curr_error[i,j] = (0,0,0)
+                                        total_error = total_error - 1
+                ax[1,3].imshow(curr_error)
+                ax[1,3].set_title('Error')
+                ax[1,3].axis("off")
+                error_percent = total_error/(img_width*img_height)
+                '''
                 error = np.zeros_like(image)
                 total_error = 0
                 image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
@@ -392,6 +502,7 @@ def detect_steps(img, img_width=None, img_height=None, show_plots=False, show_ou
                 ax[1,3].set_title('Error')
                 ax[1,3].axis("off")
                 error_percent = total_error/(img_width*img_height)
+                '''
                 print(error_percent)
                 if(error_percent < 0.05):
                     print("PASS GDS CHECK")
@@ -472,7 +583,7 @@ def auto_bg_plane(img, img_width_nm=100, img_height_nm=100):
         print(min_plane.message)
     
     dzdx,dzdy = min_plane.x
-    return [dzdx,dzdy]
+    return dzdx,dzdy
 
 def peak_func(x,A,sigma,x0):
     return A*np.exp( -((x-x0)**2)/(2*sigma**2) )
@@ -602,7 +713,6 @@ def quality_alt(img, img_width_nm, img_height_nm, max_fract=0.5, display_hist=Fa
                     
     return peak_width
 
-
 def quality_peak_widths(img, img_width_nm, img_height_nm, max_fract=0.5, display_hist=False, name=''):
     #estimate of the proper vertical range of the image - should be close
     delta_z = np.max(img) - np.min(img)
@@ -615,7 +725,6 @@ def quality_peak_widths(img, img_width_nm, img_height_nm, max_fract=0.5, display
     #get the histogram    
     hist, bin_edges = np.histogram(img, bins=num_bins)
     max_idx = np.argmax(hist)  #index of tallest "peak"
-    
     #determine where other peak locations should be relative to the max peak based on known step height
     dz_step_nm = 0.08
     r_step_nm = 0.02
@@ -723,7 +832,6 @@ def quality_prev(img, img_width_nm, img_height_nm, max_fract=0.5, display_hist=F
     #get the histogram    
     hist, bin_edges = np.histogram(img, bins=num_bins)
     max_idx = np.argmax(hist)  #index of tallest "peak"
-    
     bin_width = full_width_fract_max(hist, max_idx, max_fract=max_fract)
     '''
     #max_val = np.max(hist)  #height of tallest peak
@@ -745,17 +853,14 @@ def quality_prev(img, img_width_nm, img_height_nm, max_fract=0.5, display_hist=F
     
     bin_width = right_idx-left_idx
     '''
-    
     width_fract = bin_width*min_bin_dz  #/num_bins
     
     if display_hist:
         plt.plot(hist)
         plt.title(name)
         plt.show()
-        
-        
-    return width_fract
     
+    return width_fract
     
 def bg_poly_quality(params, args):
     img,img_width_nm,img_height_nm,N_x,N_y = args
@@ -765,8 +870,7 @@ def bg_poly_quality(params, args):
     img_sub = sub_poly_bg(img, img_width_nm, img_height_nm, x_coefs, y_coefs)
     
     return quality(img_sub, img_width_nm, img_height_nm, max_fract=0.5)
-    
-    
+
 def bg_poly_step(img, img_width_nm=100, img_height_nm=100, x0_coefs=[], y0_coefs=[]):
     N_x = len(x0_coefs)
     N_y = len(y0_coefs)
@@ -793,7 +897,7 @@ def auto_bg_poly(img, img_width_nm=100, img_height_nm=100, N_x=1, N_y=1):
     #initial guess for dzdx and dzdy
     #dzdx,dzdy = auto_bg_plane(img, img_width_nm, img_height_nm) 
     #get_bg_plane(img, img_width_nm, img_height_nm)
-    
+     
     #dzdx,dzdy = auto_bg_slopes(img, img_width_nm, img_height_nm)    
     #img = sub_plane(img, img_width_nm, img_height_nm, dzdx, dzdy)
     
@@ -811,7 +915,6 @@ def auto_bg_poly(img, img_width_nm=100, img_height_nm=100, N_x=1, N_y=1):
     #x_coefs,y_coefs = bg_poly_step(img, img_width_nm, img_height_nm, x0_coefs=x_coefs, y0_coefs=y_coefs)
     
     return [x_coefs, y_coefs]#bg_poly_step(img, img_width_nm=100, img_height_nm=100, x0_coefs=x_coefs, y0_coefs=y_coefs)
-    
 
 def bg_model_function(x, *p0):
     val = 0
@@ -857,7 +960,6 @@ def sub_line_by_line(img0):
             img[y_idx+1][x_idx] -= median
     
     return img
-
 
 def sub_plane(img0, width_nm, height_nm, dzdx, dzdy):
     img = np.copy(img0)
@@ -992,67 +1094,66 @@ def auto_flatten(img, img_width_nm=100, img_height_nm=100, line_by_line_flatten=
     
     dzdx,dzdy = auto_bg_slopes(img, img_width_nm, img_height_nm, display_hist=display_hist)    
     img = sub_plane(img, img_width_nm, img_height_nm, dzdx, dzdy)
-    
+
     img_diff = img - img0
     lin_z_sub = []
-    
+
     num_cols = len(img[0])
     num_rows = len(img)
-    
+
     indep_data = range(num_rows)
     for y_idx in indep_data:
         lin_z_sub.append( np.mean(img_diff[y_idx]) )
-    
+
     initial_vals = [0]*y_order
     initial_vals[0] = 1
     y_params, pcov = curve_fit(bg_model_function, np.array(indep_data), np.array(lin_z_sub), p0=tuple(initial_vals))#(1,0,0,0,0))
-    
+
     fit_z = []
     diff_z = []
     for y_idx in indep_data:
         fit_z.append( bg_model_function(y_idx, *y_params) )#y_params[0],y_params[1],y_params[2],y_params[3],y_params[4]) )
         diff_z.append( fit_z[y_idx]-lin_z_sub[y_idx] )
         img[y_idx] += diff_z[y_idx]
-    
-        
+
+
     if display_hist:
-            
+
         plt.plot(lin_z_sub)
         plt.plot(fit_z)
         plt.show()
-    
+
     dzdx,dzdy = auto_bg_slopes(img, img_width_nm, img_height_nm, display_hist=display_hist)    
     img = sub_plane(img, img_width_nm, img_height_nm, dzdx, dzdy)
-    
-    if display_hist:
+
+	if display_hist:
         min = np.min(img)
         max = np.max(img)
         gray = ((img - min) / (max - min) * 255).astype(np.uint8)
         cv2.namedWindow("gray")
         cv2.imshow("gray", cv2.resize(gray,(400,400)))
-        
+
         cv2.waitKey(0)
         cv2.destroyAllWindows()
-    
+
     return img
 
 def detect_steps_alt(img, img_width_nm=100, img_height_nm=100, line_by_line_flatten=True, display_hist=True, y_order=5 ):
     img = auto_flatten(img, img_width_nm, img_height_nm, line_by_line_flatten, display_hist, y_order)
-       
+
     hist, bin_edges = np.histogram(img, bins=256)
     corr = np.correlate(hist,hist,mode='full')
-    
+
     if display_hist:
         plt.plot(hist)
         #plt.show()
-        
+
         s = (np.max(hist)/np.max(corr))
         for idx in range( len(corr) ):
             corr[idx] *= s
-        
+
         plt.plot(corr[256:])
         plt.show()
-        
     
     #run auto_bg
     #x_coefs, y_coefs = auto_bg_poly(img, img_width_nm, img_height_nm, N_x=2, N_y=3)
@@ -1061,14 +1162,14 @@ def detect_steps_alt(img, img_width_nm=100, img_height_nm=100, line_by_line_flat
     #quality(img, img_width_nm, img_height_nm, display_hist=True, name='poly')
     
     
-        
+    
     #min = np.min(img_plane)
     #max = np.max(img_plane)
     #gray_plane = ((img_plane - min) / (max - min) * 255).astype(np.uint8)
     #cv2.namedWindow("gray_plane")
     #cv2.imshow("gray_plane", cv2.resize(gray_plane,(400,400)))
-    
-    '''    
+
+	'''
     min = np.min(img)
     max = np.max(img)
     gray = ((img - min) / (max - min) * 255).astype(np.uint8)
@@ -1078,7 +1179,7 @@ def detect_steps_alt(img, img_width_nm=100, img_height_nm=100, line_by_line_flat
     
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-    '''
+	'''
 
 
 def auto_bg_prev(img, img_width_nm=100, img_height_nm=100):
@@ -1136,8 +1237,7 @@ def auto_bg_prev(img, img_width_nm=100, img_height_nm=100):
             #dzdx,dzdy = auto_bg_plane(win, win_width_nm, win_height_nm)
             #[dzdx,dummy_x],[dzdy,dummy_y] = auto_bg_poly(win, win_width_nm, win_height_nm, N_x=2, N_y=2)
             dzdx,dzdy = auto_bg_slopes(win, win_width_nm, win_height_nm,display_hist=False)    
-            #img = sub_plane(img, img_width_nm, img_height_nm, dzdx, dzdy)
-    
+            #img = sub_plane(img, img_width_nm, img_height_nm, dzdx, dzdy)  
             
             dz_row.append([dzdx, dzdy])
             #sub_plane(img0, width_nm, height_nm, dzdx, dzdy)
@@ -1153,10 +1253,9 @@ def auto_bg_prev(img, img_width_nm=100, img_height_nm=100):
             if x_idx == 0:
                 y_data.append(y)
             
-            
-        dz_array.append(dz_row)
-    
-    dz_array = np.array(dz_array)    
+        dz_array.append(dz_row)     
+        
+    dz_array = np.array(dz_array)
     #print('dz_array' + str(dz_array))
     
     #dzdx should (ideally) not depend on y, and dzdy should not depend on x
@@ -1175,20 +1274,19 @@ def auto_bg_prev(img, img_width_nm=100, img_height_nm=100):
     print('dzdx_data: ' + str(dzdy_data))
     print('y_data: ' + str(y_data))
     print('dzdy_data: ' + str(dzdy_data))
-    
+
     #now fit the data
     x_params, pcov = curve_fit(bg_model_function, np.array(x_data), dzdx_data,p0=(1,0))
     print('x_params: ' + str(x_params))
-    
     
     y_params, pcov = curve_fit(bg_model_function, np.array(y_data), dzdy_data,p0=(1,0))
     print('y_params: ' + str(y_params))
     
     
-    
     #cv2.waitKey(0)
     #cv2.destroyAllWindows()
 
+    
     '''
     #print('y_data length: ' + str(len(y_data)))
     #print('dzdy_data length: ' + str(len(dzdy_data)))
@@ -1205,10 +1303,10 @@ def auto_bg_prev(img, img_width_nm=100, img_height_nm=100):
     
     plt.tight_layout()
     plt.show()
-    
     '''
     
-    return [x_params,y_params]    
+    return [x_params,y_params]   
+
 
 
 def auto_detect_edges(img, input_data, show_plots=False):
@@ -1228,8 +1326,10 @@ def auto_detect_edges(img, input_data, show_plots=False):
     dzdy = float( input_data["dzdy"] )
     overlap = bool ( input_data["overlap"] )
         
-        
+    
     # *** Start plane subtract
+    dzdx,dzdy = get_bg_plane(img, img_scale_x, img_scale_y)
+    
     nm_px_x = img_scale_x/(len(img[0])-1)
     nm_px_y = img_scale_y/(len(img)-1)
     img_sub = np.empty((len(img), len(img[0])))
@@ -1363,13 +1463,6 @@ def auto_detect_edges(img, input_data, show_plots=False):
 
     else: # Litho Image
 
-        # **********************************************************
-        # TODO:
-        #       - IGNORE REGIONS COMPLETELY OUTSIDE GDS FILE AREA
-        #       - TEST AUTOFAB FUNCTION
-        #
-        # **********************************************************
-
         # image processing model
         device = "cuda" if torch.cuda.is_available() else "cpu"
         model, _, preprocess = open_clip.create_model_and_transforms('ViT-B-16-plus-240', pretrained="laion400m_e32")
@@ -1377,6 +1470,7 @@ def auto_detect_edges(img, input_data, show_plots=False):
 
         image1 = "tmp/image1.jpg"
         image2 = "tmp/image2.jpg"
+        image3 = "tmp/image3.jpg"
         
         lib = gdstk.read_gds(gds_path, 1e-9)
         top = lib.top_level()[0]
@@ -1403,8 +1497,8 @@ def auto_detect_edges(img, input_data, show_plots=False):
                         y_vertex = y[i]-scan_settings_y
                         #xr = int(((x_vertex*np.cos(scan_settings_angle*(np.pi/180))) - (y_vertex*np.sin((scan_settings_angle+180)*(np.pi/180))))*(img_width/(img_rescale_x)) + (img_width/2))
                         #yr = int(((x_vertex*np.sin(scan_settings_angle*(np.pi/180))) + (y_vertex*np.cos((scan_settings_angle+180)*(np.pi/180))))*(img_height/(img_rescale_y)) + (img_height/2))
-                        xr = int(((x_vertex*np.cos(scan_settings_angle*(np.pi/180))) - (y_vertex*np.sin((scan_settings_angle+180)*(np.pi/180))))*(img_width/(img_scale_x)) + (img_width/2))
-                        yr = int(((x_vertex*np.sin(scan_settings_angle*(np.pi/180))) + (y_vertex*np.cos((scan_settings_angle+180)*(np.pi/180))))*(img_height/(img_scale_y)) + (img_height/2))
+                        xr = int(((x_vertex*np.cos(scan_settings_angle*(np.pi/180)*(-1))) - (y_vertex*np.sin((scan_settings_angle)*(np.pi/180)*(-1))))*(img_width/(img_scale_x)) + (img_width/2))
+                        yr = int(((x_vertex*np.sin(scan_settings_angle*(np.pi/180)*(-1))) + (y_vertex*np.cos((scan_settings_angle)*(np.pi/180))*(-1)))*(img_height/(img_scale_y)) + (img_height/2))
                         poly.append([xr-1, yr-1])
                     polys.append(np.array(poly, np.int32))
                 cv2.fillPoly(curr_image_color, polys, (255, 255, 0))       
@@ -1416,17 +1510,30 @@ def auto_detect_edges(img, input_data, show_plots=False):
                 img1 = model.encode_image(img1)
                 #patterned_area = np.resize(curr_image_color, (max_y, max_x, 3)
 
+                resolution = 4
                 for i in range(len(curr_image)):
                     for j in range(len(curr_image[0])):
                         if(curr_image_color[i,j,0] == 255):
-                            x_index = (j + 1 - (img_width/2))*(img_scale_x/img_width)
-                            y_index = (i + 1 - (img_height/2))*(img_scale_y/img_height)
-                            #x_index = x_shift*np.cos((scan_settings_angle)*(np.pi/180))+y_shift*np.sin((scan_settings_angle+180)*(np.pi/180))
-                            x_index = int(x_index + (max_x/2) + scan_settings_x)
-                            #y_index = -x_shift*np.sin((scan_settings_angle)*(np.pi/180))+y_shift*np.cos((scan_settings_angle+180)*(np.pi/180))
-                            y_index = int(y_index + (max_y/2) + scan_settings_y)
+                            x_shift = (j + 1 - (img_width/2))*(img_scale_x/img_width)
+                            y_shift = (i + 1 - (img_height/2))*(img_scale_y/img_height)
+                            x_index = x_shift*np.cos((scan_settings_angle)*(np.pi/180))-y_shift*np.sin((scan_settings_angle)*(np.pi/180))
+                            x_index = int((x_index + (max_x/2) + scan_settings_x)*resolution)
+                            y_index = x_shift*np.sin((scan_settings_angle)*(np.pi/180))+y_shift*np.cos((scan_settings_angle)*(np.pi/180))
+                            y_index = int((y_index + (max_y/2) + scan_settings_y)*resolution)
                             patterned[y_index, x_index, 0] = 0
-                            patterned[y_index, x_index, 1] = 255
+                            patterned[y_index, x_index, 1] = 255                             
+                            patterned[y_index, x_index-1, 0] = 0
+                            patterned[y_index, x_index-1, 1] = 255
+                            patterned[y_index-1, x_index-1, 0] = 0
+                            patterned[y_index-1, x_index-1, 1] = 255   
+                            patterned[y_index, x_index-2, 0] = 0
+                            patterned[y_index, x_index-2, 1] = 255
+                            patterned[y_index-2, x_index-2, 0] = 0
+                            patterned[y_index-2, x_index-2, 1] = 255
+                            patterned[y_index, x_index-3, 0] = 0
+                            patterned[y_index, x_index-3, 1] = 255  
+                            patterned[y_index-3, x_index-3, 0] = 0
+                            patterned[y_index-3, x_index-3, 1] = 255
 
                 #patterned = cv2.cvtColor(patterned, cv2.COLOR_GRAY2RGB)  
                 #for i in range(len(patterned)):
@@ -1440,37 +1547,41 @@ def auto_detect_edges(img, input_data, show_plots=False):
         else:
             curr_image_color = np.zeros((img_height, img_width, 3), dtype=np.uint8)
             
+            resolution = 4
             for i in range(len(patterned)):
                 for j in range(len(patterned[0])):
-                    if(patterned[i,j,0] == 255):
-                        x_vertex = j - scan_settings_x - (max_x/2)
-                        y_vertex = i - scan_settings_y - (max_y/2)
-                        xr = int(((x_vertex*np.cos(scan_settings_angle*(np.pi/180))) - (y_vertex*np.sin((scan_settings_angle)*(np.pi/180))))*(img_width/(img_scale_x)) + (img_width/2))
-                        yr = int(((x_vertex*np.sin(scan_settings_angle*(np.pi/180))) + (y_vertex*np.cos((scan_settings_angle)*(np.pi/180))))*(img_height/(img_scale_y)) + (img_height/2) - (img_height/(img_scale_y)))
+                    if(patterned[i,j,1] == 255):
+                        x_vertex = (j/resolution) - 1 - scan_settings_x - (max_x/2)
+                        y_vertex = (i/resolution) - 1 - scan_settings_y - (max_y/2)
+                        xr = int(((x_vertex*np.cos(scan_settings_angle*(np.pi/180)*(-1))) - (y_vertex*np.sin((scan_settings_angle)*(np.pi/180)*(-1))))*(img_width/(img_scale_x)) + (img_width/2))
+                        yr = int(((x_vertex*np.sin(scan_settings_angle*(np.pi/180)*(-1))) + (y_vertex*np.cos((scan_settings_angle)*(np.pi/180)*(-1))))*(img_height/(img_scale_y)) + (img_height/2))
                         if (xr <= img_width and xr > 0):
                             if (yr <= img_height and yr > 0):
                                 curr_image_color[yr-1, xr-1, 0] = 255
                                 curr_image_color[yr-1, xr-1, 1] = 255
-                                
-            polygons = top.polygons
-            polys = []
-            for polygon in polygons:
-                x, y = zip(*polygon.points)
-                poly = []          
-                for i in range(len(x)):
-                    x_vertex = x[i]-scan_settings_x
-                    y_vertex = y[i]-scan_settings_y
-                    #xr = int(((x_vertex*np.cos(scan_settings_angle*(np.pi/180))) - (y_vertex*np.sin((scan_settings_angle+180)*(np.pi/180))))*(img_width/(img_rescale_x)) + (img_width/2))
-                    #yr = int(((x_vertex*np.sin(scan_settings_angle*(np.pi/180))) + (y_vertex*np.cos((scan_settings_angle+180)*(np.pi/180))))*(img_height/(img_rescale_y)) + (img_height/2))
-                    xr = int(((x_vertex*np.cos(scan_settings_angle*(np.pi/180))) - (y_vertex*np.sin((scan_settings_angle+180)*(np.pi/180))))*(img_width/(img_scale_x)) + (img_width/2))
-                    yr = int(((x_vertex*np.sin(scan_settings_angle*(np.pi/180))) + (y_vertex*np.cos((scan_settings_angle+180)*(np.pi/180))))*(img_height/(img_scale_y)) + (img_height/2))
-                    if ((xr <= img_width and xr > 0) and (yr <= img_height and yr > 0)):
-                            if ( curr_image_color[yr-1, xr-1, 0] == 255 ):
-                                poly.append([xr-1, yr-1])
-                    else:
-                        poly.append([xr-1, yr-1])
-                polys.append(np.array(poly, np.int32))
-            cv2.fillPoly(curr_image_color, polys, (0, 255, 0)) 
+                               
+            #polygons = top.polygons
+            #polys = []
+            #for polygon in polygons:
+            #    x, y = zip(*polygon.points)
+            #    poly = []          
+            #    for i in range(len(x)):
+            #        x_vertex = x[i]-scan_settings_x
+            #        y_vertex = y[i]-scan_settings_y
+            #        #xr = int(((x_vertex*np.cos(scan_settings_angle*(np.pi/180))) - (y_vertex*np.sin((scan_settings_angle+180)*(np.pi/180))))*(img_width/(img_rescale_x)) + (img_width/2))
+            #        #yr = int(((x_vertex*np.sin(scan_settings_angle*(np.pi/180))) + (y_vertex*np.cos((scan_settings_angle+180)*(np.pi/180))))*(img_height/(img_rescale_y)) + (img_height/2))
+            #        xr = int(((x_vertex*np.cos(scan_settings_angle*(np.pi/180))) - (y_vertex*np.sin((scan_settings_angle+180)*(np.pi/180))))*(img_width/(img_scale_x)) + (img_width/2))
+            #        yr = int(((x_vertex*np.sin(scan_settings_angle*(np.pi/180))) + (y_vertex*np.cos((scan_settings_angle+180)*(np.pi/180))))*(img_height/(img_scale_y)) + (img_height/2))
+            #        if ((xr <= img_width and xr > 0) and (yr <= img_height and yr > 0)):
+            #            if ( curr_image_color[yr-1, xr-1, 0] == 255 ):
+            #                poly.append([xr-1, yr-1])
+            #        else:
+            #            xp = int(x[i] + (max_x/2) - 1)
+            #            yp = int(y[i] + (max_y/2) - 1)
+            #            if ( patterned[yp, xp, 1] == 255 ):
+            #                poly.append([xr-1, yr-1])
+            #    polys.append(np.array(poly, np.int32))
+            #cv2.fillPoly(curr_image_color, polys, (255, 255, 0)) 
             
     
             curr_image = cv2.cvtColor(curr_image_color, cv2.COLOR_RGB2GRAY)  
@@ -1480,6 +1591,7 @@ def auto_detect_edges(img, input_data, show_plots=False):
             img1 = preprocess(img1).unsqueeze(0).to(device)
             img1 = model.encode_image(img1)  
             
+            '''
             fig, ax = plt.subplots(1, 2, figsize=(15, 5))
             ax[0].imshow(curr_image_color)
             ax[0].set_title('Verify Overlapping Region')
@@ -1488,14 +1600,30 @@ def auto_detect_edges(img, input_data, show_plots=False):
             plt.show()
             cv2.waitKey(0) 
             cv2.destroyAllWindows()
+            '''
         
         # Parameters loop to find lowest error
         i = 0
-        num_iter = 23
+        num_iter = 37
         prev_score = 0
-        for j in range(1):
+        for j in range(3):                     
+            if ( j == 1 ):
+                gray = sub_line_by_line(orig_img)
+                new_min = np.min(gray)
+                new_max = np.max(gray)     
+                gray = ((gray - new_min) / (new_max - new_min) * 255).astype(np.uint8)
+                print("successfully line-by-line flattened")
+            elif ( j == 2 ):
+                gray = ((orig_img - min) / (max - min) * 255)
+                gray = (255 - gray)*gray
+                min = np.min(gray)
+                max = np.max(gray)
+                gray = ((gray - min) / (max - min) * 255).astype(np.uint8)
+                print("successfully parabolically scaled colors")
+                
             for i in range(num_iter):
-                if ( img_scale_x < 400 and img_scale_y < 400 ):
+                #if ( img_scale_x < 400 and img_scale_y < 400 ):
+                if ( img_scale_x < 1000 and img_scale_y < 1000 ):
                     if ( i < 4 ):
                         blur = i + 1
                         lowResolution = False
@@ -1538,33 +1666,47 @@ def auto_detect_edges(img, input_data, show_plots=False):
                         thickness = 2.5
                         roughnessThreshold = 0.12
                         litho_method = "minorityLitho"
-                    else:
+                    elif ( i < 26 ):
+                        blur = i - 21
+                        lowResolution = False
+                        thickness = 2
+                        roughnessThreshold = 0.1
+                        litho_method = "default"
+                    #else:
+                    elif ( i == 26 ):
                         blur = 1
                         lowResolution = True
                         thickness = 1.8
                         roughnessThreshold = 0.12
                         litho_method = "default"
-                else:
-                    if ( i < 3 ):
-                        blur = int( i + 1 )
+                #else:
+                    #if ( i < 3 ):
+                    elif ( i < 30 ):
+                        #blur = int( i + 1 )
+                        blur = int( i - 26 )
                         lowResolution = False
                         thickness = 1.0
                         roughnessThreshold = 0.15
                         litho_method = "default"
-                    elif ( i < 6 ):
-                        blur = int( i - 2 )
+                    #elif ( i < 6 ):
+                    elif ( i < 33 ):
+                        #blur = int( i - 2 )
+                        blur = int( i - 29 )
                         lowResolution = False
                         thickness = 1.0
                         roughnessThreshold = 0.01
                         litho_method = "default"
-                    elif ( i < 9 ):
-                        blur = int( i - 5 )
+                    #elif ( i < 9 ):
+                    elif ( i < 36 ):
+                        #blur = int( i - 5 )
+                        blur = int( i - 32 )
                         lowResolution = True
                         thickness = 1.0
                         roughnessThreshold = 0.5
                         litho_method = "default"
                     else:
-                        blur = int( i - 8 )
+                        #blur = int( i - 8 )
+                        blur = int( i - 35 )
                         lowResolution = True
                         thickness = 1.8
                         roughnessThreshold = 0.5
@@ -1579,12 +1721,14 @@ def auto_detect_edges(img, input_data, show_plots=False):
                 curr_labels, curr_numbered = color_layers(curr_overlay, curr_cleaned, len(maximas), curr_numbered)
             
             
-                curr_litho_color = detect_litho(curr_labels, gray, curr_numbered, blur, roughnessThreshold, litho_method)
+                curr_litho_color = detect_litho(curr_labels, gray, curr_numbered, blur, roughnessThreshold, litho_method, 0)
+                curr_litho_color_dual = detect_dual_litho(curr_labels, gray, curr_numbered, blur, roughnessThreshold, litho_method)
                 
                 curr_error = np.zeros_like(curr_image_color)
                 total_error = 0
                 curr_litho = cv2.cvtColor(curr_litho_color, cv2.COLOR_RGB2GRAY)
-                #curr_image = cv2.cvtColor(curr_image_color, cv2.COLOR_RGB2GRAY)    
+                curr_litho_dual = cv2.cvtColor(curr_litho_color_dual, cv2.COLOR_RGB2GRAY)
+                curr_image = cv2.cvtColor(curr_image_color, cv2.COLOR_RGB2GRAY)    
             
                 cv2.imwrite("tmp/image2.jpg", curr_litho)
                 test_img = cv2.imread(image2, cv2.IMREAD_UNCHANGED)         
@@ -1594,24 +1738,67 @@ def auto_detect_edges(img, input_data, show_plots=False):
                 cos_scores = util.pytorch_cos_sim(img1, img2)
                 curr_score = round(float(cos_scores[0][0])*100, 2) 
                 
-                error_gray = np.abs(curr_image - curr_litho)*2  
+                cv2.imwrite("tmp/image3.jpg", curr_litho_dual)
+                test_img2 = cv2.imread(image3, cv2.IMREAD_UNCHANGED)         
+                img3 = Image.fromarray(test_img2).convert('RGB')
+                img3 = preprocess(img3).unsqueeze(0).to(device)
+                img3 = model.encode_image(img3)
+                cos_scores = util.pytorch_cos_sim(img1, img3)
+                curr_score_dual = round(float(cos_scores[0][0])*100, 2) 
+                
+                if ( curr_score_dual > curr_score ):
+                    curr_score = curr_score_dual
+                    curr_litho = curr_litho_dual
+                    curr_litho_color = curr_litho_color_dual
+                    print("dual initiated")
+                
+                zero_score = 0
+                curr_x_offset, curr_y_offset, curr_x_offset_0, curr_y_offset_0, zero_score = auto_detect_creep(curr_litho, curr_image, img_width, img_height, img_scale_x, img_scale_y, scan_settings_angle, overlap)
+                #curr_x_offset, curr_y_offset, curr_x_offset_0, curr_y_offset_0, zero_score = auto_detect_creep_fft(curr_litho, curr_image, img_width, img_height, img_scale_x, img_scale_y, scan_settings_angle, overlap)
+                curr_x_pxl_offset = int(curr_x_offset_0*(img_width/img_scale_x))
+                curr_y_pxl_offset = int(curr_y_offset_0*(img_height/img_scale_y))
+                
+                
+                curr_litho_offset = np.zeros_like(curr_litho)
+                for i in range(len(curr_litho)):
+                    for j in range(len(curr_litho[0])):
+                        if(curr_litho[i,j] != 0):
+                            if( (j + curr_x_pxl_offset < img_width) and (i + curr_y_pxl_offset < img_height) and (j + curr_x_pxl_offset > 0) and (i + curr_y_pxl_offset > 0) ):
+                                curr_litho_offset[i + curr_y_pxl_offset, j + curr_x_pxl_offset] = curr_litho[i,j]
+                
+                error_gray = np.abs(curr_image - curr_litho_offset)*2  
 
-                curr_cleaned = np.flipud(curr_cleaned)
+                #curr_cleaned = np.flipud(curr_cleaned)
 
                 for i in range(len(error_gray)):
-                    for j in range(len(error_gray[0])):
-                        if curr_cleaned[i,j]:
-                            curr_error[i,j] = (0,0,0)
-                        elif error_gray[i,j] == 60:
+                    for j in range(len(error_gray[0])):  
+                        if( (j + curr_x_pxl_offset < img_width) and (i + curr_y_pxl_offset < img_height) and (j + curr_x_pxl_offset > 0) and (i + curr_y_pxl_offset > 0) ):
+                            if curr_cleaned[i,j]:
+                                error_gray[i+curr_y_pxl_offset,j+curr_x_pxl_offset] = 0
+
+                for i in range(len(error_gray)):
+                    for j in range(len(error_gray[0])):                      
+                        if error_gray[i,j] == 60:
                             curr_error[i,j] = (150,0,0)
                             total_error = total_error + 1
                         elif error_gray[i,j] == 196:
                             curr_error[i,j] = (255,0,0)
                             total_error = total_error + 1
+                        '''
+                        if( (j + curr_x_pxl_offset < img_width) and (i + curr_y_pxl_offset < img_height) ):
+                            if( (j + curr_x_pxl_offset > 0) and (i + curr_y_pxl_offset > 0) ):
+                                if curr_cleaned[i+curr_y_pxl_offset,j+curr_x_pxl_offset]:
+                                    if (curr_error[i,j,0] != 0):
+                                        curr_error[i,j] = (0,0,0)
+                                        total_error = total_error - 1
+                        '''
                 curr_error_percent = total_error/(img_width*img_height)
-                curr_score = (1-curr_error_percent)*10 + curr_score*0.90
+                if (zero_score == 1):
+                    curr_error_percent = 1
+                
+                curr_score = (1-curr_error_percent)*20 + curr_score*0.8
                 print(curr_score)
-                curr_cleaned = np.flipud(curr_cleaned)
+                #curr_cleaned = np.flipud(curr_cleaned)
                 
                 # Keep results that yield highest similarity
                 if (curr_score > prev_score):
@@ -1621,146 +1808,96 @@ def auto_detect_edges(img, input_data, show_plots=False):
                     result = curr_result
                     labels = curr_labels
                     litho = curr_litho
+                    litho_offset = curr_litho_offset
                     litho_color = curr_litho_color
                     image = curr_image_color
                     error = curr_error
                     similarity = curr_score
+                    x_offset = curr_x_offset
+                    y_offset = curr_y_offset
                     
                     # update for next loop
                     prev_score = curr_score
-                
-                 
-            
-            #gray = ((orig_img - min) / (max - min) * 255)
-            #gray = (255 - gray)*gray
-            #min = np.min(gray)
-            #max = np.max(gray)
-            #gray = ((gray - min) / (max - min) * 255).astype(np.uint8)
-        
-        if(similarity > 70):
-            pf = True
+        '''
+        if ( not overlap ):  
+            if(similarity > 65):
+                pf = True
+            else:
+                pf = False
         else:
+            if(similarity > 85):
+                pf = True
+            else:
+                pf = False
+        '''
+        
+        if ( curr_error_percent > 0.05 ):
             pf = False
-
-        # loop and count index for every nonzero pixel and then divide by width/height
-        litho_x_pxl_offset = 0
-        litho_x_pxl_tot = 0
-        litho_y_pxl_offset = 0
-        litho_y_pxl_tot = 0
-        gds_x_pxl_offset = 0
-        gds_x_pxl_tot = 0
-        gds_y_pxl_offset = 0
-        gds_y_pxl_tot = 0
-        
-        for i in range(len(litho)):
-            litho_x_skip = 0
-            gds_x_skip = 0
-            for j in range(len(litho[0])):
-                if(litho[i,j] != 0 and litho_x_skip == 0):
-                    litho_x_pxl_offset += (i+1-img_width/2)
-                    litho_x_pxl_tot += 1
-                    litho_x_skip = 1
-                if(curr_image[i,j] != 0 and gds_x_skip == 0):
-                    gds_x_pxl_offset += (i+1-img_width/2)
-                    gds_x_pxl_tot += 1
-                    gds_x_skip = 1
-        for j in range(len(litho[0])):
-            litho_y_skip = 0
-            gds_y_skip = 0
-            for i in range(len(litho)):
-                if(litho[i,j] != 0 and litho_y_skip == 0):
-                    litho_y_pxl_offset += (j+1-img_height/2)
-                    litho_y_pxl_tot += 1
-                    litho_y_skip = 1
-                if(curr_image[i,j] != 0 and gds_y_skip == 0):
-                    gds_y_pxl_offset += (j+1-img_height/2)
-                    gds_y_pxl_tot += 1
-                    gds_y_skip = 1
-                    
-        #mean_x_litho = (np.mean(litho, axis=0))/255
-        #mean_y_litho = (np.mean(litho, axis=1))/255
-        #mean_x_gds = (np.mean(curr_image, axis=0))/255
-        #mean_y_gds = (np.mean(curr_image, axis=1))/255
-
-        #x_offset = (mean_x_litho - mean_x_gds)*(img_scale_x/img_width)
-        #y_offset = (mean_y_litho - mean_y_gds)*(img_scale_y/img_height)
-        if ( gds_x_pxl_tot != 0 and gds_y_pxl_tot != 0 ):
-            gds_x = (gds_y_pxl_offset/gds_y_pxl_tot)*(img_scale_x/img_width)
-            gds_y = (gds_x_pxl_offset/gds_x_pxl_tot)*(img_scale_y/img_height)
         else:
-            gds_x = 0
-            gds_y = 0
-        print("gds x mean:")
-        print(gds_x)
-        print("gds y mean:")
-        print(gds_y)
-        if ( litho_x_pxl_tot != 0 and litho_y_pxl_tot != 0 ):
-            litho_x = (litho_y_pxl_offset/litho_y_pxl_tot)*(img_scale_x/img_width)
-            litho_y = (litho_x_pxl_offset/litho_x_pxl_tot)*(img_scale_y/img_height)
-        else:
-            litho_x = gds_x
-            litho_y = gds_y
-        print("litho x mean:")
-        print(litho_x)
-        print("litho y mean:")
-        print(litho_y)
-
-        x_offset = gds_x - litho_x
-        y_offset = gds_y - litho_y
+            pf = True
 
         #litho = cv2.cvtColor(litho, cv2.COLOR_GRAY2RGB)
         
+        #if ( show_plots ):
+        fig, ax = plt.subplots(2, 5, figsize=(15, 5))
+        #orig = np.flipud(orig)
+        ax[0,0].imshow(orig, cmap='gray')
+        ax[0,0].set_title('Original Image')
+        ax[0,0].axis("off")
+        #contours = np.flipud(contours)
+        ax[0,1].imshow(contours, cmap='gray')
+        ax[0,1].set_title('Contours')
+        ax[0,1].axis("off")
+        #cleaned = np.flipud(cleaned)
+        ax[0,2].imshow(cleaned, cmap='gray')
+        ax[0,2].set_title('Post-processing')
+        ax[0,2].axis("off")
+        #result = np.flipud(result)
+        ax[0,3].imshow(result)
+        ax[0,3].set_title('Detected Step Edges')
+        ax[0,3].axis("off")
+        #labels = np.flipud(labels)
+        ax[0,4].imshow(labels)
+        ax[0,4].set_title('Color Coded Regions')
+        ax[0,4].axis("off")
+        ax[1,0].remove()
+        #litho_color = np.flipud(litho_color)
+        ax[1,1].imshow(litho_color)
+        ax[1,1].set_title('Detected Lithography')
+        ax[1,1].axis("off")
+        #litho_color = np.flipud(litho_color)
+        #image = np.flipud(image)
+        ax[1,2].imshow(image)
+        ax[1,2].set_title('Ideal Lithography')
+        ax[1,2].axis("off")
+        #error = np.flipud(error)
+        ax[1,3].imshow(error)
+        ax[1,3].set_title('Error')
+        ax[1,3].axis("off")
+        #error = np.flipud(error)
+        #patterned = np.flipud(patterned)
+        ax[1,4].imshow(patterned)
+        ax[1,4].set_title('Patterning Progress')
+        ax[1,4].axis("off")
+        #patterned = np.flipud(patterned)
+        
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"detectedLithoImages/detectedLitho_{timestamp}.png"
+        plt.savefig(filename)
+        
         if ( show_plots ):
-            fig, ax = plt.subplots(2, 5, figsize=(15, 5))
-            #orig = np.flipud(orig)
-            ax[0,0].imshow(orig, cmap='gray')
-            ax[0,0].set_title('Original Image')
-            ax[0,0].axis("off")
-            #contours = np.flipud(contours)
-            ax[0,1].imshow(contours, cmap='gray')
-            ax[0,1].set_title('Contours')
-            ax[0,1].axis("off")
-            #cleaned = np.flipud(cleaned)
-            ax[0,2].imshow(cleaned, cmap='gray')
-            ax[0,2].set_title('Post-processing')
-            ax[0,2].axis("off")
-            #result = np.flipud(result)
-            ax[0,3].imshow(result)
-            ax[0,3].set_title('Detected Step Edges')
-            ax[0,3].axis("off")
-            #labels = np.flipud(labels)
-            ax[0,4].imshow(labels)
-            ax[0,4].set_title('Color Coded Regions')
-            ax[0,4].axis("off")
-            ax[1,0].remove()
-            #litho_color = np.flipud(litho_color)
-            ax[1,1].imshow(litho_color)
-            ax[1,1].set_title('Detected Lithography')
-            ax[1,1].axis("off")
-            #litho_color = np.flipud(litho_color)
-            #image = np.flipud(image)
-            ax[1,2].imshow(image)
-            ax[1,2].set_title('Ideal Lithography')
-            ax[1,2].axis("off")
-            #error = np.flipud(error)
-            ax[1,3].imshow(error)
-            ax[1,3].set_title('Error')
-            ax[1,3].axis("off")
-            #error = np.flipud(error)
-            #patterned = np.flipud(patterned)
-            ax[1,4].imshow(patterned)
-            ax[1,4].set_title('Patterning Progress')
-            ax[1,4].axis("off")
-            #patterned = np.flipud(patterned)
             plt.show()
             cv2.waitKey(0) 
-            cv2.destroyAllWindows()
+            cv2.destroyAllWindows() 
+        
+        plt.close()
+                 
         
         print("done detecting edges")
         return litho_color, pf, patterned, x_offset, y_offset
 
-def auto_detect_creep(litho_error, input_data):
-    
+def auto_detect_creep(litho, curr_image, img_width, img_height, img_scale_x, img_scale_y, scan_settings_angle, overlap):
+    '''
     print("detecting creep ...")
 
     img_width = float( input_data["img_width"] )
@@ -1837,8 +1974,161 @@ def auto_detect_creep(litho_error, input_data):
         x_offset = (x_offset_ovrwttn + x_offset_undrwttn)/2
     
     y_offset = (y_offset_ovrwttn + y_offset_undrwttn)/2
+    '''
+    
+    # loop and count index for every nonzero pixel and then divide by width/height
+    litho_x_pxl_offset = 0
+    litho_x_pxl_tot = 0
+    litho_y_pxl_offset = 0
+    litho_y_pxl_tot = 0
+    gds_x_pxl_offset = 0
+    gds_x_pxl_tot = 0
+    gds_y_pxl_offset = 0
+    gds_y_pxl_tot = 0
+    max_y_gds = 0
+    max_y_litho = 0
+    max_x_gds = 0
+    max_x_litho = 0
+    min_y_litho = 0
+    min_x_litho = 0
+    min_y_gds = 0
+    min_x_gds = 0
+    curr_max_y_litho = 0
+    curr_max_x_litho = 0
+    curr_min_y_litho = 0
+    curr_min_x_litho = 0
+    litho_min_skip = 0
+    gds_min_skip = 0
+        
+    for i in range(len(litho)):
+        litho_y_skip = 0
+        gds_y_skip = 0
+        for j in range(len(litho[0])):
+            if(litho[i,j] != 0 and litho_y_skip == 0):
+                litho_y_pxl_offset += (i+1-img_height/2)
+                litho_y_pxl_tot += 1
+                litho_y_skip = 1
+                curr_max_y_litho = i
+                if(litho_min_skip == 0):
+                    curr_min_y_litho = i
+                    litho_min_skip = 1
+                if(i == img_height - 1):
+                    max_y_litho = 1
+                if(i == 0):
+                    min_y_litho = 1
+            if(curr_image[i,j] != 0 and gds_y_skip == 0):
+                gds_y_pxl_offset += (i+1-img_height/2)
+                gds_y_pxl_tot += 1
+                gds_y_skip = 1
+                if(gds_min_skip == 0):
+                    curr_min_y_gds = i
+                    gds_min_skip = 1
+                if(i == img_height - 1):
+                    max_y_gds = 1
+                if(i == 0):
+                    min_y_gds = 1
+    litho_min_skip = 0
+    gds_min_skip = 0
+    for j in range(len(litho[0])):
+        litho_x_skip = 0
+        gds_x_skip = 0
+        for i in range(len(litho)):
+            if(litho[i,j] != 0 and litho_x_skip == 0):
+                litho_x_pxl_offset += (j+1-img_width/2)
+                litho_x_pxl_tot += 1
+                litho_x_skip = 1
+                curr_max_x_litho = j
+                if(litho_min_skip == 0):
+                    curr_min_x_litho = j
+                    litho_min_skip = 1
+                if(j == img_width - 1):
+                    max_x_litho = 1
+                if(j == 0):
+                    min_x_litho = 1
+            if(curr_image[i,j] != 0 and gds_x_skip == 0):
+                gds_x_pxl_offset += (j+1-img_width/2)
+                gds_x_pxl_tot += 1
+                gds_x_skip = 1
+                if(gds_min_skip == 0):
+                    curr_min_x_gds = j
+                    gds_min_skip = 1
+                if(j == img_width - 1):
+                    max_y_gds = 1
+                if(j == 0):
+                    min_x_gds = 1
+                
+    #mean_x_litho = (np.mean(litho, axis=0))/255
+    #mean_y_litho = (np.mean(litho, axis=1))/255
+    #mean_x_gds = (np.mean(curr_image, axis=0))/255
+    #mean_y_gds = (np.mean(curr_image, axis=1))/255
+    #x_offset = (mean_x_litho - mean_x_gds)*(img_scale_x/img_width)
+    #y_offset = (mean_y_litho - mean_y_gds)*(img_scale_y/img_height)
+    if ( gds_x_pxl_tot != 0 and gds_y_pxl_tot != 0 ):
+        gds_x = (gds_x_pxl_offset/gds_x_pxl_tot)*(img_scale_x/img_width)
+        gds_y = (gds_y_pxl_offset/gds_y_pxl_tot)*(img_scale_y/img_height)
+    else:
+        gds_x = 0
+        gds_y = 0
+    #print("gds x mean:")
+    #print(gds_x)
+    #print("gds y mean:")
+    #print(gds_y)
+    if ( litho_x_pxl_tot != 0 and litho_y_pxl_tot != 0 ):
+        litho_x = (litho_x_pxl_offset/litho_x_pxl_tot)*(img_scale_x/img_width)
+        litho_y = (litho_y_pxl_offset/litho_y_pxl_tot)*(img_scale_y/img_height)
+    else:
+        litho_x = gds_x
+        litho_y = gds_y
+    #print("litho x mean:")
+    #print(litho_x)
+    #print("litho y mean:")
+    #print(litho_y)
+    
+    x_offset_0 = gds_x - litho_x
+    y_offset_0 = gds_y - litho_y
+    
+    
+    if ( (max_y_gds == 1) and (max_y_litho == 0) ):
+        y_offset_0 = (curr_max_y_litho - img_height - 1)*(img_scale_y/img_height)
+    if ( (max_x_gds == 1) and (max_x_litho == 0) ):
+        x_offset_0 = (curr_max_x_litho - img_width - 1)*(img_scale_x/img_width)
+    if ( (min_y_gds == 1) and (min_y_litho == 0) ):
+        y_offset_0 = -(curr_min_y_litho)*(img_scale_y/img_height)
+    if ( (min_x_gds == 1) and (min_x_litho == 0) ):
+        x_offset_0 = -(curr_min_x_litho)*(img_scale_x/img_width)
+    
+    
+    zero_score = 0
+    if (overlap):
+        if ( (max_y_gds == 1) and (max_y_litho != 1) ):
+            zero_score = 1
+        elif ( (min_y_gds == 1) and (min_y_litho != 1) ):
+            zero_score = 1
+        
+    x_offset = (x_offset_0*np.cos(scan_settings_angle*(np.pi/180))) - (y_offset_0*np.sin((scan_settings_angle)*(np.pi/180)))
+    y_offset = (x_offset_0*np.sin(scan_settings_angle*(np.pi/180))) + (y_offset_0*np.cos((scan_settings_angle)*(np.pi/180)))
 
+    return x_offset, y_offset, x_offset_0, y_offset_0, zero_score
+ 
+def auto_detect_creep_fft(litho, curr_image, img_width, img_height, img_scale_x, img_scale_y, scan_settings_angle, overlap):
+   
+    ideal_litho = np.fft.fftshift(fft2(curr_image))
+    detected_litho = np.fft.fftshift(fft2(litho))
+    cross_spectrum = ideal_litho * np.conj(detected_litho)
+    correlation = np.fft.ifft2(cross_spectrum).real
+    peaks, _ = find_peaks(correlation.flatten())
+    if not peaks.size:
+        return 0,0,0,0,1
+        
+    peak_index = peaks[np.argmax(correlation.flatten()[peaks])]
+    y_shift, x_shift = np.unravel_index(peak_index, correlation.shape)
+    x_offset_0 = -(x_shift/2 + 1 - img_width/2)*(img_scale_x/img_width)
+    y_offset_0 = -(y_shift/2 + 1 - img_height/2)*(img_scale_y/img_height)
+    
+    x_offset = (x_offset_0*np.cos(scan_settings_angle*(np.pi/180))) - (y_offset_0*np.sin((scan_settings_angle)*(np.pi/180)))
+    y_offset = (x_offset_0*np.sin(scan_settings_angle*(np.pi/180))) + (y_offset_0*np.cos((scan_settings_angle)*(np.pi/180)))
+    
+    zero_score = 0
+    
 
-    return x_offset, y_offset
-
-
+    return x_offset, y_offset, x_offset_0, y_offset_0, zero_score
