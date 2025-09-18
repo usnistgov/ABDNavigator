@@ -96,13 +96,13 @@ def detect_tip(
     #print('min and max')
     #print(min_gray)
     #print(max_gray)
-    
-    #cv2.namedWindow("gray")
-    #cv2.imshow("gray", cv2.resize(gray,(400,400)))
-    #cv2.imshow("gray", cv2.resize(gray,(400,400)))
-    #cv2.waitKey(0)
-    #cv2.destroyAllWindows()
-    
+    '''
+    cv2.namedWindow("gray")
+    cv2.imshow("gray", cv2.resize(gray,(400,400)))
+    cv2.imshow("gray", cv2.resize(gray,(400,400)))
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    '''
     #threshold the image to find all the dangling bonds
     max_gray = np.max(gray)
     min_gray = np.min(gray)
@@ -111,16 +111,16 @@ def detect_tip(
     
     _, thresh = cv2.threshold(gray, int(z_thresh), 255, cv2.THRESH_BINARY)
     
+    '''
+    cv2.namedWindow("gray")
+    cv2.imshow("gray", cv2.resize(gray,(400,400)))
     
-    #cv2.namedWindow("gray")
-    #cv2.imshow("gray", cv2.resize(gray,(400,400)))
+    cv2.namedWindow("thresh")
+    cv2.imshow("thresh", cv2.resize(thresh,(400,400)))
     
-    #cv2.namedWindow("thresh")
-    #cv2.imshow("thresh", cv2.resize(thresh,(400,400)))
-    
-    #cv2.waitKey(0)
+    cv2.waitKey(0)
     cv2.destroyAllWindows()
-    
+    '''
     
     
     #get the connected components, which should be individual features
@@ -144,8 +144,11 @@ def detect_tip(
     heights = z_range*(gray - min_gray)/(max_gray - min_gray)  #array of the actual heights
     
     #remove features that are too tall or too short
+    
     i = 0
     boxes = list(boxes)
+    print('num boxes: ' + str(len(boxes)))
+    
     while i < len(boxes):
         [x, y, w, h] = boxes[i]
         check_heights = heights[y : y + w, x : x + h]
@@ -158,6 +161,7 @@ def detect_tip(
         else:
             i += 1
     
+    print('new num boxes: ' + str(len(boxes)))
     
     #if there are no features left, then we need to return
     if (len(boxes) <= 1):
@@ -178,23 +182,31 @@ def detect_tip(
     
     print('more than 0 features')
     
+    
+    
     total_bonds = 0
     total_cls = {0: 0, 1: 0}
     nm_p_pixel = scan_nm / img.shape[0]  # Calculate using height
+    
+    print('CONTOUR_MIN_SIZE (nm): ' + str(CONTOUR_MIN_SIZE[0]) + '  ' + str(CONTOUR_MIN_SIZE[1]))
+    print('CONTOUR_MIN_SIZE (nm): ' + str(CONTOUR_MIN_SIZE[0]/ nm_p_pixel) + '  ' + str(CONTOUR_MIN_SIZE[1]/ nm_p_pixel))
+    
     brightest_locations = set()
     roi_locations = []
     for box in boxes:
         [x, y, w, h] = box
-        if (
-            w >= CONTOUR_MIN_SIZE[0] / nm_p_pixel
-            and h >= CONTOUR_MIN_SIZE[1] / nm_p_pixel
+        if (True
+            #w >= CONTOUR_MIN_SIZE[0] / nm_p_pixel
+            #and h >= CONTOUR_MIN_SIZE[1] / nm_p_pixel
         ):
             # Extract the ROI and resize it to a square
             roi, x_roi, y_roi, _ = extract_roi(gray, x, y, x + w, y + h)
             new_size = int(roi_nm_size / nm_p_pixel)
-
+            
             # Remove nearby duplicates from brightness centering
             x_b, y_b = locate_brightest_pixel(roi)
+            
+            
             area_check = False
             for x_test in range(-cross_size * 2, cross_size * 2 + 1):
                 if area_check:
@@ -208,6 +220,8 @@ def detect_tip(
                         break
             if area_check:
                 continue
+            
+            
             brightest_locations.add((x_b + x_roi, y_b + y_roi))
 
             # Perform the cross check
@@ -289,7 +303,8 @@ def detect_tip(
         }
         #raise ValueError("No bonds detected in the image.")
         return output
-
+    
+    print('num roi locations: ' + str(len(roi_locations)))
     output = {
         "sharp": total_cls[1],
         "dull": total_cls[0],

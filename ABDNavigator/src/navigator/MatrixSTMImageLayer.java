@@ -100,6 +100,8 @@ public class MatrixSTMImageLayer extends ImageLayer
 	public double roughnessThreshold = 0.12;
 	public String findLithoMethod = "default";
 	public double thickness = 1.0;
+	public int yOrder = 5;
+	public boolean displayHist = true;
 	
 	private int scanSettingsRef = 0;
 	
@@ -112,7 +114,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 		appendActions( new String[]{"altLocateLattice","addExample","clearExamples","checkTipQuality","detectStepEdges","altDetectStepEdges","linkScanSettingsRef","openInGwyddion"} );
 		//tabs.put("maxima", new String[] {"locateMaxima","maximaExpectedDiameter","maximaPrecision","maximaThreshold"});
 		//tabs.put("lattice", new String[] {"locateLattice","altLocateLattice","latticeExpectedSpacing","latticeSpacingUncertainty"});
-		tabs.put("steps", new String[] {"detectStepEdges","altDetectStepEdges","stepBlur","zoomedIn","roughnessThreshold","lowResolution","findLithoMethod","thickness","verifyGDS"});
+		tabs.put("steps", new String[] {"detectStepEdges","altDetectStepEdges","stepBlur","zoomedIn","roughnessThreshold","lowResolution","findLithoMethod","thickness","verifyGDS","yOrder","displayHist"});
 		tabs.put("detection", new String[] {"checkTipQuality","latticeAngle", "detectionContrast", "predictionThreshold","minTipDetectHeight","maxTipDetectHeight"});
 		tabs.put("lattice", new String[] {"altLocateLattice","latticeExpectedSpacing","latticeSpacingUncertainty"});
 		//tabs.put("machine learning", new String[] {"addExample","clearExamples"});
@@ -126,6 +128,7 @@ public class MatrixSTMImageLayer extends ImageLayer
 		categories.put("zoomedIn", new String[] {"true","false"});
 		categories.put("findLithoMethod", new String[] {"default","off","minorityLitho","majorityLitho"});
 		categories.put("verifyGDS", new String[] {"true","false"});
+		categories.put("displayHist", new String[] {"true","false"});
 		units.put("latticeExpectedSpacing", "nm");
 		units.put("latticeSpacingUncertainty", "nm");
 		units.put("latticeAngle", "deg");
@@ -1516,6 +1519,14 @@ public class MatrixSTMImageLayer extends ImageLayer
 		if (s.length() > 0)
 			stepBlur = Integer.parseInt(s);
 		
+		s = xml.getAttribute("yOrder");
+		if (s.length() > 0)
+			yOrder = Integer.parseInt(s);
+		
+		s = xml.getAttribute("displayHist");
+		if (s.length() > 0)
+			displayHist = Boolean.parseBoolean(s);
+		
 		s = xml.getAttribute("zoomedIn");
 		if (s.length() > 0)
 			zoomedIn = Boolean.parseBoolean(s);
@@ -1590,6 +1601,8 @@ public class MatrixSTMImageLayer extends ImageLayer
 		e.setAttribute("width", Integer.toString(xPixels));
 		e.setAttribute("height", Integer.toString(yPixels));
 		e.setAttribute("stepBlur", Integer.toString(stepBlur));
+		e.setAttribute("yOrder", Integer.toString(yOrder));
+		e.setAttribute("displayHist", Boolean.toString(displayHist));
 		e.setAttribute("zoomedIn", Boolean.toString(zoomedIn));
 		e.setAttribute("roughnessThreshold", Double.toString(roughnessThreshold));
 		e.setAttribute("lowResolution", Boolean.toString(lowResolution));
@@ -2389,6 +2402,9 @@ public class MatrixSTMImageLayer extends ImageLayer
 		
 		jObj.put("captured_lines_start",capturedLinesStart);
 		jObj.put("captured_lines_end",capturedLinesEnd);
+		
+		jObj.put("y_order", yOrder);
+		jObj.put("display_hist", displayHist);
 		
 		//1D array with raw z values in nm
 		JSONArray img = new JSONArray();

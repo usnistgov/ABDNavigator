@@ -703,6 +703,8 @@ def handle_client(client_socket: socket.socket) -> None:
                 print('captured lines start and end:')
                 print(input_data["captured_lines_start"])
                 print(input_data["captured_lines_end"])
+                print(input_data["y_order"])
+                print(input_data["display_hist"])
                                 
                 img = np.array(input_data["img"])
                 img = img.reshape( int(input_data["img_height"]), int(input_data["img_width"]) )
@@ -710,7 +712,9 @@ def handle_client(client_socket: socket.socket) -> None:
                 detect_steps_alt(
                     img, 
                     img_width_nm=float(input_data["img_scale_x"]), 
-                    img_height_nm=float(input_data["img_scale_x"]) 
+                    img_height_nm=float(input_data["img_scale_x"]),
+                    display_hist=bool(input_data["display_hist"]),
+                    y_order=int(input_data["y_order"]) 
                     )
                 
                 print('all done')

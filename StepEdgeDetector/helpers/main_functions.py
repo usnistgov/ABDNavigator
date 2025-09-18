@@ -979,7 +979,7 @@ def auto_bg_slopes(img, img_width_nm, img_height_nm, display_hist=True):
         
     
 
-def detect_steps_alt(img, img_width_nm=100, img_height_nm=100, line_by_line_flatten=True, display_hist=True ):
+def auto_flatten(img, img_width_nm=100, img_height_nm=100, line_by_line_flatten=True, display_hist=True, y_order=5 ):
     img0 = img
     #if line_by_line_flatten:
     #do line by line flattening
@@ -990,7 +990,7 @@ def detect_steps_alt(img, img_width_nm=100, img_height_nm=100, line_by_line_flat
     #img_plane = sub_plane(img, img_width_nm, img_height_nm, dzdx, dzdy)
     #quality(img_plane, img_width_nm, img_height_nm, display_hist=True, name='plane')
     
-    dzdx,dzdy = auto_bg_slopes(img, img_width_nm, img_height_nm)    
+    dzdx,dzdy = auto_bg_slopes(img, img_width_nm, img_height_nm, display_hist=display_hist)    
     img = sub_plane(img, img_width_nm, img_height_nm, dzdx, dzdy)
     
     img_diff = img - img0
@@ -1003,12 +1003,14 @@ def detect_steps_alt(img, img_width_nm=100, img_height_nm=100, line_by_line_flat
     for y_idx in indep_data:
         lin_z_sub.append( np.mean(img_diff[y_idx]) )
     
-    y_params, pcov = curve_fit(bg_model_function, np.array(indep_data), np.array(lin_z_sub), p0=(1,0,0,0,0))
+    initial_vals = [0]*y_order
+    initial_vals[0] = 1
+    y_params, pcov = curve_fit(bg_model_function, np.array(indep_data), np.array(lin_z_sub), p0=tuple(initial_vals))#(1,0,0,0,0))
     
     fit_z = []
     diff_z = []
     for y_idx in indep_data:
-        fit_z.append( bg_model_function(y_idx, y_params[0],y_params[1],y_params[2],y_params[3],y_params[4]) )
+        fit_z.append( bg_model_function(y_idx, *y_params) )#y_params[0],y_params[1],y_params[2],y_params[3],y_params[4]) )
         diff_z.append( fit_z[y_idx]-lin_z_sub[y_idx] )
         img[y_idx] += diff_z[y_idx]
     
@@ -1019,9 +1021,24 @@ def detect_steps_alt(img, img_width_nm=100, img_height_nm=100, line_by_line_flat
         plt.plot(fit_z)
         plt.show()
     
-    dzdx,dzdy = auto_bg_slopes(img, img_width_nm, img_height_nm)    
+    dzdx,dzdy = auto_bg_slopes(img, img_width_nm, img_height_nm, display_hist=display_hist)    
     img = sub_plane(img, img_width_nm, img_height_nm, dzdx, dzdy)
     
+    if display_hist:
+        min = np.min(img)
+        max = np.max(img)
+        gray = ((img - min) / (max - min) * 255).astype(np.uint8)
+        cv2.namedWindow("gray")
+        cv2.imshow("gray", cv2.resize(gray,(400,400)))
+        
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+    
+    return img
+
+def detect_steps_alt(img, img_width_nm=100, img_height_nm=100, line_by_line_flatten=True, display_hist=True, y_order=5 ):
+    img = auto_flatten(img, img_width_nm, img_height_nm, line_by_line_flatten, display_hist, y_order)
+       
     hist, bin_edges = np.histogram(img, bins=256)
     corr = np.correlate(hist,hist,mode='full')
     
@@ -1050,7 +1067,8 @@ def detect_steps_alt(img, img_width_nm=100, img_height_nm=100, line_by_line_flat
     #gray_plane = ((img_plane - min) / (max - min) * 255).astype(np.uint8)
     #cv2.namedWindow("gray_plane")
     #cv2.imshow("gray_plane", cv2.resize(gray_plane,(400,400)))
-        
+    
+    '''    
     min = np.min(img)
     max = np.max(img)
     gray = ((img - min) / (max - min) * 255).astype(np.uint8)
@@ -1060,6 +1078,7 @@ def detect_steps_alt(img, img_width_nm=100, img_height_nm=100, line_by_line_flat
     
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+    '''
 
 
 def auto_bg_prev(img, img_width_nm=100, img_height_nm=100):
