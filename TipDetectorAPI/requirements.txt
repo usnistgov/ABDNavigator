@@ -1,12 +1,13 @@
-python version 3.11.3More actions
+python version 3.11.3
 pip install tensorflow==2.18.0
 pip install pydantic
 pip install matplotlib
-~pip install opencv-python
-~pip install tqdm
-~pip install scikit-image
-~pip install gdstk
-~pip install access2theMatrix
+pip install opencv-python
+pip install tqdm
+pip install scikit-image
+pip install gdstk
+pip install access2theMatrix
 pip install open_clip_torch
 pip install sentence_transformers
 pip install tf-keras
+pip install xmltodict
