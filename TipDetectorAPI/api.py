@@ -32,7 +32,7 @@ from scipy.spatial.transform import Rotation as R
 from tensorflow.keras.models import load_model  # type: ignore
 
 from detector_functions.main_functions import detect_tip
-from detector_functions.matrix_helpers import get_nm_from_matrix, matrix_to_img_array, matrix_to_img_array_with_z_range
+from detector_functions.matrix_helpers import get_nm_from_matrix, matrix_to_height_array #, matrix_to_img_array_with_z_range
 
 import xmltodict
 from tqdm import tqdm
@@ -114,7 +114,7 @@ def process_image(data: dict) -> dict:
 
     scan_path = data["scan_path"]
     detector_options = data["detector_options"]
-    
+    '''
     z_range = 1
 
     if scan_path.endswith(".Z_mtrx"):
@@ -148,7 +148,20 @@ def process_image(data: dict) -> dict:
         scan_nm = detector_options.get("scan_nm", 0)
         if scan_nm == 0:
             raise ValueError("Scan size in nanometers is required for regular images")
-
+    '''
+    
+    matrix_options = data["matrix_options"]
+    img = matrix_to_height_array(scan_path, matrix_options['direction'])
+    
+    if img is None:
+        raise Exception("Unable to open the matrix file")
+    
+    scan_nm = ( 
+        get_nm_from_matrix(scan_path) 
+        if "scan_nm" not in detector_options
+        else detector_options["scan_nm"]
+    )
+    
     contrast = detector_options.get("contrast", 1.0)
     rotation = detector_options.get("rotation", 0.0)
     min_height = detector_options.get("minHeight",0.11)
@@ -164,7 +177,7 @@ def process_image(data: dict) -> dict:
         rotation=rotation,
         scan_debug=False,
         roi_debug=False,
-        z_range=z_range,
+        #z_range=z_range,
         min_height=min_height,
         max_height=max_height
     )
@@ -230,7 +243,11 @@ def handle_client(client_socket: socket.socket) -> None:
                 dict = xmltodict.parse(xml)
                 control = dict["ControlGroupLayer"]
 
-				test_mode = control['@testMode']
+                #typecast from 'true'/'false' string to boolean
+                test_mode = (control['@testMode'] == 'true')
+                print('test_mode: ' + str(test_mode))
+                
+                print('xml: ' + str(control))
 
                 if test_mode:
                     settle_time_long = 1
@@ -293,7 +310,7 @@ def handle_client(client_socket: socket.socket) -> None:
                 y_offset = 0
                 
                 scan_settings_list = control["ScanSettingsLayer"]
-				print('scan_settings_list: ' + str(scan_settings_list))
+                print('scan_settings_list: ' + str(scan_settings_list))
                 print(len(scan_settings_list))
                 if '@controlID' in scan_settings_list:
                     print('only one ScanSettingsLayer')
@@ -478,7 +495,7 @@ def handle_client(client_socket: socket.socket) -> None:
                             x_offset_curr = 0
                             y_offset_curr = 0
                         else:
-							detected_litho, pass_litho, patterned, x_offset_curr, y_offset_curr = auto_detect_edges(imgInfo[1], litho_detect_input, show_plots=False)
+                            detected_litho, pass_litho, patterned, x_offset_curr, y_offset_curr = auto_detect_edges(imgInfo[1], litho_detect_input, show_plots=False)
                         #print("detected_litho:")
                         #print(detected_litho)
                         #print()
@@ -579,7 +596,7 @@ def handle_client(client_socket: socket.socket) -> None:
 
                             #detect step edges: returns binary mask of detected step edges
                             if not test_mode:
-								step_edges = auto_detect_edges(imgInfo[1], step_edge_input, show_plots=False)
+                                step_edges = auto_detect_edges(imgInfo[1], step_edge_input, show_plots=False)
 
                             first_scan = 0
 
@@ -602,7 +619,7 @@ def handle_client(client_socket: socket.socket) -> None:
 
                             # ******** update patterned to earse gds array to be checked in detect litho function
 
-							if test_mode:
+                            if test_mode:
                                 pass_litho = True
                                 x_offset_curr = 0
                                 y_offset_curr = 0
@@ -800,7 +817,7 @@ def handle_client(client_socket: socket.socket) -> None:
                 print('captured lines start and end:')
                 print(input_data["captured_lines_start"])
                 print(input_data["captured_lines_end"])
-				print(input_data["y_order"])
+                print(input_data["y_order"])
                 print(input_data["display_hist"])
                                 
                 img = np.array(input_data["img"])

@@ -3,6 +3,10 @@ import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
+import sys
+sys.path.append('../StepEdgeDetector')
+from helpers.main_functions import auto_flatten
+
 from detector_functions.image_helpers import (
     calculate_black_pixel_ratio,
     cross_check_prediction,
@@ -63,46 +67,54 @@ def detect_tip(
         dict: Dictionary containing the detection results
     """
     print("detecting tip")
-    print("z_range:")
-    print(z_range)
     
+    #flatten the image
+    print('flattening image...')
+    img = auto_flatten(img, img_width_nm=scan_nm, img_height_nm=scan_nm, display_hist=False, y_order=6 )
+    
+    #rotate the image so the lattice is straight
+    print('rotating image...')
     if rotation != 0:
         img = rotate_image(img, rotation)
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        
+    #switch data to a grayscale cv2 image
+    print('getting z range...')
+    z_range = np.max(img) - np.min(img)
+    print('z_range: ' + str(z_range))
+    
+    print('converting image to grayscale uint8...')
+    gray = (img - np.min(img)) / z_range * 255
+    gray = gray.astype(int)
+    gray = np.array(gray, dtype=np.uint8)
+    #gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    
+    '''
+    cv2.namedWindow("gray0")
+    cv2.imshow("gray0", cv2.resize(gray,(400,400)))
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    '''
     
     max_gray0 = np.max(gray)
     min_gray0 = np.min(gray)
-    
-    #print('min and max')
-    #print(min_gray0)
-    #print(max_gray0)
     
     #get rid of dips below the plane
     hist, bin_edges = np.histogram(gray, bins=256)
     max_idx = np.argmax(hist)
     
-    #plt.axvline(x=max_idx, color='r', linestyle='--')
-    #plt.plot(hist)
-    #plt.show()
-    
     gray = np.clip(gray, a_min=max_idx, a_max=None)
-    
     gray = gray.astype(np.uint8)
-    #print(gray)
     
     max_gray = np.max(gray)
     min_gray = np.min(gray)
     
-    #print('min and max')
-    #print(min_gray)
-    #print(max_gray)
     '''
     cv2.namedWindow("gray")
-    cv2.imshow("gray", cv2.resize(gray,(400,400)))
     cv2.imshow("gray", cv2.resize(gray,(400,400)))
     cv2.waitKey(0)
     cv2.destroyAllWindows()
     '''
+    
     #threshold the image to find all the dangling bonds
     max_gray = np.max(gray)
     min_gray = np.min(gray)
@@ -122,11 +134,8 @@ def detect_tip(
     cv2.destroyAllWindows()
     '''
     
-    
     #get the connected components, which should be individual features
     num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(thresh, connectivity=8)
-
-    
     
     #only need bounding boxes from the connected components
     boxes = []
@@ -137,9 +146,6 @@ def detect_tip(
         h = stats[i, cv2.CC_STAT_HEIGHT]
         boxes.append([x,y,w,h])
     
-    
-   
-    
     #no dangling bond should be taller than max_height nm, so clip colors "taller" than that and scale image appropriately
     heights = z_range*(gray - min_gray)/(max_gray - min_gray)  #array of the actual heights
     
@@ -149,14 +155,21 @@ def detect_tip(
     boxes = list(boxes)
     print('num boxes: ' + str(len(boxes)))
     
+    tall_idxs = []
+    
     while i < len(boxes):
         [x, y, w, h] = boxes[i]
         check_heights = heights[y : y + w, x : x + h]
         h_diff = np.max(check_heights)#-np.min(check_heights)
         
+        #if it's too tall, record that
         if (h_diff > max_height):
-            boxes.pop(i)
-        elif (h_diff < min_height):
+            tall_idxs.append(i)
+        
+        #if (h_diff > max_height):
+        #    boxes.pop(i)
+        #if it's too short, just remove it
+        if (h_diff < min_height):
             boxes.pop(i)
         else:
             i += 1
@@ -182,8 +195,6 @@ def detect_tip(
     
     print('more than 0 features')
     
-    
-    
     total_bonds = 0
     total_cls = {0: 0, 1: 0}
     nm_p_pixel = scan_nm / img.shape[0]  # Calculate using height
@@ -191,6 +202,7 @@ def detect_tip(
     print('CONTOUR_MIN_SIZE (nm): ' + str(CONTOUR_MIN_SIZE[0]) + '  ' + str(CONTOUR_MIN_SIZE[1]))
     print('CONTOUR_MIN_SIZE (nm): ' + str(CONTOUR_MIN_SIZE[0]/ nm_p_pixel) + '  ' + str(CONTOUR_MIN_SIZE[1]/ nm_p_pixel))
     
+    i = 0
     brightest_locations = set()
     roi_locations = []
     for box in boxes:
@@ -223,7 +235,7 @@ def detect_tip(
             
             
             brightest_locations.add((x_b + x_roi, y_b + y_roi))
-
+            
             # Perform the cross check
             prediction, new_x, new_y, roi_preprocessed = cross_check_prediction(
                 model,
@@ -236,6 +248,13 @@ def detect_tip(
                 cross_size,
                 scan_debug,
             )
+            
+            #throw out items that are too tall, regardless of prediction value by setting prediction to 0
+            if (i in tall_idxs):
+                prediction = 0.0
+                
+            i += 1
+                
             cls = 1 if prediction >= sharp_prediction_threshold else 0
             #cls = 1 if prediction >= SHARP_PREDICTION_THRESHOLD else 0
             if scan_debug:

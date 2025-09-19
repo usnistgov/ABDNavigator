@@ -42,6 +42,24 @@ def matrix_to_img_array(
 
     return img
 
+def matrix_to_height_array(matrix_path: str, trace: int):
+    mtrx_data = access2thematrix.MtrxData()
+    traces, _ = mtrx_data.open(matrix_path)
+
+    # Check if the dictionary is empty
+    if not traces:
+        return None
+
+    # Select the first image
+    im, _ = mtrx_data.select_image(traces[trace])
+    img = im.data
+    img = np.flipud(img)
+    
+    return img*1e9 #convert z_range from m to nm
+
+    
+    
+    
 def matrix_to_img_array_with_z_range(matrix_path: str, trace: int, plane_slopes: tuple = None):
     mtrx_data = access2thematrix.MtrxData()
     traces, _ = mtrx_data.open(matrix_path)

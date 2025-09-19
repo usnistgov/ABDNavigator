@@ -1126,7 +1126,7 @@ def auto_flatten(img, img_width_nm=100, img_height_nm=100, line_by_line_flatten=
     dzdx,dzdy = auto_bg_slopes(img, img_width_nm, img_height_nm, display_hist=display_hist)    
     img = sub_plane(img, img_width_nm, img_height_nm, dzdx, dzdy)
 
-	if display_hist:
+    if display_hist:
         min = np.min(img)
         max = np.max(img)
         gray = ((img - min) / (max - min) * 255).astype(np.uint8)
@@ -1169,7 +1169,7 @@ def detect_steps_alt(img, img_width_nm=100, img_height_nm=100, line_by_line_flat
     #cv2.namedWindow("gray_plane")
     #cv2.imshow("gray_plane", cv2.resize(gray_plane,(400,400)))
 
-	'''
+    '''
     min = np.min(img)
     max = np.max(img)
     gray = ((img - min) / (max - min) * 255).astype(np.uint8)

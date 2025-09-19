@@ -147,13 +147,16 @@ def rotate_image(img: np.ndarray, angle: float) -> np.ndarray:
         rows, cols = img.shape
     M = cv2.getRotationMatrix2D((cols / 2, rows / 2), angle, 1)
 
+    borderVal = np.min(img)
+    
     # Apply the rotation
     return cv2.warpAffine(
         img,
         M,
         (cols, rows),
         borderMode=cv2.BORDER_CONSTANT,
-        borderValue=(0, 0, 0),
+        borderValue=borderVal
+        #borderValue=(0, 0, 0),
     )
 
 

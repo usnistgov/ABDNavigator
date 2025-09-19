@@ -166,25 +166,16 @@ def condition_tip(data: dict, model, config, test_mode=False):
             imgInfo = util.getNewImage()
             #npImg = imgInfo[1]
             
-            print('initial z range:')
-            print(np.max(imgInfo[1]) - np.min(imgInfo[1]))
+            #print('initial z range:')
+            #print(np.max(imgInfo[1]) - np.min(imgInfo[1]))
     
     
-            npImg,z_range = subtract_bg_plane(imgInfo[1], width, height, dzdx=dzdx, dzdy=dzdy)
+            #npImg,z_range = subtract_bg_plane(imgInfo[1], width, height, dzdx=dzdx, dzdy=dzdy)
+            npImg = imgInfo[1]
+            npImg = np.flipud(npImg)
             
-            print('conditioning z_range: ')
-            print(z_range)
-            
-            if z_range == 0:
-                if test_mode:
-                    return 
-                else:
-                    print('z_range failure...')
-                    
-            #plt.imshow(npImg)
-            #plt.gray()
-            #plt.show()
-            #input("Press Enter to continue...")
+            if test_mode:
+                return
             
             print("checking tip quality...")
             
@@ -199,7 +190,7 @@ def condition_tip(data: dict, model, config, test_mode=False):
                 rotation=lattice_angle,
                 scan_debug=False,
                 roi_debug=False,
-                z_range=z_range,
+                #z_range=z_range,
                 min_height=min_height,
                 max_height=max_height,
                 sharp_prediction_threshold=prediction_threshold )
