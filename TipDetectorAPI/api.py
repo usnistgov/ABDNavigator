@@ -650,8 +650,8 @@ def handle_client(client_socket: socket.socket) -> None:
                                 for i in tqdm(range(100)):
                                     time.sleep(settle_time_short/100.0) 
                             else:
-                                number_input = 0
-                                while (number_input != 2):
+                                number_input_int = 0
+                                while ((number_input_int != 2) and (number_input_int != 1)):
                                     print("A large offset is about to occur.")
                                     print("    1 - Continue script with automated offset")
                                     print("    2 - Continue script without automated offset")

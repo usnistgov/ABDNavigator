@@ -72,7 +72,12 @@ def condition_tip(data: dict, model, config, test_mode=False):
     min_height = data["minHeight"]
     max_height = data["maxHeight"]
     manip_dz = data["manipDZ"]
+    manip_dz_inc = data["manipDZinc"]
+    manip_max_dz = data["manipMaxDZ"]
     manip_V = data["manipV"]
+    manip_V_inc = data["manipVinc"]
+    manip_max_V = data["manipMaxV"]
+    attempts_per_param = data["attemptsPerParam"]
     settle_time = data["settleTime"]
     
     if test_mode:
@@ -96,6 +101,16 @@ def condition_tip(data: dict, model, config, test_mode=False):
     start_x = 0
     start_y = 0
 
+    manip_max_V_offset = manip_max_V - manip_V
+    manip_V_offset = 0
+    manip_max_dz_offset = manip_max_dz - manip_dz
+    manip_dz_offset = 0
+    
+    manip_V_use = manip_V
+    manip_dz_use = manip_dz
+    
+    state_idx = 0
+    attempt = 0
         
     print(condition_x)
     print(condition_y)
@@ -110,12 +125,68 @@ def condition_tip(data: dict, model, config, test_mode=False):
             if abort == True:
                 return 
             
+            #manipulation settings based on state index
+            if ((manip_dz_offset == manip_max_dz_offset) and (manip_V_offset == manip_max_V_offset) and (attempt == 0) and (state_idx == 0)):
+                print('reset')
+                manip_dz_offset = 0
+                manip_V_offset = 0
+            
+            
+            if attempt == 0:    
+                if state_idx == 0:
+                    manip_dz_use = manip_dz
+                    manip_V_use = manip_V
+                    
+                elif state_idx == 1:
+                    manip_dz_offset += manip_dz_inc
+                    if manip_dz_offset < manip_max_dz_offset:
+                        manip_dz_offset = manip_max_dz_offset
+                    manip_dz_use = manip_dz + manip_dz_offset
+                    manip_V_use = manip_V
+                    
+                elif state_idx == 2:
+                    manip_dz_use = manip_dz
+                    manip_V_use = manip_V
+                    
+                elif state_idx == 3:
+                    manip_V_offset += manip_V_inc
+                    if manip_V_offset > manip_max_V_offset:
+                        manip_V_offset = manip_max_V_offset 
+                    manip_V_use = manip_V + manip_V_offset
+                    manip_dz_use = manip_dz
+                    
+                elif state_idx == 4:
+                    manip_dz_use = manip_dz
+                    manip_V_use = manip_V
+                    
+                elif state_idx == 5:
+                    #manip_V_offset += manip_V_inc
+                    #if manip_V_offset > manip_max_V_offset:
+                    #    manip_V_offset = manip_max_V_offset 
+                    manip_V_use = manip_V + manip_V_offset
+                    
+                    #manip_dz_offset += manip_dz_inc
+                    #if manip_dz_offset > manip_max_dz_offset:
+                    #    manip_dz_offset = manip_max_dz_offset 
+                    manip_dz_use = manip_dz + manip_dz_offset
+                
+            print('state: ' + str(state_idx) + '  V: ' + str(manip_V_use) + '  dz: ' + str(manip_dz_use))
+            
+            attempt += 1
+            if attempt >= attempts_per_param:
+                attempt = 0
+                
+                state_idx += 1
+                if state_idx > 5:
+                    state_idx = 0
+            
+            
             x = window_width*x_idx/num_x - window_width/2
             y = window_height*y_idx/num_y - window_height/2
             
             print("x,y: " + str(x) + "," + str(y))
             print("settle position: " + str(height/2.0))
-            #print("scan shift: " + str(-height))
+            
             
             #the first pulse happens before the first image, unless imageFirst is selected
             print(y_idx)
@@ -137,9 +208,8 @@ def condition_tip(data: dict, model, config, test_mode=False):
                 print("continuing")
                 stm.moveTip( (x,y) )
                 print("manipulating")
-                stm.manip(manip_dz,manip_V)
-                #imgInfo = util.getNewImage()
-                #npImg = imgInfo[1]
+                stm.manip(manip_dz_use,manip_V_use)
+                
             
             #image to check tip condition
             print('imaging to check tip condition')
@@ -164,13 +234,7 @@ def condition_tip(data: dict, model, config, test_mode=False):
             
             print("continuing")
             imgInfo = util.getNewImage()
-            #npImg = imgInfo[1]
             
-            #print('initial z range:')
-            #print(np.max(imgInfo[1]) - np.min(imgInfo[1]))
-    
-    
-            #npImg,z_range = subtract_bg_plane(imgInfo[1], width, height, dzdx=dzdx, dzdy=dzdy)
             npImg = imgInfo[1]
             npImg = np.flipud(npImg)
             
@@ -207,25 +271,5 @@ def condition_tip(data: dict, model, config, test_mode=False):
                 print('done conditioning tip')
                 return
             
-            #if image_first == True:
-            #    return
-                
-            # Convert numpy types to Python types
-            #serializable_data = convert_to_serializable(tip_data)
             
-
-    #stm.setWindowPosition( (0.0,0.0) )
-    #time.sleep(20)
-    #stm.moveTip( (0.0,height/2.0) )
-    #print("settling...")
-    #time.sleep(20)
-    #print("continuing")
-    #imgInfo = util.getNewImage()
-    #npImg = imgInfo[1] 
-
-
-
-    #plt.imshow(npImg)
-    #plt.gray()
-    #plt.show()
 

@@ -28,10 +28,25 @@ public class TipConditionLayer extends NavigationLayer
         units.put("minHeight", "nm");
         units.put("maxHeight", "nm");
         units.put("manipDZ", "nm");
+        units.put("manipDZinc", "nm");
+        units.put("manipMaxDZ", "nm");
         units.put("manipV", "V");
+        units.put("manipVinc", "V");
+        units.put("manipMaxV", "V");
         units.put("settleTime", "s");
-        //units.put("minDBsPer25x25nmSq", "nm^-2");
-        //units.put("maxDBsPer25x25nmSq", "nm^-2");
+        
+        hidden.add("scanPositionX");
+        hidden.add("scanPositionY");
+        hidden.add("scanScaleX");
+        hidden.add("scanScaleY");
+        hidden.add("conditionPositionX");
+        hidden.add("conditionPositionY");
+        hidden.add("conditionScaleX");
+        hidden.add("conditionScaleY");
+        hidden.add("dzdx");
+        hidden.add("dzdy");
+        
+        appendAttributeOrder( new String[] {"imageFirst","autoOpenImages","majorityThreshold","predictionThreshold","manipDZ","manipDZinc","manipMaxDZ","manipV","manipVinc", "manipMaxV", "attemptsPerParam","maxHeight","minHeight","settleTime"} );
         
         displayRootScale = true;
     }
@@ -58,7 +73,14 @@ public class TipConditionLayer extends NavigationLayer
     private double maxHeight = 0.45;
     
     private double manipDZ = -0.3;
-    private double manipV = 4;
+    private double manipV = 2.3;
+    private double manipMaxV = 4;
+    private double manipMaxDZ = -0.7;
+    private double manipVinc = 0.3;
+    private double manipDZinc = -0.05;
+    
+    private int attemptsPerParam = 1;
+    
     
     private double settleTime = 20;
     
@@ -135,9 +157,29 @@ public class TipConditionLayer extends NavigationLayer
         if (s.length() > 0)
         	manipDZ = Double.parseDouble(s);
         
+        s = xml.getAttribute("manipDZinc");
+        if (s.length() > 0)
+        	manipDZinc = Double.parseDouble(s);
+        
+        s = xml.getAttribute("manipMaxDZ");
+        if (s.length() > 0)
+        	manipMaxDZ = Double.parseDouble(s);
+        
         s = xml.getAttribute("manipV");
         if (s.length() > 0)
         	manipV = Double.parseDouble(s);
+        
+        s = xml.getAttribute("manipVinc");
+        if (s.length() > 0)
+        	manipVinc = Double.parseDouble(s);
+        
+        s = xml.getAttribute("manipMaxV");
+        if (s.length() > 0)
+        	manipMaxV = Double.parseDouble(s);
+        
+        s = xml.getAttribute("attemptsPerParam");
+        if (s.length() > 0)
+        	attemptsPerParam = Integer.parseInt(s);
         
         s = xml.getAttribute("settleTime");
         if (s.length() > 0)
@@ -169,7 +211,12 @@ public class TipConditionLayer extends NavigationLayer
         e.setAttribute("maxHeight", Double.toString(maxHeight));
         
         e.setAttribute("manipDZ", Double.toString(manipDZ));
+        e.setAttribute("manipDZinc", Double.toString(manipDZinc));
+        e.setAttribute("manipMaxDZ", Double.toString(manipMaxDZ));
         e.setAttribute("manipV", Double.toString(manipV));
+        e.setAttribute("manipVinc", Double.toString(manipVinc));
+        e.setAttribute("manipMaxV", Double.toString(manipMaxV));
+        e.setAttribute("attemptsPerParam", Integer.toString(attemptsPerParam));
         e.setAttribute("settleTime", Double.toString(settleTime));
         e.setAttribute("minDBsPer25x25nmSq", Double.toString(minDBsPer25x25nmSq));
         e.setAttribute("maxDBsPer25x25nmSq", Double.toString(maxDBsPer25x25nmSq));
@@ -199,6 +246,9 @@ public class TipConditionLayer extends NavigationLayer
         e.setAttribute("conditionScaleY", Double.toString(conditionScale.getY()));
         e.setAttribute("dzdx", Double.toString(dz.getX()));
         e.setAttribute("dzdy", Double.toString(dz.getY()));
+        
+        
+        
 
         return e;
     }
@@ -282,7 +332,12 @@ public class TipConditionLayer extends NavigationLayer
         jObj.put("maxHeight", Double.valueOf(maxHeight));
         
         jObj.put("manipDZ", Double.valueOf(manipDZ));
+        jObj.put("manipDZinc", Double.valueOf(manipDZinc));
+        jObj.put("manipMaxDZ", Double.valueOf(manipMaxDZ));
         jObj.put("manipV", Double.valueOf(manipV));
+        jObj.put("manipVinc", Double.valueOf(manipVinc));
+        jObj.put("manipMaxV", Double.valueOf(manipMaxV));
+        jObj.put("attemptsPerParam", Integer.valueOf(attemptsPerParam));
         jObj.put("settleTime", Double.valueOf(settleTime));
         jObj.put("minDBsPer25x25nmSq", Double.valueOf(minDBsPer25x25nmSq));
         jObj.put("maxDBsPer25x25nmSq", Double.valueOf(maxDBsPer25x25nmSq));
