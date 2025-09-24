@@ -344,30 +344,7 @@ def handle_client(client_socket: socket.socket) -> None:
                         
                         dict = xmltodict.parse(xml_string)
                         condition_settings = dict["TipConditionLayer"]
-                                 
-                        '''
-                        detection_contrast = data["detectionContrast"]
-                        prediction_threshold = data["predictionThreshold"]
-                        majority_threshold = data["majorityThreshold"]
-                        lattice_angle = data["latticeAngle"]
-                        dzdx = data["dzdx"]
-                        dzdy = data["dzdy"]
-                        scan_x = data["scanX"]
-                        scan_y = data["scanY"]
-                        scan_scale_x = data["scanScaleX"]
-                        scan_scale_y = data["scanScaleY"]
-                        condition_x = data["conditionX"]
-                        condition_y = data["conditionY"]
-                        condition_scale_x = data["conditionScaleX"]
-                        condition_scale_y = data["conditionScaleY"]
-                        image_first = data["imageFirst"]
-                        min_height = data["minHeight"]
-                        max_height = data["maxHeight"]
-                        manip_dz = data["manipDZ"]
-                        manip_V = data["manipV"]
-                        settle_time = data["settleTime"]
-                        '''
-                       
+                        
                         detection_contrast = float( condition_settings["@detectionContrast"] )
                         prediction_threshold = float( condition_settings["@predictionThreshold"] )
                         majority_threshold = float( condition_settings["@majorityThreshold"] )
@@ -390,6 +367,23 @@ def handle_client(client_socket: socket.socket) -> None:
                         max_height = float( condition_settings["@maxHeight"] )
                         manip_dz = float( condition_settings["@manipDZ"] )
                         manip_V = float( condition_settings["@manipV"] )
+                        
+                        manip_dz_inc = float( condition_settings["@manipDZinc"] )
+                        manip_max_dz = float( condition_settings["@manipMaxDZ"] )
+                        manip_V_inc = float( condition_settings["@manipVinc"] )
+                        manip_max_V = float( condition_settings["@manipMaxV"] )
+                        attempts_per_param = int( condition_settings["@attemptsPerParam"] )
+                        
+                        '''
+                        manip_dz = data["manipDZ"]
+    manip_dz_inc = data["manipDZinc"]
+    manip_max_dz = data["manipMaxDZ"]
+    manip_V = data["manipV"]
+    manip_V_inc = data["manipVinc"]
+    manip_max_V = data["manipMaxV"]
+    attempts_per_param = data["attemptsPerParam"]
+                        '''
+                        
                         settle_time = float( condition_settings["@settleTime"] )
                         
                         input_data = {
@@ -411,7 +405,12 @@ def handle_client(client_socket: socket.socket) -> None:
                             "minHeight": min_height,
                             "maxHeight": max_height,
                             "manipDZ": manip_dz,
+                            "manipDZinc": manip_dz_inc,
+                            "manipMaxDZ": manip_max_dz,
                             "manipV": manip_V,
+                            "manipVinc": manip_V_inc,
+                            "manipMaxV": manip_max_V,
+                            "attemptsPerParam": attempts_per_param,
                             "settleTime": settle_time
                         }
                         
