@@ -263,8 +263,7 @@ def handle_client(client_socket: socket.socket) -> None:
                 y0 = float( control["@y"] )
 
                 gds_layer = control["GDSLayer"]
-                #gds_path = gds_layer["@img"]
-                #gds_path = "Y:/Sample Logbook/W62 All Device LT" + gds_path
+
                 gds_path = gds_layer["@absolutePath"]
                 print(gds_path)
                 lib = gdstk.read_gds(gds_path, 1e-9)
@@ -277,32 +276,6 @@ def handle_client(client_socket: socket.socket) -> None:
                     max_x, max_y = bbox[1]
                     max_x = int(max_x)*2*resolution
                     max_y = int(max_y)*2*resolution
-                    '''
-                    patterned = np.zeros((max_y, max_x, 3), dtype=np.uint8)
-                    polygons = top.polygons
-                    polys = []
-                    for polygon in polygons:
-                        x, y = zip(*polygon.points)
-                        poly = []
-                        for i in range(len(x)):
-                            x_vertex = (x[i]*resolution)+max_x/2
-                            y_vertex = (y[i]*resolution)+max_y/2
-                            poly.append([x_vertex, y_vertex])
-                        polys.append(np.array(poly, np.int32))
-                    cv2.fillPoly(patterned, polys, (255, 0, 0))
-                    #patterned = cv2.cvtColor(patterned, cv2.COLOR_RGB2GRAY) 
-                    patterned = np.flipud(patterned)
-                    print(patterned.shape)
-                    
-                    fig, ax = plt.subplots(1, 2, figsize=(15, 5))
-                    ax[0].imshow(patterned)
-                    ax[0].set_title('Verify GDS Pattern')
-                    ax[0].axis('off')
-                    ax[1].remove()
-                    plt.show()
-                    cv2.waitKey(0) 
-                    cv2.destroyAllWindows()
-                    '''
                     patterned = np.zeros((max_y, max_x, 3), dtype=np.uint8)
 
                 first_scan = 1
@@ -377,12 +350,12 @@ def handle_client(client_socket: socket.socket) -> None:
                         
                         '''
                         manip_dz = data["manipDZ"]
-    manip_dz_inc = data["manipDZinc"]
-    manip_max_dz = data["manipMaxDZ"]
-    manip_V = data["manipV"]
-    manip_V_inc = data["manipVinc"]
-    manip_max_V = data["manipMaxV"]
-    attempts_per_param = data["attemptsPerParam"]
+                        manip_dz_inc = data["manipDZinc"]
+                        manip_max_dz = data["manipMaxDZ"]
+                        manip_V = data["manipV"]
+                        manip_V_inc = data["manipVinc"]
+                        manip_max_V = data["manipMaxV"]
+                        attempts_per_param = data["attemptsPerParam"]
                         '''
                         
                         settle_time = float( condition_settings["@settleTime"] )
@@ -486,10 +459,7 @@ def handle_client(client_socket: socket.socket) -> None:
                         print(litho_detect_input["dzdx"])
                         print("dzdy:")
                         print(litho_detect_input["dzdy"])
-                        
-                        #subtract bg plane
-                        #npImg, z_range = subtract_bg_plane(imgInfo[1], litho_detect_input["img_scale_x"], litho_detect_input["img_scale_y"], dzdx, dzdy)
-                        #print(npImg.shape)
+    
 
                         #detect litho: returns img array of where litho is detected & boolean pass/fail
                         if test_mode:
@@ -498,12 +468,7 @@ def handle_client(client_socket: socket.socket) -> None:
                             y_offset_curr = 0
                         else:
                             detected_litho, pass_litho, patterned, x_offset_curr, y_offset_curr = auto_detect_edges(imgInfo[1], litho_detect_input, show_plots=False)
-                        #print("detected_litho:")
-                        #print(detected_litho)
-                        #print()
-                        #print("litho_error:")
-                        #print(litho_error)
-                        #print()
+
                         print("pass_litho:")
                         print(pass_litho)
                         print("x_offset:")
@@ -627,7 +592,8 @@ def handle_client(client_socket: socket.socket) -> None:
                                 y_offset_curr = 0
                             else:
                             	#detect litho: returns img array of where litho is detected & boolean pass/fail
-                            	detected_litho, pass_litho, patterned, x_offset_curr, y_offset_curr = auto_detect_edges(imgInfo[1], litho_detect_input, show_plots=False)                      
+                            	detected_litho, pass_litho, patterned, x_offset_curr, y_offset_curr = auto_detect_edges(imgInfo[1], litho_detect_input, show_plots=False)
+                            
                             print("pass_litho:")
                             print(pass_litho)
                             print("x_offset:")
@@ -758,51 +724,49 @@ def handle_client(client_socket: socket.socket) -> None:
                 print('captured lines start and end:')
                 print(input_data["captured_lines_start"])
                 print(input_data["captured_lines_end"])
-                print('nm from z:')
-                print(input_data["nm_from_z"])
-                print('scan settings x,y and scale_x, scale_y (nm), angle (deg):')
-                print(input_data["scan_settings_x"])
-                print(input_data["scan_settings_y"])
-                print(input_data["scan_settings_scale_x"])
-                print(input_data["scan_settings_scale_y"])
-                print(input_data["scan_settings_angle"])
+                #print('nm from z:')
+                #print(input_data["nm_from_z"])
+                #print('scan settings x,y and scale_x, scale_y (nm), angle (deg):')
+                #print(input_data["scan_settings_x"])
+                #print(input_data["scan_settings_y"])
+                #print(input_data["scan_settings_scale_x"])
+                #print(input_data["scan_settings_scale_y"])
+                #print(input_data["scan_settings_angle"])
                 print('roughness threshold:')
                 print(input_data["roughnessThreshold"])
-                print('low resolution?:')
-                print(input_data["lowResolution"])
+                #print('low resolution?:')
+                #print(input_data["lowResolution"])
                 print('lithography method:')
                 print(input_data["findLithoMethod"])
-                print('step edge thickness:')
+                print('contrast:')
                 print(input_data["thickness"])
-                print('verify with GDS file?:')
-                print(input_data["verifyGDS"])
-                print('gds file path')
+                #print('verify with GDS file?:')
+                #print(input_data["verifyGDS"])
+                #print('gds file path')
                 #print(input_data["gds_path"])
                 print()
 
-                detect_steps(
+                if (input_data["findLithoMethod"] == "off"):
+                    detectLitho = False
+                else:
+                    detectLitho = True
+
+                edges = detect_steps(
                     np.array(input_data["img"]), 
 					img_width=int(input_data["img_width"]),
                     img_height=int(input_data["img_height"]),
-                    show_plots=False, 
-                    show_output=True, 
+                    show_plots=True, 
+                    save_output=False, 
                     blur=int(input_data["blur"]), 
-                    postprocessing=input_data["zoomedIn"], 
-                    max_pxl=400,
-                    nm_from_z=float(input_data["nm_from_z"]),
+                    tophat=input_data["zoomedIn"], 
+                    detectLitho=detectLitho,
                     roughnessThreshold=float(input_data["roughnessThreshold"]),
-                    lowResolution=input_data["lowResolution"],
-                    find_litho=input_data["findLithoMethod"],
-                    thickness=float(input_data["thickness"]),
-                    verifyGDS=input_data["verifyGDS"],
-                    scan_settings_x=input_data["scan_settings_x"],
-                    scan_settings_y=input_data["scan_settings_y"],
-                    #scan_settings_x=0,
-                    #scan_settings_y=0,
-                    img_rescale_x=input_data["img_rescale_x"],
-                    img_rescale_y=input_data["img_rescale_y"],
-                    scan_settings_angle=input_data["scan_settings_angle"]
-                    #scan_settings_angle=-183
+                    scan_settings_x=0,
+                    scan_settings_y=0,
+                    img_scale_x=input_data["img_rescale_x"],
+                    img_scale_y=input_data["img_rescale_y"],   
+                    scan_settings_angle=0,
+                    contrast=int(input_data["thickness"])
                     )
                 
                 print('all done')
