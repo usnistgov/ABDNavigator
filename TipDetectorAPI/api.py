@@ -362,7 +362,8 @@ def handle_client(client_socket: socket.socket) -> None:
                         condition_scale_x = float( condition_settings["@conditionScaleX"] ) #data["conditionScaleX"]
                         condition_scale_y = float( condition_settings["@conditionScaleY"] ) #data["conditionScaleY"]
                         
-                        image_first = bool( condition_settings["@imageFirst"] )
+                        #image_first = bool( condition_settings["@imageFirst"] )
+                        image_first = (condition_settings["@imageFirst"] == "true")
                         min_height = float( condition_settings["@minHeight"] )
                         max_height = float( condition_settings["@maxHeight"] )
                         manip_dz = float( condition_settings["@manipDZ"] )
@@ -385,6 +386,7 @@ def handle_client(client_socket: socket.socket) -> None:
                         '''
                         
                         settle_time = float( condition_settings["@settleTime"] )
+                        combine = (condition_settings["@combine"] == "true")
                         
                         input_data = {
                             "detectionContrast": detection_contrast,
@@ -411,7 +413,8 @@ def handle_client(client_socket: socket.socket) -> None:
                             "manipVinc": manip_V_inc,
                             "manipMaxV": manip_max_V,
                             "attemptsPerParam": attempts_per_param,
-                            "settleTime": settle_time
+                            "settleTime": settle_time,
+                            "combine": combine
                         }
                         
                         print(input_data)
@@ -827,6 +830,7 @@ def handle_client(client_socket: socket.socket) -> None:
                     img_width_nm=float(input_data["img_scale_x"]), 
                     img_height_nm=float(input_data["img_scale_x"]),
                     display_hist=bool(input_data["display_hist"]),
+                    #display_hist=(input_data["display_hist"] == 'true'),#bool(input_data["display_hist"]),
                     y_order=int(input_data["y_order"]) 
                     )
                 

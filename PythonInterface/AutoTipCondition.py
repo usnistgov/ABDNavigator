@@ -79,6 +79,7 @@ def condition_tip(data: dict, model, config, test_mode=False):
     manip_max_V = data["manipMaxV"]
     attempts_per_param = data["attemptsPerParam"]
     settle_time = data["settleTime"]
+    combine = data["combine"]
     
     if test_mode:
         settle_time = 0
@@ -178,6 +179,9 @@ def condition_tip(data: dict, model, config, test_mode=False):
                 
                 state_idx += 1
                 if state_idx > 5:
+                    state_idx = 0
+                #if the user doesn't want combined pulse and poke, then...
+                elif (state_idx == 5) and (combine == False):
                     state_idx = 0
             
             

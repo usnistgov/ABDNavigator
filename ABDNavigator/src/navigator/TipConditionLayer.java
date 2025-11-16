@@ -25,6 +25,7 @@ public class TipConditionLayer extends NavigationLayer
         actions = new String[]{"condition","abort","testXML"};
         categories.put("autoOpenImages", new String[] {"true","false"});
         categories.put("imageFirst", new String[] {"true","false"});
+        categories.put("combine", new String[] {"true","false"});
         units.put("minHeight", "nm");
         units.put("maxHeight", "nm");
         units.put("manipDZ", "nm");
@@ -46,7 +47,7 @@ public class TipConditionLayer extends NavigationLayer
         hidden.add("dzdx");
         hidden.add("dzdy");
         
-        appendAttributeOrder( new String[] {"imageFirst","autoOpenImages","majorityThreshold","predictionThreshold","manipDZ","manipDZinc","manipMaxDZ","manipV","manipVinc", "manipMaxV", "attemptsPerParam","maxHeight","minHeight","settleTime"} );
+        appendAttributeOrder( new String[] {"imageFirst","autoOpenImages","majorityThreshold","predictionThreshold","combine","manipDZ","manipDZinc","manipMaxDZ","manipV","manipVinc", "manipMaxV", "attemptsPerParam","maxHeight","minHeight","settleTime"} );
         
         displayRootScale = true;
     }
@@ -68,6 +69,7 @@ public class TipConditionLayer extends NavigationLayer
     public Color glowHightlight = new Color(1,1,0,0.8);
     
     private boolean imageFirst = false;
+    private boolean combine = true;
     
     private double minHeight = 0.10;
     private double maxHeight = 0.45;
@@ -145,6 +147,10 @@ public class TipConditionLayer extends NavigationLayer
         if (s.length() > 0)
         	imageFirst = Boolean.parseBoolean(s);
         
+        s = xml.getAttribute("combine");
+        if (s.length() > 0)
+        	combine = Boolean.parseBoolean(s);
+        
         s = xml.getAttribute("minHeight");
         if (s.length() > 0)
         	minHeight = Double.parseDouble(s);
@@ -207,6 +213,7 @@ public class TipConditionLayer extends NavigationLayer
         
         e.setAttribute("autoOpenImages", Boolean.toString(autoOpen));
         e.setAttribute("imageFirst", Boolean.toString(imageFirst));
+        e.setAttribute("combine", Boolean.toString(combine));
         e.setAttribute("minHeight", Double.toString(minHeight));
         e.setAttribute("maxHeight", Double.toString(maxHeight));
         
@@ -328,6 +335,8 @@ public class TipConditionLayer extends NavigationLayer
         jObj.put("dzdy", Double.valueOf(dz.getY()));
         
         jObj.put("imageFirst", Boolean.valueOf(imageFirst));
+        jObj.put("combine", Boolean.valueOf(combine));
+        
         jObj.put("minHeight", Double.valueOf(minHeight));
         jObj.put("maxHeight", Double.valueOf(maxHeight));
         

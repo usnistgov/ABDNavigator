@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+from scipy.signal import correlate2d
 
 import sys
 sys.path.append('../StepEdgeDetector')
@@ -105,15 +106,29 @@ def detect_tip(
     gray = np.clip(gray, a_min=max_idx, a_max=None)
     gray = gray.astype(np.uint8)
     
-    max_gray = np.max(gray)
-    min_gray = np.min(gray)
+    #max_gray = np.max(gray)
+    #min_gray = np.min(gray)
     
     '''
+    autocorr_image = correlate2d(gray, gray, mode='same')
+    
+    
+    autocorr_image = (autocorr_image - np.min(autocorr_image)) / (np.max(autocorr_image) - np.min(autocorr_image)) * 255
+    
+    autocorr_image = autocorr_image.astype(np.uint8)
+    
+    
+    
     cv2.namedWindow("gray")
     cv2.imshow("gray", cv2.resize(gray,(400,400)))
+    cv2.namedWindow("autocorr_image")
+    cv2.imshow("autocorr_image", cv2.resize(autocorr_image,(400,400)))
+        
     cv2.waitKey(0)
     cv2.destroyAllWindows()
     '''
+    
+    
     
     #threshold the image to find all the dangling bonds
     max_gray = np.max(gray)
