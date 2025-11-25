@@ -525,7 +525,8 @@ def handle_client(client_socket: socket.socket) -> None:
                             time.sleep(settle_time_long/100.0) 
                         
                         #acquire the pre-litho image
-                        imgInfo = util.getNewImage()           
+                        imgInfo = util.getNewImage()  
+                        print(imgInfo[1].shape)
 
                         #setting up parameters for step edge detection:
                         if ( first_scan == 1 ):
@@ -690,7 +691,6 @@ def handle_client(client_socket: socket.socket) -> None:
                                                 time.sleep(0.2) 
                                             number_input = 2
                                         
-                        
                         #write the pattern
                         stm.ref_command(litho_control_ID, 'litho')
 

@@ -265,6 +265,7 @@ def auto_detect_creep(litho, curr_image, img_width, img_height, img_scale_x, img
     curr_min_x_litho = 0
     litho_min_skip = 0
     gds_min_skip = 0
+    curr_max_y_gds = 0
         
     for i in range(len(litho)):
         litho_y_skip = 0
@@ -286,6 +287,7 @@ def auto_detect_creep(litho, curr_image, img_width, img_height, img_scale_x, img
                 gds_y_pxl_offset += (i+1-img_height/2)
                 gds_y_pxl_tot += 1
                 gds_y_skip = 1
+                curr_max_y_gds = i
                 if(gds_min_skip == 0):
                     curr_min_y_gds = i
                     gds_min_skip = 1
@@ -319,7 +321,7 @@ def auto_detect_creep(litho, curr_image, img_width, img_height, img_scale_x, img
                     curr_min_x_gds = j
                     gds_min_skip = 1
                 if(j == img_width - 1):
-                    max_y_gds = 1
+                    max_x_gds = 1
                 if(j == 0):
                     min_x_gds = 1
     if ( gds_x_pxl_tot != 0 and gds_y_pxl_tot != 0 ):
@@ -337,16 +339,22 @@ def auto_detect_creep(litho, curr_image, img_width, img_height, img_scale_x, img
     
     x_offset_0 = gds_x - litho_x
     y_offset_0 = gds_y - litho_y
+    #y_offset_0 = litho_y - gds_y
     
     
+    if ( (max_y_gds == 1) and (max_y_litho == 1) ):
+        y_offset_0 = (curr_min_y_gds - curr_min_y_litho)*(img_scale_y/img_height)
+    if ( (min_y_gds == 1) and (min_y_litho == 1) ):
+        y_offset_0 = (curr_max_y_gds - curr_max_y_litho)*(img_scale_y/img_height)
     if ( (max_y_gds == 1) and (max_y_litho == 0) ):
-        y_offset_0 = (curr_max_y_litho - img_height - 1)*(img_scale_y/img_height)
+        #y_offset_0 = (curr_max_y_litho - img_height - 1)*(img_scale_y/img_height)
+        y_offset_0 = -(curr_max_y_litho - img_height - 1)*(img_scale_y/img_height)
     if ( (max_x_gds == 1) and (max_x_litho == 0) ):
-        x_offset_0 = (curr_max_x_litho - img_width - 1)*(img_scale_x/img_width)
+        x_offset_0 = -(curr_max_x_litho - img_width - 1)*(img_scale_x/img_width)
     if ( (min_y_gds == 1) and (min_y_litho == 0) ):
-        y_offset_0 = -(curr_min_y_litho)*(img_scale_y/img_height)
+        y_offset_0 = -(curr_min_y_litho)*(img_scale_y/img_height) 
     if ( (min_x_gds == 1) and (min_x_litho == 0) ):
-        x_offset_0 = -(curr_min_x_litho)*(img_scale_x/img_width)
+        x_offset_0 = -(curr_min_x_litho)*(img_scale_x/img_width) 
     
     
     zero_score = 0
@@ -357,7 +365,7 @@ def auto_detect_creep(litho, curr_image, img_width, img_height, img_scale_x, img
             zero_score = 1
         
     x_offset = (x_offset_0*np.cos(scan_settings_angle*(np.pi/180))) - (y_offset_0*np.sin((scan_settings_angle)*(np.pi/180)))
-    y_offset = (x_offset_0*np.sin(scan_settings_angle*(np.pi/180))) + (y_offset_0*np.cos((scan_settings_angle)*(np.pi/180)))
+    y_offset = -(x_offset_0*np.sin(scan_settings_angle*(np.pi/180))) + (y_offset_0*np.cos((scan_settings_angle)*(np.pi/180)))
 
     return x_offset, y_offset, x_offset_0, y_offset_0, zero_score
  
@@ -478,37 +486,46 @@ def auto_detect_litho_score(other_params, blur=3, tophat=False, roughnessThresho
         ax[1,2].set_title('Detected Litho')
         ax[1,2].axis("off")
     image1 = "tmp/image1.jpg"
-    image2 = "tmp/image2.jpg"
+    image2 = f"tmp/image2_{blur}_{roughnessThreshold}_{contrast}.jpg"
     if np.all(~litho_mask):
         score = 0
+        curr_score = 0
+        curr_score_corr = 0
+        ssim_score = 0
+        curr_error = np.zeros_like(ideal_litho)
+        curr_error_corr = np.zeros_like(ideal_litho)
         litho = 0
+        curr_x_offset = 0
+        curr_y_offset = 0
     else:
         curr_litho = cv2.cvtColor(litho, cv2.COLOR_RGB2GRAY)  
         cv2.imwrite(image2, curr_litho)
         img1 = cv2.imread(image1, cv2.IMREAD_GRAYSCALE)
         img2 = cv2.imread(image2, cv2.IMREAD_GRAYSCALE)
-        if img1.shape != img2.shape:
+        #img2 = curr_litho
+        #if img1.shape != img2.shape:
             # Resize img2 to match img1 dimensions if necessary
-            img2 = cv2.resize(img2, (img1.shape[1], img1.shape[0]))
+            #img2 = cv2.resize(img2, (img1.shape[1], img1.shape[0]))
         # Calculate SSIM
-        ssim_score, diff = ssim(img1, img2, full=True)
-        
+        #ssim_score, diff = ssim(img1, img2, full=True)
+        ssim_score = 0
         #Compare to GDSII
         gds = cv2.cvtColor(ideal_litho, cv2.COLOR_RGB2GRAY)
         error_gray = np.abs(gds - curr_litho)*2 
-        curr_score, curr_error = error_score(error_gray, ideal_litho, width, height)
+        curr_score, curr_error = error_score(error_gray, ideal_litho, width, height, 0)
         
         curr_x_offset, curr_y_offset, curr_x_offset_0, curr_y_offset_0, zero_score = auto_detect_creep(curr_litho, gds, width, height, img_scale_x, img_scale_y, scan_settings_angle, overlap)
         curr_x_pxl_offset = int(curr_x_offset_0*(width/img_scale_x))
-        curr_y_pxl_offset = int(-1*curr_y_offset_0*(height/img_scale_y))
-        curr_litho_offset = creep_correct(curr_litho, curr_x_pxl_offset, curr_y_pxl_offset)         
+        curr_y_pxl_offset = int(curr_y_offset_0*(height/img_scale_y))
+        curr_litho_offset = creep_correct(curr_litho, curr_x_pxl_offset, curr_y_pxl_offset, width, height)         
         error_gray_corr = np.abs(gds - curr_litho_offset)*2  
-        curr_score_corr, curr_error_corr = error_score(error_gray_corr, ideal_litho, width, height)
-        print(f'ssim score: {ssim_score}')
+        curr_score_corr, curr_error_corr = error_score(error_gray_corr, ideal_litho, width, height, zero_score)
+        #print(f'ssim score: {ssim_score}')
         print(f'pxl comp score: {curr_score}')
         print(f'creep corrected score: {curr_score_corr}')
         
-        score = ssim_score*0.5 + curr_score_corr*0.5
+        #score = ssim_score*0.5 + curr_score_corr*0.5
+        score = curr_score_corr
     
     if(save_output):
         ax[2,0].imshow(ideal_litho)
@@ -522,7 +539,7 @@ def auto_detect_litho_score(other_params, blur=3, tophat=False, roughnessThresho
         ax[2,2].axis("off")
         text_subplot = ax[1,0]
         ax[1,0].axis("off")
-        text_subplot.text(0.5, 0.5, f'\u03C3 = {blur}\nTopHat = {tophat}\nThreshold = {roughnessThreshold}\nContrast = {contrast}\nSSIM: {score:.3f}\npxl comp score: {curr_score:.3f}\n creep corrected score: {curr_score_corr:.3f}',
+        text_subplot.text(0.5, 0.5, f'\u03C3 = {blur}\nTopHat = {tophat}\nThreshold = {roughnessThreshold}\nContrast = {contrast}\npxl comp score: {curr_score:.3f}\n creep corrected score: {curr_score_corr:.3f}',
             horizontalalignment='center',
             verticalalignment='center',
             fontsize=12,
@@ -548,33 +565,8 @@ def auto_detect_edges(img, input_data, show_plots=False):
     dzdy = float( input_data["dzdy"] )
     overlap = bool ( input_data["overlap"] )
     
-    # *** Start plane subtract
-    dzdx,dzdy = get_bg_plane(img, img_scale_x, img_scale_y)
-    
-    nm_px_x = img_scale_x/(len(img[0])-1)
-    nm_px_y = img_scale_y/(len(img)-1)
-    img_sub = np.empty((len(img), len(img[0])))
-    for x_idx in range(len(img[0])):
-        for y_idx in range(len(img)):
-            x = nm_px_x*x_idx
-            y = nm_px_y*y_idx#(len(img)-1-y_idx)
-            dz = x*dzdx + y*dzdy
-            img_sub[y_idx][x_idx] = img[y_idx][x_idx] - dz
-    
-    img = img_sub
-    z_range = np.max(img) - np.min(img)
-    img = (img - np.min(img)) / z_range * 255
-    img = np.flipud(img)
-    
-    img = np.array(img).reshape(img_height, img_width)
     orig_img = img
-	
-    min = np.min(img)
-    max = np.max(img)  
     
-    gray = ((img - min) / (max - min) * 255).astype(np.uint8)
-    orig = gray
-    img = cv2.cvtColor(gray, cv2.COLOR_GRAY2RGB)
 
     if( litho_img == False ):
         if ( img_scale_x < 15 and img_scale_y < 15 ):
@@ -593,14 +585,45 @@ def auto_detect_edges(img, input_data, show_plots=False):
             blur = 1
             tophat = False
         
-        with remove_prints():
-            edges = detect_steps(img, img_width=img_width, img_height=img_height, show_plots=show_plots, save_output=True, blur=blur, tophat=tophat, detectLitho=False, roughnessThreshold=0, scan_settings_x=scan_settings_x,
-                scan_settings_y=scan_settings_y, img_scale_x=img_scale_x, img_scale_y=img_scale_y, scan_settings_angle=scan_settings_angle, contrast=0)
+        print(img.shape)
+        
+        #with remove_prints():
+        edges = detect_steps(orig_img, img_width=img_width, img_height=img_height, show_plots=show_plots, save_output=True, blur=blur, tophat=tophat, detectLitho=False, roughnessThreshold=0, scan_settings_x=scan_settings_x,
+            scan_settings_y=scan_settings_y, img_scale_x=img_scale_x, img_scale_y=img_scale_y, scan_settings_angle=scan_settings_angle, contrast=0)
          
         print("done detecting edges")
         return edges
 
     else: # Litho Image
+        # *** Start plane subtract
+        dzdx,dzdy = get_bg_plane(img, img_scale_x, img_scale_y)
+        
+        nm_px_x = img_scale_x/(len(img[0])-1)
+        nm_px_y = img_scale_y/(len(img)-1)
+        img_sub = np.empty((len(img), len(img[0])))
+        for x_idx in range(len(img[0])):
+            for y_idx in range(len(img)):
+                x = nm_px_x*x_idx
+                y = nm_px_y*y_idx#(len(img)-1-y_idx)
+                dz = x*dzdx + y*dzdy
+                img_sub[y_idx][x_idx] = img[y_idx][x_idx] - dz
+        
+        img = img_sub
+        z_range = np.max(img) - np.min(img)
+        img = (img - np.min(img)) / z_range * 255
+        img = np.flipud(img)
+        print(img.shape)
+        
+        img = np.array(img).reshape(img_height, img_width)
+        orig_img = img
+        
+        min = np.min(img)
+        max = np.max(img)  
+        
+        gray = ((img - min) / (max - min) * 255).astype(np.uint8)
+        orig = gray
+        img = cv2.cvtColor(gray, cv2.COLOR_GRAY2RGB)
+        print(img.shape)
 
         image1 = "tmp/image1.jpg"
         image2 = "tmp/image2.jpg"
@@ -626,11 +649,12 @@ def auto_detect_edges(img, input_data, show_plots=False):
                     for i in range(len(x)):
                         x_vertex = x[i]-scan_settings_x
                         y_vertex = y[i]-scan_settings_y
-                        xr = int(((x_vertex*np.cos(scan_settings_angle*(np.pi/180)*(-1))) - (y_vertex*np.sin((scan_settings_angle)*(np.pi/180)*(-1))))*(img_width/(img_scale_x)) + (img_width/2))
-                        yr = int(((x_vertex*np.sin(scan_settings_angle*(np.pi/180)*(-1))) + (y_vertex*np.cos((scan_settings_angle)*(np.pi/180))*(-1)))*(img_height/(img_scale_y)) + (img_height/2))
+                        xr = int(((x_vertex*np.cos(scan_settings_angle*(np.pi/180))) + (y_vertex*np.sin((scan_settings_angle)*(np.pi/180))))*(img_width/(img_scale_x)) + (img_width/2))
+                        yr = int((((-1)*x_vertex*np.sin(scan_settings_angle*(np.pi/180))) + (y_vertex*np.cos((scan_settings_angle)*(np.pi/180))))*(img_height/(img_scale_y)) + (img_height/2))
                         poly.append([xr-1, yr-1])
                     polys.append(np.array(poly, np.int32))
-                cv2.fillPoly(curr_image_color, polys, (255, 255, 0))       
+                cv2.fillPoly(curr_image_color, polys, (255, 255, 0))   
+                curr_image_color = np.fliplr(curr_image_color)
                 curr_image = cv2.cvtColor(curr_image_color, cv2.COLOR_RGB2GRAY)  
                 cv2.imwrite("tmp/image1.jpg", curr_image)
 
@@ -657,7 +681,8 @@ def auto_detect_edges(img, input_data, show_plots=False):
                             patterned[y_index, x_index-3, 0] = 0
                             patterned[y_index, x_index-3, 1] = 255  
                             patterned[y_index-3, x_index-3, 0] = 0
-                            patterned[y_index-3, x_index-3, 1] = 255         
+                            patterned[y_index-3, x_index-3, 1] = 255   
+                cv2.imwrite("tmp/patterned.jpg", patterned)
         
         else: # overlapping region 
             curr_image_color = np.zeros((img_height, img_width, 3), dtype=np.uint8) 
@@ -667,8 +692,8 @@ def auto_detect_edges(img, input_data, show_plots=False):
                     if(patterned[i,j,1] == 255):
                         x_vertex = (j/resolution) - 1 - scan_settings_x - (max_x/2)
                         y_vertex = (i/resolution) - 1 - scan_settings_y - (max_y/2)
-                        xr = int(((x_vertex*np.cos(scan_settings_angle*(np.pi/180)*(-1))) - (y_vertex*np.sin((scan_settings_angle)*(np.pi/180)*(-1))))*(img_width/(img_scale_x)) + (img_width/2))
-                        yr = int(((x_vertex*np.sin(scan_settings_angle*(np.pi/180)*(-1))) + (y_vertex*np.cos((scan_settings_angle)*(np.pi/180)*(-1))))*(img_height/(img_scale_y)) + (img_height/2))
+                        xr = int(((x_vertex*np.cos(scan_settings_angle*(np.pi/180))) + (y_vertex*np.sin((scan_settings_angle)*(np.pi/180))))*(img_width/(img_scale_x)) + (img_width/2))
+                        yr = int((((-1)*x_vertex*np.sin(scan_settings_angle*(np.pi/180))) + (y_vertex*np.cos((scan_settings_angle)*(np.pi/180))))*(img_height/(img_scale_y)) + (img_height/2))
                         if (xr <= img_width and xr > 0):
                             if (yr <= img_height and yr > 0):
                                 curr_image_color[yr-1, xr-1, 0] = 255
@@ -679,7 +704,7 @@ def auto_detect_edges(img, input_data, show_plots=False):
         
         # Parameters loop to find lowest error
         other_params = [(img, curr_image_color, img_scale_x, img_scale_y, scan_settings_angle, overlap)]
-        blur = [1, 2, 3, 4, 5, 6]
+        blur = [1, 2, 3, 4, 5]
         roughnessThreshold = [0.1, 0.15, 0.2, 0.25, 0.3]
         contrast = [1, 2, 3]
         parameter_combinations = list(itertools.product(other_params, blur, roughnessThreshold, contrast))
@@ -699,7 +724,7 @@ def auto_detect_edges(img, input_data, show_plots=False):
         filename = f"detectedLithoImages/detectedLitho_{timestamp}.png"
         cv2.imwrite(filename, detectedLithoImg) 
 
-        if ( results[max_score] < 0.5 ):
+        if ( results[max_score] < 0.7 ):
             pf = False
         else:
             pf = True
@@ -754,11 +779,13 @@ def detect_steps(img, img_width=None, img_height=None, show_plots=False, save_ou
     ax[0,0].set_title('Original Image')
     ax[0,0].axis("off")
     
+    print("before contours")
     contours = find_contours(gray, blur)
     ax[0,1].imshow(contours, cmap='gray')
     ax[0,1].set_title('Contours')
     ax[0,1].axis("off")
 	
+    print("before transform")
     # White Tophat Postprocessing
     if(tophat):
         cleaned = post_processing(contours, max_pxl*2, tophat, thickness)
@@ -768,6 +795,7 @@ def detect_steps(img, img_width=None, img_height=None, show_plots=False, save_ou
     ax[0,2].set_title('Post-processing')
     ax[0,2].axis("off")
 	
+    print("before overlay")
     # Create a colored overlay 
     overlay = np.zeros((img_height, img_width, 3), dtype=np.uint8)
     overlay[cleaned] = [0, 255, 0]  # Set the color for True values (green in this case)
@@ -776,6 +804,7 @@ def detect_steps(img, img_width=None, img_height=None, show_plots=False, save_ou
     ax[0,3].set_title('Detected Step Edges')
     ax[0,3].axis("off")
 
+    print("before labelling")
     # Labelling
     numbered = np.zeros_like(gray)
     labels, numbered = color_layers(overlay, cleaned, numbered)
