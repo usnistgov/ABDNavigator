@@ -17,7 +17,7 @@ from AutoTipCondition import set_abort
 import MatrixPythonAPI as stm
 import STMUtils as util
 
-from helpers.main_functions import detect_steps_alt, detect_steps, auto_detect_edges, auto_detect_creep
+from helpers.main_functions import detect_steps_alt, detect_steps, auto_detect_edges, auto_detect_creep, auto_get_overlapping_region_scan_settings
 
 # Disable OneDNN optimizations and CPU instructions messages
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
@@ -255,6 +255,8 @@ def handle_client(client_socket: socket.socket) -> None:
                 else:
                     settle_time_long = 60
                     settle_time_short = 20
+                    #settle_time_long = 1
+                    #settle_time_short = 1
                 
                 theta = float( control["@angle"] )
                 
@@ -269,18 +271,21 @@ def handle_client(client_socket: socket.socket) -> None:
                 lib = gdstk.read_gds(gds_path, 1e-9)
                 top = lib.top_level()[0]
                 bbox = top.bounding_box()
-                resolution = 4
+                resolution = 1
                 if bbox is None:
                     print("Failed to read GDS File")
                 else:
                     max_x, max_y = bbox[1]
                     max_x = int(max_x)*2*resolution
                     max_y = int(max_y)*2*resolution
-                    patterned = np.zeros((max_y, max_x, 3), dtype=np.uint8)
 
                 first_scan = 1
                 x_offset = 0
                 y_offset = 0
+                prev_xT = 0
+                prev_yT = 0
+                long_offset = 0
+                start_scan_ID = True
                 
                 scan_settings_list = control["ScanSettingsLayer"]
                 print('scan_settings_list: ' + str(scan_settings_list))
@@ -288,16 +293,62 @@ def handle_client(client_socket: socket.socket) -> None:
                 if '@controlID' in scan_settings_list:
                     print('only one ScanSettingsLayer')
                     scan_settings_list = [scan_settings_list]
-					
-                for scan_settings in scan_settings_list:
                     
+                file_path = "tmp/patterned.jpg"
+                if os.path.exists(file_path):
+                    user_input = input("Previous patterned device found. Would you like to resume previous fab process? (yes/no)").strip().lower()
+                    if user_input in ('yes', 'y'):
+                        first_scan = 0
+                        patterned = cv2.imread("tmp/patterned.jpg", cv2.IMREAD_UNCHANGED)
+                        with open("tmp/last_scan_ID.txt", 'r') as file:
+                            last_coords = [float(line.rstrip()) for line in file]
+                        user_input = input(f"Resume from previous scan setting coordinates: ({last_coords[0]}, {last_coords[1]}) (yes/no)").strip().lower()
+                        if user_input in ('yes', 'y'):
+                            start_coords = last_coords
+                            start_scan_ID = False
+                        else:
+                            start_scan_ID = True
+                    else:
+                        patterned = np.zeros((max_y, max_x, 3), dtype=np.uint8)
+                        print("Starting new fab process ...")
+					
+                for scan_settings in scan_settings_list:               
                     
                     scan_control_ID = scan_settings["@controlID"]
                     xT = float( scan_settings["@x"] )
                     yT = float( scan_settings["@y"] )
+                    curr_coords = [xT, yT]
+                    
+                    if not start_scan_ID:
+                        if (last_coords != curr_coords):
+                            continue
+                        prev_scan_settings = scan_settings
+                        start_scan_ID = True
+                        continue
                     
                     r = R.from_rotvec( (theta*np.pi/180)*np.array([0.0,0.0,1.0]) )
                     
+                    if ( (abs(xT - prev_xT) > 2000) or (abs(yT - prev_yT) > 3000) ):
+                        settle_time_long = 300
+                        settle_time_short = 60
+                        #settle_time_long = 1
+                        #settle_time_short = 1
+                        long_offset = 1
+                        if (prev_xT - xT < -2000):
+                            x_offset = x_offset #- 50
+                        elif (prev_xT - xT > 2000):
+                            x_offset = x_offset #+ 50
+                        if (prev_yT - yT < -3000):
+                            y_offset = y_offset #- 70
+                        elif (prev_yT - yT > 3000):
+                            y_offset = y_offset #+ 70
+                    else:
+                        settle_time_long = 60
+                        settle_time_short = 20
+                        #settle_time_long = 1
+                        #settle_time_short = 1
+                        long_offset = 0
+                                  
                     [x,y,z] = r.apply([xT+x_offset,yT+y_offset,0]) + np.array([x0,y0,0])
                     print("(x,y):")
                     print(x)
@@ -420,6 +471,7 @@ def handle_client(client_socket: socket.socket) -> None:
                         
                         #acquire the post-litho image
                         imgInfo = util.getNewImage()
+                        #imgInfo = [0,np.ones((int( prev_scan_settings["@pixelsY"] ), int( prev_scan_settings["@pixelsX"] )), dtype=np.float64)]
                         
                         #setting up parameters for litho detection:
                         
@@ -436,7 +488,7 @@ def handle_client(client_socket: socket.socket) -> None:
                             "patterned": patterned,
                             "dzdx": dzdx,
                             "dzdy": dzdy,
-                            "overlap": False
+                            "overlap": 0
                         }
                         
                         print("img_width:")
@@ -489,6 +541,9 @@ def handle_client(client_socket: socket.socket) -> None:
                             if ( number_input_int == 1 ):
                                 x_offset = x_offset - x_offset_curr
                                 y_offset = y_offset - y_offset_curr
+                                
+                        prev_xT = xT
+                        prev_yT = yT
                         
                         
                         #creep correction: returns x & y value to offset window position
@@ -511,24 +566,24 @@ def handle_client(client_socket: socket.socket) -> None:
                         print('litho_control_ID:')
                         print(litho_control_ID)
                     
-                        #move scan region
-                        stm.setWindowPosition( (x, y) )
-                        print("settling...")
-                        #time.sleep(20)
-                        for i in tqdm(range(100)):
-                            time.sleep(settle_time_short/100.0) 
-                        
-                        #apply scan settings
-                        stm.ref_command(scan_control_ID, 'applyNoThread')
-                        #time.sleep(60)
-                        for i in tqdm(range(100)):
-                            time.sleep(settle_time_long/100.0) 
-                        
-                        #acquire the pre-litho image
-                        imgInfo = util.getNewImage()           
-
                         #setting up parameters for step edge detection:
                         if ( first_scan == 1 ):
+                            #move scan region
+                            stm.setWindowPosition( (x, y) )
+                            print("settling...")
+                            #time.sleep(20)
+                            for i in tqdm(range(100)):
+                                time.sleep(settle_time_short/100.0) 
+                            
+                            #apply scan settings
+                            stm.ref_command(scan_control_ID, 'applyNoThread')
+                            #time.sleep(60)
+                            for i in tqdm(range(100)):
+                                time.sleep(settle_time_long/100.0) 
+                            
+                            #acquire the pre-litho image
+                            #imgInfo = util.getNewImage()  
+                                
                             step_edge_input = {
                                 "img_width": int( scan_settings["@pixelsX"] ),
                                 "img_height": int( scan_settings["@pixelsY"] ),
@@ -542,7 +597,7 @@ def handle_client(client_socket: socket.socket) -> None:
                                 "patterned": patterned,
                                 "dzdx": dzdx,
                                 "dzdy": dzdy,
-                                "overlap": False
+                                "overlap": 0
                             }
                             print("img_width:")
                             print(step_edge_input["img_width"])
@@ -562,12 +617,13 @@ def handle_client(client_socket: socket.socket) -> None:
                             print(step_edge_input["gds_path"])
 
                             #detect step edges: returns binary mask of detected step edges
-                            if not test_mode:
-                                step_edges = auto_detect_edges(imgInfo[1], step_edge_input, show_plots=False)
+                            #if not test_mode:
+                                #step_edges = auto_detect_edges(imgInfo[1], step_edge_input, show_plots=False)
 
                             first_scan = 0
 
                         else:
+                            
                             litho_detect_input = {
                                 "img_width": int( scan_settings["@pixelsX"] ),
                                 "img_height": int( scan_settings["@pixelsY"] ),
@@ -581,7 +637,58 @@ def handle_client(client_socket: socket.socket) -> None:
                                 "patterned": patterned,
                                 "dzdx": dzdx,
                                 "dzdy": dzdy,
-                                "overlap": True
+                                "overlap": 1
+                            }
+                            
+                            if (long_offset == 1):
+                                litho_detect_input["overlap"] = 2
+                            
+                            #apply scan settings
+                            stm.ref_command(scan_control_ID, 'applyNoThread')
+                            #time.sleep(20)
+                            for i in tqdm(range(100)):
+                                time.sleep(settle_time_short/100.0) 
+                            
+                            print("determining overlapping region scan settings...")
+                            new_scan_settings_x, new_scan_settings_y, new_x_scale, new_y_scale = auto_get_overlapping_region_scan_settings(litho_detect_input)
+                    
+                            r = R.from_rotvec( (theta*np.pi/180)*np.array([0.0,0.0,1.0]) )
+                            [overlap_x,overlap_y,overlap_z] = r.apply([new_scan_settings_x+x_offset,new_scan_settings_y+y_offset,0]) + np.array([x0,y0,0])
+                            
+                            print("setting window to overlapping region...")
+                            #move scan region
+                            stm.setWindowPosition( (overlap_x, overlap_y) )
+                            print("settling...")
+                            #time.sleep(20)
+                            for i in tqdm(range(100)):
+                                time.sleep(settle_time_short/100.0)
+                                
+                            #apply scan settings
+                            stm.setWindowSize( (new_x_scale, new_y_scale) )
+                            new_angle = float( scan_settings["@angle"] ) + theta
+                            #stm.setWindowAngle( int(new_angle) ) # not working rn
+                            #time.sleep(60)
+                            for i in tqdm(range(100)):
+                                time.sleep(settle_time_long/100.0) 
+                                
+                            #acquire the pre-litho overlapping region image
+                            imgInfo = util.getNewImage() 
+                            #imgInfo = [0,np.ones((int( scan_settings["@pixelsY"] ), int( scan_settings["@pixelsX"] )), dtype=np.float64)]                           
+                            
+                            litho_detect_input = {
+                                "img_width": int( scan_settings["@pixelsX"] ),
+                                "img_height": int( scan_settings["@pixelsY"] ),
+                                "scan_settings_x": float( new_scan_settings_x ),
+                                "scan_settings_y": float( new_scan_settings_y ),
+                                "img_scale_x": float( new_x_scale ),
+                                "img_scale_y": float( new_y_scale ),
+                                "scan_settings_angle": float( scan_settings["@angle"] ),
+                                "litho_img": True,
+                                "gds_path": gds_path, 
+                                "patterned": patterned,
+                                "dzdx": dzdx,
+                                "dzdy": dzdy,
+                                "overlap": 1
                             }
 
                             # ******** update patterned to earse gds array to be checked in detect litho function
@@ -592,7 +699,7 @@ def handle_client(client_socket: socket.socket) -> None:
                                 y_offset_curr = 0
                             else:
                             	#detect litho: returns img array of where litho is detected & boolean pass/fail
-                            	detected_litho, pass_litho, patterned, x_offset_curr, y_offset_curr = auto_detect_edges(imgInfo[1], litho_detect_input, show_plots=False)
+                                detected_litho, pass_litho, patterned, x_offset_curr, y_offset_curr = auto_detect_edges(imgInfo[1], litho_detect_input, show_plots=False)
                             
                             print("pass_litho:")
                             print(pass_litho)
@@ -623,8 +730,8 @@ def handle_client(client_socket: socket.socket) -> None:
                                     print("A large offset is about to occur.")
                                     print("    1 - Continue script with automated offset")
                                     print("    2 - Continue script without automated offset")
-                                    print("    3 - Change x and y position manually (TODO)")
-                                    print("    4 - Re-image and detect litho (TODO)")
+                                    print("    3 - Change x and y position manually (BETA - testing only)")
+                                    print("    4 - Re-image and detect litho (BETA - testing only)")
                                     print("Else - terminate script to stop [ctrl-Break]")
                                     number_input = input("Input: ")
                                     number_input_int = int(number_input)
@@ -643,6 +750,19 @@ def handle_client(client_socket: socket.socket) -> None:
                                         #time.sleep(20)
                                         for i in tqdm(range(100)):
                                             time.sleep(0.2) 
+                                    elif ( number_input_int == 2 ):
+                                        xT = float( scan_settings["@x"] )
+                                        yT = float( scan_settings["@y"] )
+                                        r = R.from_rotvec( (theta*np.pi/180)*np.array([0.0,0.0,1.0]) )                  
+                                        [x,y,z] = r.apply([xT+x_offset,yT+y_offset,0]) + np.array([x0,y0,0])
+                                        stm.setWindowPosition( (x, y) )
+                                        print("new x,y:")
+                                        print(x)
+                                        print(y)
+                                        print("settling...")
+                                        #time.sleep(20)
+                                        for i in tqdm(range(100)):
+                                            time.sleep(settle_time_short/100.0) 
                                     elif ( number_input_int == 3 ):
                                         x_input = input("x position: ")
                                         x_input_int = int(x_input)
@@ -658,7 +778,7 @@ def handle_client(client_socket: socket.socket) -> None:
                                         stm.ref_command(scan_control_ID, 'apply')
                                         #time.sleep(20)
                                         for i in tqdm(range(100)):
-                                            time.sleep(0.2) 
+                                            time.sleep(settle_time_short/100.0) 
                                         
                                         #acquire the pre-litho image
                                         imgInfo = util.getNewImage() 
@@ -690,6 +810,12 @@ def handle_client(client_socket: socket.socket) -> None:
                                                 time.sleep(0.2) 
                                             number_input = 2
                                         
+                            
+                        #apply scan settings
+                        stm.ref_command(scan_control_ID, 'applyNoThread')
+                        #time.sleep(20)
+                        for i in tqdm(range(100)):
+                            time.sleep(settle_time_short/100.0) 
                         
                         #write the pattern
                         stm.ref_command(litho_control_ID, 'litho')
@@ -701,6 +827,9 @@ def handle_client(client_socket: socket.socket) -> None:
                             print('.', end='',flush=True)
                         print()
                         print('done with litho')
+                        
+                        with open("tmp/last_scan_ID.txt", "w") as file:
+                            file.write(f"{xT}\n{yT}")
 						
                         #acquire the post-litho image
                         #imgInfo = util.getNewImage()
